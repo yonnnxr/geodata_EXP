@@ -1,3 +1,4 @@
+console.log('Script carregado!');
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
