@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mapa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/map.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <!-- <link rel="icon" href="img/cau.jpg" type="image/jpg" /> -->
+</head>
+<body>
+
+    <button id="menu-toggle" class="menu-toggle">☰</button>
+
+    <div id="sidebar">
+        <button id="close-btn" class="close-btn">×</button>
+        <h2>Camadas</h2>
+        <div class="layer-toggle">
+            <input type="checkbox" id="toggleRedes" checked />
+            <label for="toggleRedes">Redes de Água</label>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div id="loadingMessage">Carregando...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
