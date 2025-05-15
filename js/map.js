@@ -23,7 +23,7 @@ document.getElementById('loadingMessage').style.display = 'block';
 // Recupera o token do localStorage
 const token = localStorage.getItem('token');
 
-fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
+fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
     method: 'GET',
     headers: {
         'Authorization': `Bearer ${token}`,
