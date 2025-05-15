@@ -1,4 +1,4 @@
-const map = L.map('map').setView([-22.223, -54.812], 12);
+const map = L.map('map');
 
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
@@ -46,10 +46,16 @@ if (token) {
                 style: { color: 'blue', weight: 3 },
                 onEachFeature: (feature, layer) => {
                     console.log("Feature Properties:", feature.properties);
-                    // ... o restante da sua função onEachFeature ...
+                    // ...função onEachFeature ...
                 }
             });
-            map.addLayer(redesLayer);
+            redesLayer.addTo(map);
+            if (geojsonData.features && geojsonData.features.length > 0) {
+                map.fitBounds(redesLayer.getBounds());
+            } else {
+                map.setView([-20.4695, -54.6052], 13);
+                console.warn("Nenhum feature encontrado no GeoJSON, definindo centro padrão.");
+            }
             document.getElementById('loadingMessage').style.display = 'none';
         } catch (error) {
             console.error("Erro ao fazer o parse do JSON:", error);
