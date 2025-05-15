@@ -20,16 +20,20 @@ let redesLayer;
 
 document.getElementById('loadingMessage').style.display = 'block';
 
-// Use a mesma chave 'authToken' para recuperar o token
 const token = localStorage.getItem('authToken');
+if (token):
+    fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+else {
+    console.warn('Token não encontrado, talvez o usuário não esteja logado.');
+    window.location.href = 'login.html';
+}
 
-fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    }
-})
 .then(res => {
     if (!res.ok) {
         throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
