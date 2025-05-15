@@ -4,20 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageDiv = document.getElementById('error-message');
 
     loginForm.addEventListener('submit', async (event) => {
-        console.log('Formulário de login enviado!'); // Verifique se o listener está funcionando
+        console.log('Formulário de login enviado!');
         event.preventDefault();
-        console.log('preventDefault() chamado!'); // Verifique se o preventDefault está funcionando
+        console.log('preventDefault() chamado!');
 
-        const regionalIdInput = document.getElementById('regional_id');
+        const cidadeInput = document.getElementById('regional_id'); 
         const passwordInput = document.getElementById('password');
 
-        const regional_id = regionalIdInput.value.trim();
+        const cidade = cidadeInput.value.trim();
         const password = passwordInput.value.trim();
 
-        console.log('ID da Regional:', regional_id);
+        console.log('Cidade:', cidade);
         console.log('Senha:', password);
 
-        if (!regional_id || !password) {
+        if (!cidade || !password) {
             errorMessageDiv.textContent = 'Por favor, preencha todos os campos.';
             errorMessageDiv.style.display = 'block';
             return;
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ regional_id, password }),
+                body: JSON.stringify({ cidade, password }),
             });
             console.log('Resposta recebida:', response);
             const data = await response.json();
