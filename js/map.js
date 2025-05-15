@@ -20,7 +20,7 @@ let redesLayer;
 
 document.getElementById('loadingMessage').style.display = 'block';
 
-fetch('https://api-geo-ymve.onrender.com/redes_agua')
+fetch('https://api-geo-ymve.onrender.com/geodata_regional')
     .then(res => res.json())
     .then(data => {
         redesLayer = L.geoJSON(data, {
