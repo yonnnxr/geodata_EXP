@@ -20,27 +20,41 @@ let redesLayer;
 
 document.getElementById('loadingMessage').style.display = 'block';
 
-fetch('https://api-geo-ymve.onrender.com/geodata_regional')
-    .then(res => res.json())
-    .then(data => {
-        redesLayer = L.geoJSON(data, {
-            style: { color: 'blue', weight: 3 },
-            onEachFeature: (feature, layer) => {
-                let popup = '';
-                for (const key in feature.properties) {
-                    popup += `<strong>${key}</strong>: ${feature.properties[key]}<br>`;
-                }
-                layer.bindPopup(popup);
+// Recupera o token do localStorage
+const token = localStorage.getItem('token');
+
+fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
+    method: 'GET',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    }
+})
+.then(res => {
+    if (!res.ok) {
+        throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
+    }
+    return res.json();
+})
+.then(data => {
+    redesLayer = L.geoJSON(data, {
+        style: { color: 'blue', weight: 3 },
+        onEachFeature: (feature, layer) => {
+            let popup = '';
+            for (const key in feature.properties) {
+                popup += `<strong>${key}</strong>: ${feature.properties[key]}<br>`;
             }
-        });
-        map.addLayer(redesLayer);
-        document.getElementById('loadingMessage').style.display = 'none';
-    })
-    .catch(err => {
-        alert("Erro ao carregar dados da API de redes de água.");
-        document.getElementById('loadingMessage').style.display = 'none';
-        console.error("Erro ao carregar redes de água:", err);
+            layer.bindPopup(popup);
+        }
     });
+    map.addLayer(redesLayer);
+    document.getElementById('loadingMessage').style.display = 'none';
+})
+.catch(err => {
+    alert("Erro ao carregar dados do mapa.");
+    document.getElementById('loadingMessage').style.display = 'none';
+    console.error("Erro ao carregar dados do mapa:", err);
+});
 
 document.getElementById('toggleRedes').addEventListener('change', function () {
     if (this.checked && redesLayer) {
