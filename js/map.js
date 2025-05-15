@@ -31,35 +31,37 @@ if (token) {
         }
     })
     .then(res => {
-    if (!res.ok) {
-        throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
-    }
-    return res.text();
-})
-.then(data => {
-    console.log("Dados recebidos da API (texto):", data);
-    try {
-        const geojsonData = JSON.parse(data);
-        console.log("Dados parseados para JSON:", geojsonData);
-        redesLayer = L.geoJSON(geojsonData, {
-            style: { color: 'blue', weight: 3 },
-            onEachFeature: (feature, layer) => {
-                // ...
-            }
-        });
-        map.addLayer(redesLayer);
+        if (!res.ok) {
+            throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
+        }
+        return res.text();
+    })
+    .then(data => {
+        console.log("Dados recebidos da API (texto):", data);
+        try {
+            const geojsonData = JSON.parse(data);
+            console.log("Dados parseados para JSON:", geojsonData);
+            console.log("Primeiro Feature:", geojsonData.features ? geojsonData.features[0] : 'Nenhum feature encontrado');
+            redesLayer = L.geoJSON(geojsonData, {
+                style: { color: 'blue', weight: 3 },
+                onEachFeature: (feature, layer) => {
+                    console.log("Feature Properties:", feature.properties);
+                    // ... o restante da sua função onEachFeature ...
+                }
+            });
+            map.addLayer(redesLayer);
+            document.getElementById('loadingMessage').style.display = 'none';
+        } catch (error) {
+            console.error("Erro ao fazer o parse do JSON:", error);
+            alert("Erro ao processar dados do mapa (JSON inválido).");
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+    })
+    .catch(err => {
+        alert("Erro ao carregar dados do mapa.");
         document.getElementById('loadingMessage').style.display = 'none';
-    } catch (error) {
-        console.error("Erro ao fazer o parse do JSON:", error);
-        alert("Erro ao processar dados do mapa (JSON inválido).");
-        document.getElementById('loadingMessage').style.display = 'none';
-    }
-})
-.catch(err => {
-    alert("Erro ao carregar dados do mapa.");
-    document.getElementById('loadingMessage').style.display = 'none';
-    console.error("Erro ao carregar dados do mapa:", err);
-});
+        console.error("Erro ao carregar dados do mapa:", err);
+    });
 } else {
     console.warn('Token não encontrado, talvez o usuário não esteja logado.');
     window.location.href = 'login.html';
