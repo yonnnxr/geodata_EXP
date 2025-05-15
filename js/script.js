@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         console.log('preventDefault() chamado!');
 
-        const cidadeInput = document.getElementById('regional_id'); 
+        const cidadeInput = document.getElementById('regional_id');
         const passwordInput = document.getElementById('password');
 
         const cidade = cidadeInput.value.trim();
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 localStorage.setItem('authToken', data.token);
+                console.log('Token armazenado:', data.token); // Adicionado este log
                 window.location.href = 'map.html';
                 console.log('Login bem-sucedido, redirecionando.');
             } else {
