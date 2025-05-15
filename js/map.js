@@ -64,7 +64,7 @@ if (token) {
     });
 } else {
     console.warn('Token não encontrado, talvez o usuário não esteja logado.');
-    window.location.href = 'login.html';
+    window.location.href = 'Login.html';
 }
 
 document.getElementById('toggleRedes').addEventListener('change', function () {

@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 localStorage.setItem('authToken', data.token);
-                console.log('Token armazenado:', data.token); // Adicionado este log
+                console.log('Token armazenado:', data.token);
                 window.location.href = 'map.html';
                 console.log('Login bem-sucedido, redirecionando.');
             } else {
