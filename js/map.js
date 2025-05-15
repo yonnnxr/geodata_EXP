@@ -20,10 +20,10 @@ let redesLayer;
 
 document.getElementById('loadingMessage').style.display = 'block';
 
-// Recupera o token do localStorage
-const token = localStorage.getItem('token');
+// Use a mesma chave 'authToken' para recuperar o token
+const token = localStorage.getItem('authToken');
 
-fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
+fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
     method: 'GET',
     headers: {
         'Authorization': `Bearer ${token}`,
