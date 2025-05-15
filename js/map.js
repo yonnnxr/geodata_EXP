@@ -21,6 +21,7 @@ let redesLayer;
 document.getElementById('loadingMessage').style.display = 'block';
 
 const token = localStorage.getItem('authToken');
+console.log('Token no map.js:', token);
 if (token) {
     fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
         method: 'GET',
