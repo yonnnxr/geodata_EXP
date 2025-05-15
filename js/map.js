@@ -23,7 +23,7 @@ document.getElementById('loadingMessage').style.display = 'block';
 const token = localStorage.getItem('authToken');
 console.log('Token no map.js:', token);
 if (token) {
-    fetch('https://api-geo-ymve.onrender.com/geodata_regional', {
+    fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
