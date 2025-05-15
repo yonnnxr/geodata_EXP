@@ -46,10 +46,10 @@ if (token) {
                 style: { color: 'blue', weight: 3 },
                 onEachFeature: (feature, layer) => {
                     console.log("Feature Properties:", feature.properties);
-                    // ...função onEachFeature ...
+                    //função onEachFeature
                 }
             });
-            redesLayer.addTo(map);
+            redesLayer.addTo(map)
             if (geojsonData.features && geojsonData.features.length > 0) {
                 map.fitBounds(redesLayer.getBounds());
             } else {
@@ -94,3 +94,5 @@ closeBtn.addEventListener('click', () => {
     sidebar.classList.remove('open');
     menuToggle.style.display = 'block';
 });
+
+L.streetView().addTo(map); // Adiciona o controle Street View
