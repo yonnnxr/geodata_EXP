@@ -1,38 +1,22 @@
-const map = L.map('map').setView([-20.4695, -54.6052], 13);
+const map = L.map('map');
 
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap',
-  maxZoom: 19
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
 }).addTo(map);
 
 const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/' +
-  'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  attribution: '© Esri',
-  maxZoom: 19
+    'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri',
+    maxZoom: 19
 });
 
 L.control.layers({
-  "Mapa": osmLayer,
-  "Satélite": satelliteLayer
+    "Mapa": osmLayer,
+    "Satélite": satelliteLayer
 }).addTo(map);
 
-const sidebar = document.getElementById('sidebar');
-const menuToggle = document.getElementById('menu-toggle');
-const closeBtn = document.getElementById('close-btn');
-
-menuToggle.addEventListener('click', () => {
-  sidebar.classList.add('open');
-  menuToggle.style.display = 'none';
-});
-
-closeBtn.addEventListener('click', () => {
-  sidebar.classList.remove('open');
-  menuToggle.style.display = 'block';
-});
-
 let redesLayer;
-let streetViewMode = false;
-let pegmanMarker = null;
 
 document.getElementById('loadingMessage').style.display = 'block';
 
@@ -40,101 +24,159 @@ const token = localStorage.getItem('authToken');
 console.log('Token no map.js:', token);
 
 if (token) {
-  fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-  .then(res => {
-    if (!res.ok) {
-      throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
-    }
-    return res.json();
-  })
-  .then(geojsonData => {
-    redesLayer = L.geoJSON(geojsonData, {
-      style: { color: 'blue', weight: 3 },
-      onEachFeature: (feature, layer) => {
-        layer.bindPopup(`ID: ${feature.properties.id || 'Sem informação'}`);
-      }
-    }).addTo(map);
+    fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
+        }
+        return res.text();
+    })
+    .then(data => {
+        console.log("Dados recebidos da API (texto):", data);
+        try {
+            const geojsonData = JSON.parse(data);
+            console.log("Dados parseados para JSON:", geojsonData);
+            redesLayer = L.geoJSON(geojsonData, {
+                style: { color: 'blue', weight: 3 },
+                onEachFeature: (feature, layer) => {
+                    if (feature.properties && feature.properties.nome) {
+                        layer.bindPopup(feature.properties.nome);
+                    }
+                }
+            });
+            redesLayer.addTo(map);
 
-    if (geojsonData.features.length > 0) {
-      map.fitBounds(redesLayer.getBounds());
-    }
+            if (geojsonData.features && geojsonData.features.length > 0) {
+                map.fitBounds(redesLayer.getBounds());
+            } else {
+                map.setView([-20.4695, -54.6052], 13);
+                console.warn("Nenhum feature encontrado no GeoJSON, definindo centro padrão.");
+            }
 
-    document.getElementById('loadingMessage').style.display = 'none';
-  })
-  .catch(err => {
-    console.error("Erro ao carregar dados do mapa:", err);
-    alert("Erro ao carregar dados do mapa.");
-    document.getElementById('loadingMessage').style.display = 'none';
-  });
+            document.getElementById('loadingMessage').style.display = 'none';
+        } catch (error) {
+            console.error("Erro ao fazer o parse do JSON:", error);
+            alert("Erro ao processar dados do mapa (JSON inválido).");
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+    })
+    .catch(err => {
+        alert("Erro ao carregar dados do mapa.");
+        document.getElementById('loadingMessage').style.display = 'none';
+        console.error("Erro ao carregar dados do mapa:", err);
+    });
 } else {
-  console.warn('Token não encontrado. Redirecionando...');
-  window.location.href = 'Login.html';
+    console.warn('Token não encontrado, talvez o usuário não esteja logado.');
+    window.location.href = 'Login.html';
 }
 
 document.getElementById('toggleRedes').addEventListener('change', function () {
-  if (this.checked && redesLayer) {
-    map.addLayer(redesLayer);
-  } else if (redesLayer) {
-    map.removeLayer(redesLayer);
-  }
+    if (this.checked && redesLayer) {
+        map.addLayer(redesLayer);
+    } else if (redesLayer) {
+        map.removeLayer(redesLayer);
+    }
 });
+
+const sidebar = document.getElementById('sidebar');
+const menuToggle = document.getElementById('menu-toggle');
+const closeBtn = document.getElementById('close-btn');
+
+menuToggle.addEventListener('click', () => {
+    sidebar.classList.add('open');
+    menuToggle.style.display = 'none';
+});
+
+closeBtn.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    menuToggle.style.display = 'block';
+});
+
+
+let choosingStreetView = false;
+let streetViewMarker = null;
+
+const streetviewPanel = document.createElement('div');
+streetviewPanel.id = 'streetview-panel';
+streetviewPanel.style.position = 'absolute';
+streetviewPanel.style.bottom = '10px';
+streetviewPanel.style.left = '10px';
+streetviewPanel.style.width = '400px';
+streetviewPanel.style.height = '300px';
+streetviewPanel.style.border = '2px solid #ccc';
+streetviewPanel.style.backgroundColor = 'white';
+streetviewPanel.style.zIndex = '1000';
+streetviewPanel.style.display = 'none';
+streetviewPanel.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+streetviewPanel.innerHTML = `
+    <button id="close-streetview" style="position:absolute; top:5px; right:5px; z-index:10; cursor:pointer;">✖</button>
+    <iframe id="streetview-iframe" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>
+`;
+document.body.appendChild(streetviewPanel);
+
+document.getElementById('close-streetview').onclick = () => {
+    streetviewPanel.style.display = 'none';
+    document.getElementById('streetview-iframe').src = '';
+    if (streetViewMarker) {
+        map.removeLayer(streetViewMarker);
+        streetViewMarker = null;
+    }
+};
 
 const streetViewControl = L.control({ position: 'topleft' });
 
 streetViewControl.onAdd = function () {
-  const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-  div.innerHTML = `
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png"
-         alt="Street View"
-         style="width: 26px; height: 26px; cursor: pointer;"
-         title="Clique para ativar o Street View">`;
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">';
+    
+    div.onclick = () => {
+        choosingStreetView = true;
+        alert('Clique no mapa para escolher o local do Street View.');
+    };
 
-  div.onclick = function () {
-    streetViewMode = true;
-    map._container.style.cursor = 'crosshair';
-    alert("Clique no local do mapa onde deseja abrir o Street View.");
-  };
-
-  return div;
+    return div;
 };
 
 streetViewControl.addTo(map);
 
+map.on('click', function(e) {
+    if (!choosingStreetView) return;
 
-map.on('click', function (e) {
-  if (!streetViewMode) return;
+    choosingStreetView = false;
 
-  const { lat, lng } = e.latlng;
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
 
-  if (pegmanMarker) {
-    map.removeLayer(pegmanMarker);
-  }
+    if (streetViewMarker) {
+        map.removeLayer(streetViewMarker);
+        streetViewMarker = null;
+    }
 
-  const pegmanIcon = L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-  });
+    const pegmanIcon = L.icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+    streetViewMarker = L.marker([lat, lng], { icon: pegmanIcon })
+        .addTo(map)
+        .bindPopup('Street View aberto aqui!')
+        .openPopup();
 
-  pegmanMarker = L.marker([lat, lng], { icon: pegmanIcon })
-    .addTo(map)
-    .bindPopup("Street View aqui")
-    .openPopup();
+    // Atualiza iframe com URL do Street View Embed da Google
+    const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
+    const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
 
-  const iframe = document.getElementById('streetViewFrame');
-  const container = document.getElementById('streetViewContainer');
-  const url = `https://www.google.com/maps/embed?pb=!4v0!6m8!1m7!1sCAoSLEFGMVFpcE1JUnZ1Z19vYVZYVGRhU25WeUtUeXRqUDFoYVZjQjE1cUVEaHJB!2m2!1d${lat}!2d${lng}!3f0!4f0!5f1.1924812503605782`;
+    const iframe = document.getElementById('streetview-iframe');
+    iframe.src = streetViewUrl;
 
-  iframe.src = url;
-  container.style.display = 'block';
+    streetviewPanel.style.display = 'block';
 
-  streetViewMode = false;
-  map._container.style.cursor = '';
+    map.setView([lat, lng], 18);
 });
