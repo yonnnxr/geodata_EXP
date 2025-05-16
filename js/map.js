@@ -104,19 +104,28 @@ streetViewControl.onAdd = function (map) {
     
     div.onclick = function () {
         const center = map.getCenter();
-        const lat = center.lat;
-        const lng = center.lng;
+    
+        if (window.streetViewMarker) {
+            map.removeLayer(window.streetViewMarker);
+        }
 
-        const container = document.getElementById('streetViewContainer');
-        container.style.display = 'block'; // Exibe a caixa
-        const panorama = new google.maps.StreetViewPanorama(container, {
-            position: { lat, lng },
-            pov: {
-                heading: 0,
-                pitch: 0
-            },
-            zoom: 1
+        const pegmanIcon = L.icon({
+            iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
         });
+    
+        window.streetViewMarker = L.marker(center, { icon: pegmanIcon })
+            .addTo(map)
+            .bindPopup("Abrindo Street View aqui...")
+            .openPopup();
+    
+        L.streetView({
+            position: center,
+            pov: { heading: 0, pitch: 0 },
+            zoom: 1
+        }).addTo(map);
     };
 
     return div;
