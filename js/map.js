@@ -1,4 +1,3 @@
-
 const map = L.map('map');
 
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -23,6 +22,7 @@ document.getElementById('loadingMessage').style.display = 'block';
 
 const token = localStorage.getItem('authToken');
 console.log('Token no map.js:', token);
+
 if (token) {
     fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
         method: 'GET',
@@ -42,12 +42,11 @@ if (token) {
         try {
             const geojsonData = JSON.parse(data);
             console.log("Dados parseados para JSON:", geojsonData);
-            console.log("Primeiro Feature:", geojsonData.features ? geojsonData.features[0] : 'Nenhum feature encontrado');
             redesLayer = L.geoJSON(geojsonData, {
                 style: { color: 'blue', weight: 3 },
                 onEachFeature: (feature, layer) => {
                     console.log("Feature Properties:", feature.properties);
-                    // ...função onEachFeature ...
+                    //implementar
                 }
             });
             redesLayer.addTo(map);
@@ -96,18 +95,15 @@ closeBtn.addEventListener('click', () => {
     menuToggle.style.display = 'block';
 });
 
+
 const streetViewControl = L.control({ position: 'topleft' });
 
 streetViewControl.onAdd = function (map) {
     const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" style="width: 26px; height: 26px; cursor: pointer;" title="Abrir Street View">';
-    
+    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" style="width: 26px; height: 26px; cursor: pointer;" title="Clique para escolher local do Street View">';
+
     div.onclick = function () {
-        const center = map.getCenter();
-    
-        if (window.streetViewMarker) {
-            map.removeLayer(window.streetViewMarker);
-        }
+        alert('Clique no mapa para escolher o local do Street View.');
 
         const pegmanIcon = L.icon({
             iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
@@ -115,17 +111,31 @@ streetViewControl.onAdd = function (map) {
             iconAnchor: [16, 32],
             popupAnchor: [0, -32]
         });
-    
-        window.streetViewMarker = L.marker(center, { icon: pegmanIcon })
-            .addTo(map)
-            .bindPopup("Abrindo Street View aqui...")
-            .openPopup();
-    
-        L.streetView({
-            position: center,
-            pov: { heading: 0, pitch: 0 },
-            zoom: 1
-        }).addTo(map);
+
+        if (window.streetViewMarker) {
+            map.removeLayer(window.streetViewMarker);
+            window.streetViewMarker = null;
+        }
+
+        function onMapClick(e) {
+            const latlng = e.latlng;
+
+            map.off('click', onMapClick);
+
+            window.streetViewMarker = L.marker(latlng, { icon: pegmanIcon })
+                .addTo(map)
+                .bindPopup("Street View aberto aqui!")
+                .openPopup();
+
+
+            L.streetView({
+                position: latlng,
+                pov: { heading: 0, pitch: 0 },
+                zoom: 1
+            }).addTo(map);
+        }
+
+        map.on('click', onMapClick);
     };
 
     return div;
