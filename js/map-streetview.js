@@ -22,7 +22,7 @@ streetViewControl.onAdd = function () {
     div.innerHTML = `<img src="https://w7.pngwing.com/pngs/275/833/png-transparent-google-maps-geolocation-google-street-view-google-thumbnail.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
 
     div.onclick = (e) => {
-        e.stopPropagation();  // <== Aqui!
+        e.stopPropagation();
         choosingStreetView = true;
         showMessage('Clique no mapa para escolher o local do Street View.');
     };
