@@ -1,5 +1,24 @@
 const map = L.map('map');
 
+const streetViewControl = L.control({ position: 'topleft' });
+
+streetViewControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" style="width: 26px; height: 26px; cursor: pointer;" title="Ativar Street View">';
+    
+    div.onclick = function () {
+        const center = map.getCenter();
+        L.streetView({
+            position: center,
+            pov: { heading: 0, pitch: 0 },
+            zoom: 1
+        }).addTo(map);
+    };
+
+    return div;
+};
+
+streetViewControl.addTo(map);
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
     maxZoom: 19
