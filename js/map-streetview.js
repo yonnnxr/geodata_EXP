@@ -21,7 +21,8 @@ streetViewControl.onAdd = function () {
     const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
     div.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
 
-    div.onclick = () => {
+    div.onclick = (e) => {
+        e.stopPropagation(); // Impede que o clique propague para o mapa
         choosingStreetView = true;
         showMessage('Clique no mapa para escolher o local do Street View.');
     };
@@ -31,7 +32,7 @@ streetViewControl.onAdd = function () {
 
 streetViewControl.addTo(map);
 
-map.on('click', function(e) {
+map.on('click', function (e) {
     if (!choosingStreetView) return;
 
     choosingStreetView = false;
