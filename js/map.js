@@ -1,29 +1,5 @@
 const map = L.map('map');
 
-const streetViewControl = L.control({ position: 'topleft' });
-
-streetViewControl.onAdd = function (map) {
-    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" style="width: 26px; height: 26px; cursor: pointer;" title="Ativar Street View">';
-
-    div.onclick = function () {
-        const center = map.getCenter();
-        if (typeof L.streetView === "function") {
-            L.streetView({
-                position: center,
-                pov: { heading: 0, pitch: 0 },
-                zoom: 1
-            }).addTo(map);
-        } else {
-            alert("Plugin de Street View não está disponível.");
-        }
-    };
-
-    return div;
-};
-
-streetViewControl.addTo(map);
-
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
     maxZoom: 19
@@ -46,7 +22,6 @@ document.getElementById('loadingMessage').style.display = 'block';
 
 const token = localStorage.getItem('authToken');
 console.log('Token no map.js:', token);
-
 if (token) {
     fetch('https://api-geodata-exp.onrender.com/geodata_regional', {
         method: 'GET',
@@ -56,34 +31,35 @@ if (token) {
         }
     })
     .then(res => {
-        if (!res.ok) throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
+        if (!res.ok) {
+            throw new Error(`Erro ao carregar dados do mapa: ${res.status}`);
+        }
         return res.text();
     })
     .then(data => {
+        console.log("Dados recebidos da API (texto):", data);
         try {
             const geojsonData = JSON.parse(data);
-            if (geojsonData.features && geojsonData.features.length > 0) {
-                redesLayer = L.geoJSON(geojsonData, {
-                    style: { color: 'blue', weight: 3 },
-                    onEachFeature: (feature, layer) => {
-                        console.log("Feature Properties:", feature.properties);
-                    }
-                }).addTo(map);
-
-                const bounds = redesLayer.getBounds();
-                if (bounds.isValid()) {
-                    map.fitBounds(bounds);
-                } else {
-                    throw new Error("Bounds inválidos.");
+            console.log("Dados parseados para JSON:", geojsonData);
+            console.log("Primeiro Feature:", geojsonData.features ? geojsonData.features[0] : 'Nenhum feature encontrado');
+            redesLayer = L.geoJSON(geojsonData, {
+                style: { color: 'blue', weight: 3 },
+                onEachFeature: (feature, layer) => {
+                    console.log("Feature Properties:", feature.properties);
+                    // ...função onEachFeature ...
                 }
+            });
+            redesLayer.addTo(map);
+            if (geojsonData.features && geojsonData.features.length > 0) {
+                map.fitBounds(redesLayer.getBounds());
             } else {
                 map.setView([-20.4695, -54.6052], 13);
                 console.warn("Nenhum feature encontrado no GeoJSON, definindo centro padrão.");
             }
             document.getElementById('loadingMessage').style.display = 'none';
         } catch (error) {
-            console.error("Erro ao fazer o parse do JSON ou nos bounds:", error);
-            alert("Erro ao processar dados do mapa.");
+            console.error("Erro ao fazer o parse do JSON:", error);
+            alert("Erro ao processar dados do mapa (JSON inválido).");
             document.getElementById('loadingMessage').style.display = 'none';
         }
     })
