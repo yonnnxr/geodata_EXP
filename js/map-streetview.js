@@ -1,6 +1,20 @@
 let choosingStreetView = false;
 let streetViewMarker = null;
 
+function showMessage(text, duration = 3000) {
+    const box = document.getElementById('message-box');
+    if (!box) return;
+    box.textContent = text;
+    box.style.display = 'block';
+
+    setTimeout(() => {
+        box.style.display = 'none';
+    }, duration);
+}
+
+const streetviewPanel = document.getElementById('streetview-panel');
+const iframe = document.getElementById('streetview-iframe');
+
 const streetViewControl = L.control({ position: 'topleft' });
 
 streetViewControl.onAdd = function () {
@@ -9,7 +23,7 @@ streetViewControl.onAdd = function () {
 
     div.onclick = () => {
         choosingStreetView = true;
-        alert('Clique no mapa para escolher o local do Street View.');
+        showMessage('Clique no mapa para escolher o local do Street View.');
     };
 
     return div;
@@ -21,6 +35,7 @@ map.on('click', function(e) {
     if (!choosingStreetView) return;
 
     choosingStreetView = false;
+
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
@@ -44,11 +59,17 @@ map.on('click', function(e) {
     const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
     const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
 
-    const iframe = document.getElementById('streetview-iframe');
     iframe.src = streetViewUrl;
-
-    const streetviewPanel = document.getElementById('streetview-panel');
     streetviewPanel.style.display = 'block';
 
     map.setView([lat, lng], 18);
 });
+
+document.getElementById('close-streetview').onclick = () => {
+    streetviewPanel.style.display = 'none';
+    iframe.src = '';
+    if (streetViewMarker) {
+        map.removeLayer(streetViewMarker);
+        streetViewMarker = null;
+    }
+};
