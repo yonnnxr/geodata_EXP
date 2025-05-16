@@ -22,7 +22,7 @@ streetViewControl.onAdd = function () {
     div.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
 
     div.onclick = (e) => {
-        e.stopPropagation(); // Impede que o clique propague para o mapa
+        e.stopPropagation();  // <== Aqui!
         choosingStreetView = true;
         showMessage('Clique no mapa para escolher o local do Street View.');
     };
