@@ -5,7 +5,7 @@ const streetViewControl = L.control({ position: 'topleft' });
 
 streetViewControl.onAdd = function () {
     const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">';
+    div.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
 
     div.onclick = () => {
         choosingStreetView = true;
@@ -20,8 +20,7 @@ streetViewControl.addTo(map);
 map.on('click', function(e) {
     if (!choosingStreetView) return;
 
-    choosingStreetView = false; 
-
+    choosingStreetView = false;
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
@@ -29,6 +28,7 @@ map.on('click', function(e) {
         map.removeLayer(streetViewMarker);
         streetViewMarker = null;
     }
+
     const pegmanIcon = L.icon({
         iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
         iconSize: [32, 32],
@@ -41,11 +41,9 @@ map.on('click', function(e) {
         .bindPopup('Street View aberto aqui!')
         .openPopup();
 
-    // Monta URL do Street View Embed
     const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
     const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
 
-    // Atualiza iframe e mostra painel
     const iframe = document.getElementById('streetview-iframe');
     iframe.src = streetViewUrl;
 
