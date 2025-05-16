@@ -11,6 +11,7 @@
 <body>
 
     <button id="menu-toggle" class="menu-toggle">☰</button>
+    <div id="streetViewContainer" style="display:none; position: absolute; top: 10px; right: 10px; width: 400px; height: 300px; z-index: 1000; border: 2px solid #ccc; background: #fff;"></div>
 
     <div id="sidebar">
         <button id="close-btn" class="close-btn">×</button>
@@ -23,6 +24,7 @@
     <div id="map"></div>
     <div id="loadingMessage">Carregando...</div>
 
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
     <script src="js/map.js"></script>
 </body>

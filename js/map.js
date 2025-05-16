@@ -1,3 +1,4 @@
+
 const map = L.map('map');
 
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -94,3 +95,31 @@ closeBtn.addEventListener('click', () => {
     sidebar.classList.remove('open');
     menuToggle.style.display = 'block';
 });
+
+const streetViewControl = L.control({ position: 'topleft' });
+
+streetViewControl.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    div.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Street_View_icon.svg/32px-Street_View_icon.svg.png" alt="Street View" style="width: 26px; height: 26px; cursor: pointer;" title="Abrir Street View">';
+    
+    div.onclick = function () {
+        const center = map.getCenter();
+        const lat = center.lat;
+        const lng = center.lng;
+
+        const container = document.getElementById('streetViewContainer');
+        container.style.display = 'block'; // Exibe a caixa
+        const panorama = new google.maps.StreetViewPanorama(container, {
+            position: { lat, lng },
+            pov: {
+                heading: 0,
+                pitch: 0
+            },
+            zoom: 1
+        });
+    };
+
+    return div;
+};
+
+streetViewControl.addTo(map);
