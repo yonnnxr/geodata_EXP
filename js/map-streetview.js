@@ -54,7 +54,6 @@ map.on('click', function(e) {
     streetViewMarker = L.marker([lat, lng], { icon: pegmanIcon })
         .addTo(map)
         .bindPopup('Street View aberto aqui!')
-        .openPopup();
 
     const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
     const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
