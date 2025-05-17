@@ -13,13 +13,18 @@
     <!-- Prevenção de erros 404 para favicon.ico -->
     <link rel="shortcut icon" href="img/favicon.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <button id="menu-toggle" class="menu-toggle">☰</button>
-    <button id="back-button" class="back-button" onclick="window.location.href='pagina_inicial.html'">
-      <i class="fas fa-arrow-left"></i>
-      Voltar
-    </button>
+    <nav class="map-controls">
+      <button id="menu-toggle" class="menu-toggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a href="pagina_inicial.html" id="back-button" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        <span>Voltar</span>
+      </a>
+    </nav>
     <div
       id="message-box"
       style="
@@ -88,17 +93,20 @@
       <div class="layer-info">
         <h3>Legenda</h3>
         <div class="legend-item">
-          <span class="legend-color" style="background: blue;"></span>
+          <span class="legend-color" style="background: #2196F3;"></span>
           <span>Rede de Água</span>
         </div>
         <div class="legend-item">
-          <span class="legend-color" style="background: red;"></span>
+          <span class="legend-color" style="background: #FF5252;"></span>
           <span>Outras Redes</span>
         </div>
       </div>
     </div>
     <div id="map"></div>
-    <div id="loadingMessage" class="loading-message">Carregando dados...</div>
+    <div id="loadingMessage" class="loading-message">
+      <i class="fas fa-spinner fa-spin"></i>
+      Carregando dados...
+    </div>
 
     <script
       async

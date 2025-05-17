@@ -75,39 +75,65 @@ body {
 }
 
 /* Botões e Controles */
-.back-button, .menu-toggle {
+.map-controls {
     position: absolute;
+    top: 20px;
+    left: 20px;
     z-index: 999;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.menu-toggle {
+    background: white;
+    border: none;
+    padding: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
     background: white;
     border: none;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'Poppins', sans-serif;
-}
-
-.back-button {
-    top: 20px;
-    left: 80px;
-    padding: 8px 16px;
+    color: var(--text-color);
+    text-decoration: none;
     font-size: 14px;
+    transition: var(--transition);
 }
 
-.menu-toggle {
-    top: 20px;
-    left: 20px;
-    padding: 10px;
-    font-size: 20px;
-}
-
-.back-button:hover, .menu-toggle:hover {
+.back-button:hover,
+.menu-toggle:hover {
     background: var(--light-gray);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.loading-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 15px 30px;
+    border-radius: var(--border-radius);
+    font-family: 'Poppins', sans-serif;
+}
+
+.loading-message i {
+    font-size: 20px;
 }
 
 /* Mensagens e Loading */
@@ -139,21 +165,6 @@ body {
 .message-box.info {
     background: var(--primary-color);
     color: white;
-}
-
-.loading-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
-    padding: 15px 30px;
-    border-radius: var(--border-radius);
-    font-size: 16px;
-    display: none;
-    z-index: 1000;
-    font-family: 'Poppins', sans-serif;
 }
 
 /* Sidebar */
@@ -261,15 +272,24 @@ body {
         left: -100%;
     }
 
-    .back-button {
-        left: 70px;
-        padding: 8px 12px;
-        font-size: 13px;
+    .map-controls {
+        top: 10px;
+        left: 10px;
+        gap: 8px;
     }
 
     .menu-toggle {
         padding: 8px;
         font-size: 18px;
+    }
+
+    .back-button {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .back-button span {
+        display: none;
     }
 
     .message-box {
@@ -280,7 +300,7 @@ body {
 
     .loading-message {
         width: 80%;
-        text-align: center;
+        padding: 12px 20px;
         font-size: 14px;
     }
 

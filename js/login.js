@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 localStorage.setItem('authToken', data.token);
                 console.log('Token armazenado:', data.token);
-                window.location.href = 'map.html';
+                window.location.href = 'pagina_inicial.html';
                 console.log('Login bem-sucedido, redirecionando.');
             } else {
                 errorMessageDiv.textContent = data.message || 'Erro ao fazer login.';

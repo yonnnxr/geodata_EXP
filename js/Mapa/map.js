@@ -69,28 +69,38 @@ const notifications = {
 // Validação de GeoJSON melhorada
 function isValidGeoJSON(data) {
     try {
+        // Se for string, tenta converter para objeto
         if (typeof data === 'string') {
             data = JSON.parse(data);
         }
-        
+
+        // Verificações básicas
         if (!data || typeof data !== 'object') return false;
         if (!data.type) return false;
-        if (!data.features && data.type !== 'Feature') return false;
-        
-        if (data.type === 'FeatureCollection' && !Array.isArray(data.features)) {
-            return false;
+
+        // Verifica se é uma FeatureCollection
+        if (data.type === 'FeatureCollection') {
+            if (!Array.isArray(data.features)) return false;
+            
+            // Verifica cada feature
+            return data.features.every(feature => {
+                return feature.type === 'Feature' &&
+                       feature.geometry &&
+                       typeof feature.geometry === 'object' &&
+                       feature.geometry.type &&
+                       feature.geometry.coordinates;
+            });
         }
-        
-        // Validação adicional para propriedades necessárias
-        if (data.features) {
-            return data.features.every(feature => 
-                feature.type === 'Feature' &&
-                feature.geometry &&
-                feature.properties
-            );
+
+        // Se for uma única feature
+        if (data.type === 'Feature') {
+            return data.geometry &&
+                   typeof data.geometry === 'object' &&
+                   data.geometry.type &&
+                   data.geometry.coordinates;
         }
-        
-        return true;
+
+        return false;
     } catch (e) {
         console.error('Erro na validação do GeoJSON:', e);
         return false;
@@ -107,7 +117,7 @@ function getFeatureStyle(feature) {
 
     if (!feature.properties) return defaultStyle;
 
-    switch (feature.properties.tipo) {
+    switch (feature.properties.tipo?.toLowerCase()) {
         case 'agua':
             return {
                 ...defaultStyle,
@@ -148,10 +158,19 @@ async function loadMapData(retryCount = 0) {
             throw new Error(`Erro na requisição: ${response.status}`);
         }
 
-        const data = await response.json();
+        let data;
+        const textData = await response.text();
         
+        try {
+            data = JSON.parse(textData);
+        } catch (e) {
+            console.error('Resposta da API:', textData);
+            throw new Error('Erro ao processar dados do servidor');
+        }
+
         if (!isValidGeoJSON(data)) {
-            throw new Error('Dados GeoJSON inválidos recebidos da API');
+            console.error('Dados recebidos:', data);
+            throw new Error('Formato GeoJSON inválido recebido da API');
         }
 
         // Remove camada anterior se existir
@@ -163,7 +182,7 @@ async function loadMapData(retryCount = 0) {
         redesLayer = L.geoJSON(data, {
             style: getFeatureStyle,
             onEachFeature: (feature, layer) => {
-                const props = feature.properties;
+                const props = feature.properties || {};
                 const popupContent = `
                     <div class="popup-content">
                         <h3>${props.nome || 'Sem nome'}</h3>
@@ -196,7 +215,7 @@ async function loadMapData(retryCount = 0) {
             notifications.show('Tentando reconectar...');
             setTimeout(() => loadMapData(retryCount + 1), 2000);
         } else {
-            notifications.error('Erro ao carregar dados. Tente novamente mais tarde.');
+            notifications.error(error.message);
         }
     } finally {
         document.getElementById('loadingMessage').style.display = 'none';
@@ -220,10 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 250);
     });
+
+    // Garante que o botão de voltar está visível
+    const backButton = document.getElementById('back-button');
+    if (backButton) {
+        backButton.style.display = 'flex';
+    }
 });
 
 // Toggle de camadas
-document.getElementById('toggleRedes').addEventListener('change', function(e) {
+document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
     if (redesLayer) {
         if (e.target.checked) {
             map.addLayer(redesLayer);
