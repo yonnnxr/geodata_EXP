@@ -2,16 +2,91 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Início</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoData EXP - Início</title>
+    <link rel="stylesheet" href="css/pagina_inicial.css" />
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   </head>
   <body>
-    <h1>Bem-vindo!</h1>
-    <p>Você está logado.</p>
-    <button id="go-to-map">Ir para o Mapa</button>
-    <button id="logout-btn">Sair</button>
+    <div class="container">
+      <nav class="navbar">
+        <div class="logo">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>GeoData EXP</span>
+        </div>
+        <div class="user-info">
+          <span id="userName">Carregando...</span>
+          <button id="logoutBtn" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Sair
+          </button>
+        </div>
+      </nav>
 
-    <script src="js/auth-check.js"></script>
-    <script src="js/inicio.js"></script>
+      <main class="main-content">
+        <div class="welcome-section">
+          <h1>Bem-vindo ao GeoData EXP</h1>
+          <p>Sistema de Visualização de Dados Geográficos</p>
+        </div>
+
+        <div class="cards-container">
+          <div class="card" onclick="window.location.href='map.html'">
+            <div class="card-icon">
+              <i class="fas fa-map"></i>
+            </div>
+            <h3>Visualizar Mapa</h3>
+            <p>Acesse o mapa interativo com todas as redes cadastradas</p>
+          </div>
+
+          <div class="card">
+            <div class="card-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Estatísticas</h3>
+            <p>Visualize dados estatísticos e relatórios</p>
+          </div>
+
+          <div class="card">
+            <div class="card-icon">
+              <i class="fas fa-cog"></i>
+            </div>
+            <h3>Configurações</h3>
+            <p>Configure suas preferências do sistema</p>
+          </div>
+        </div>
+
+        <div class="quick-stats">
+          <div class="stat-card">
+            <i class="fas fa-water"></i>
+            <div class="stat-info">
+              <h4>Redes de Água</h4>
+              <span id="waterNetworks">Carregando...</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-road"></i>
+            <div class="stat-info">
+              <h4>Extensão Total</h4>
+              <span id="totalLength">Carregando...</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-map-marker-alt"></i>
+            <div class="stat-info">
+              <h4>Pontos Cadastrados</h4>
+              <span id="totalPoints">Carregando...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>&copy; 2024 GeoData EXP. Todos os direitos reservados.</p>
+      </footer>
+    </div>
+
+    <script src="js/pagina_inicial.js"></script>
   </body>
 </html>

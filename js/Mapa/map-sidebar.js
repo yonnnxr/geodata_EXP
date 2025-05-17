@@ -1,4 +1,3 @@
-
 document.getElementById('toggleRedes').addEventListener('change', function () {
     if (this.checked && redesLayer) {
         map.addLayer(redesLayer);
@@ -7,16 +6,26 @@ document.getElementById('toggleRedes').addEventListener('change', function () {
     }
 });
 
-const sidebar = document.getElementById('sidebar');
-const menuToggle = document.getElementById('menu-toggle');
-const closeBtn = document.getElementById('close-btn');
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const closeBtn = document.getElementById('close-btn');
 
-menuToggle.addEventListener('click', () => {
-    sidebar.classList.add('open');
-    menuToggle.style.display = 'none';
-});
+    // Função para abrir/fechar a sidebar
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+    }
 
-closeBtn.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    menuToggle.style.display = 'block';
+    // Event listeners
+    menuToggle.addEventListener('click', toggleSidebar);
+    closeBtn.addEventListener('click', toggleSidebar);
+
+    // Fechar sidebar ao clicar fora dela
+    document.addEventListener('click', function(event) {
+        const isClickInside = sidebar.contains(event.target) || menuToggle.contains(event.target);
+        
+        if (!isClickInside && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+        }
+    });
 });
