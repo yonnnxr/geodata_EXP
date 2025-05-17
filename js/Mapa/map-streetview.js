@@ -73,3 +73,8 @@ document.getElementById('close-streetview').onclick = () => {
         streetViewMarker = null;
     }
 };
+
+// Função de inicialização do Google Maps
+function initMap() {
+    console.log('Google Maps API carregada com sucesso');
+}

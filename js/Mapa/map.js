@@ -66,47 +66,6 @@ const notifications = {
     }
 };
 
-// Validação de GeoJSON melhorada
-function isValidGeoJSON(data) {
-    try {
-        // Se for string, tenta converter para objeto
-        if (typeof data === 'string') {
-            data = JSON.parse(data);
-        }
-
-        // Verificações básicas
-        if (!data || typeof data !== 'object') return false;
-        if (!data.type) return false;
-
-        // Verifica se é uma FeatureCollection
-        if (data.type === 'FeatureCollection') {
-            if (!Array.isArray(data.features)) return false;
-            
-            // Verifica cada feature
-            return data.features.every(feature => {
-                return feature.type === 'Feature' &&
-                       feature.geometry &&
-                       typeof feature.geometry === 'object' &&
-                       feature.geometry.type &&
-                       feature.geometry.coordinates;
-            });
-        }
-
-        // Se for uma única feature
-        if (data.type === 'Feature') {
-            return data.geometry &&
-                   typeof data.geometry === 'object' &&
-                   data.geometry.type &&
-                   data.geometry.coordinates;
-        }
-
-        return false;
-    } catch (e) {
-        console.error('Erro na validação do GeoJSON:', e);
-        return false;
-    }
-}
-
 // Estilo das redes com melhor visibilidade
 function getFeatureStyle(feature) {
     const defaultStyle = {
@@ -132,7 +91,76 @@ function getFeatureStyle(feature) {
     }
 }
 
-// Carregamento de dados com retry
+// Validação de GeoJSON melhorada
+function isValidGeoJSON(data) {
+    try {
+        // Verificações básicas
+        if (!data || typeof data !== 'object') {
+            console.error('GeoJSON inválido: dados vazios ou não é um objeto');
+            return false;
+        }
+
+        // Verifica o tipo principal
+        if (!data.type) {
+            console.error('GeoJSON inválido: propriedade type não encontrada');
+            return false;
+        }
+
+        // Verifica se é uma FeatureCollection
+        if (data.type === 'FeatureCollection') {
+            if (!Array.isArray(data.features)) {
+                console.error('GeoJSON inválido: features não é um array');
+                return false;
+            }
+            
+            // Verifica cada feature
+            return data.features.every((feature, index) => {
+                if (!feature.type || feature.type !== 'Feature') {
+                    console.error(`GeoJSON inválido: feature ${index} não tem type correto`);
+                    return false;
+                }
+                if (!feature.geometry || typeof feature.geometry !== 'object') {
+                    console.error(`GeoJSON inválido: feature ${index} não tem geometry válida`);
+                    return false;
+                }
+                if (!feature.geometry.type || !feature.geometry.coordinates) {
+                    console.error(`GeoJSON inválido: feature ${index} tem geometry incompleta`);
+                    return false;
+                }
+                if (!Array.isArray(feature.geometry.coordinates)) {
+                    console.error(`GeoJSON inválido: feature ${index} tem coordinates inválidas`);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Se for uma única feature
+        if (data.type === 'Feature') {
+            if (!data.geometry || typeof data.geometry !== 'object') {
+                console.error('GeoJSON inválido: geometry não é um objeto válido');
+                return false;
+            }
+            if (!data.geometry.type || !data.geometry.coordinates) {
+                console.error('GeoJSON inválido: geometry está incompleta');
+                return false;
+            }
+            if (!Array.isArray(data.geometry.coordinates)) {
+                console.error('GeoJSON inválido: coordinates não é um array');
+                return false;
+            }
+            return true;
+        }
+
+        console.error('GeoJSON inválido: tipo não suportado:', data.type);
+        return false;
+    } catch (e) {
+        console.error('Erro na validação do GeoJSON:', e);
+        return false;
+    }
+}
+
+// Carregamento de dados com retry e melhor validação
 async function loadMapData(retryCount = 0) {
     const token = localStorage.getItem('authToken');
     const maxRetries = 3;
@@ -162,14 +190,33 @@ async function loadMapData(retryCount = 0) {
         const textData = await response.text();
         
         try {
+            console.log('Tentando fazer parse dos dados brutos...');
+            console.log('Primeiros 200 caracteres dos dados:', textData.substring(0, 200));
             data = JSON.parse(textData);
+            console.log('Parse JSON realizado com sucesso. Estrutura:', {
+                tipo: data.type,
+                quantidadeFeatures: data.features?.length,
+                primeiraFeature: data.features?.[0]
+            });
         } catch (e) {
-            console.error('Resposta da API:', textData);
-            throw new Error('Erro ao processar dados do servidor');
+            console.error('Erro ao fazer parse do JSON:', e);
+            throw new Error('Erro ao processar dados do servidor: ' + e.message);
         }
 
+        // Verifica se é um objeto
+        if (!data || typeof data !== 'object') {
+            console.error('Dados inválidos:', data);
+            throw new Error('Dados recebidos não são um objeto válido');
+        }
+
+        // Se os dados estiverem em uma propriedade específica
+        if (data.data) {
+            data = data.data;
+        }
+
+        // Garante que é um GeoJSON válido
         if (!isValidGeoJSON(data)) {
-            console.error('Dados recebidos:', data);
+            console.error('Estrutura dos dados:', JSON.stringify(data, null, 2));
             throw new Error('Formato GeoJSON inválido recebido da API');
         }
 
