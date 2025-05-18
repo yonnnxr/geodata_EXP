@@ -143,46 +143,64 @@ async function loadMapData() {
         window.redesLayer.clearLayers();
         console.log('Número de features recebidas:', data.features.length);
 
-        // Adicionar features ao mapa
-        data.features.forEach((feature, index) => {
-            if (!feature.geometry) {
-                console.warn(`Feature ${index} sem geometria:`, feature);
-                return;
-            }
-
-            try {
-                const geojsonLayer = L.geoJSON(feature, {
-                    style: getFeatureStyle,
-                    onEachFeature: (feature, layer) => {
-                        // Popup personalizado
-                        const popupContent = `
-                            <div class="popup-content">
-                                <h3>${feature.properties?.nome || 'Rede'}</h3>
-                                <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
-                                ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
-                                <div class="popup-actions">
-                                    <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
-                                        Street View
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                        layer.bindPopup(popupContent);
-                    }
-                }).addTo(window.redesLayer);
-                console.log(`Feature ${index} adicionada com sucesso`);
-            } catch (featureError) {
-                console.error(`Erro ao adicionar feature ${index}:`, featureError);
-            }
-        });
-
-        // Ajustar visualização para os dados
-        const bounds = window.redesLayer.getBounds();
-        if (bounds.isValid()) {
-            window.map.fitBounds(bounds);
-            console.log('Mapa ajustado para os limites das redes');
+        if (data.features.length === 0) {
+            console.warn('Nenhuma feature encontrada para esta cidade');
+            // Não mostrar erro, apenas aviso no console
         } else {
-            console.warn('Não foi possível calcular os limites das redes');
+            // Adicionar features ao mapa
+            let validFeaturesCount = 0;
+            
+            data.features.forEach((feature, index) => {
+                if (!feature.geometry) {
+                    console.warn(`Feature ${index} sem geometria:`, feature);
+                    return;
+                }
+
+                try {
+                    const geojsonLayer = L.geoJSON(feature, {
+                        style: getFeatureStyle,
+                        onEachFeature: (feature, layer) => {
+                            // Popup personalizado
+                            const popupContent = `
+                                <div class="popup-content">
+                                    <h3>${feature.properties?.nome || 'Rede'}</h3>
+                                    <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
+                                    ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
+                                    <div class="popup-actions">
+                                        <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
+                                            Street View
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            layer.bindPopup(popupContent);
+                        }
+                    }).addTo(window.redesLayer);
+                    validFeaturesCount++;
+                    console.log(`Feature ${index} adicionada com sucesso`);
+                } catch (featureError) {
+                    console.error(`Erro ao adicionar feature ${index}:`, featureError);
+                }
+            });
+
+            // Ajustar visualização para os dados apenas se houver features válidas
+            if (validFeaturesCount > 0) {
+                const bounds = window.redesLayer.getBounds();
+                if (bounds.isValid()) {
+                    window.map.fitBounds(bounds);
+                    console.log('Mapa ajustado para os limites das redes');
+                } else {
+                    // Se não conseguir obter bounds válidos, centralizar na cidade
+                    const cityCoordinates = getCityCoordinates(userCity);
+                    window.map.setView(cityCoordinates, 13);
+                    console.log('Usando coordenadas da cidade como fallback');
+                }
+            } else {
+                // Se não houver features válidas, centralizar na cidade
+                const cityCoordinates = getCityCoordinates(userCity);
+                window.map.setView(cityCoordinates, 13);
+                console.log('Nenhuma feature válida encontrada, centralizando na cidade');
+            }
         }
 
         dadosCarregados = true;
