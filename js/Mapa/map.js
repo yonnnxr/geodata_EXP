@@ -108,21 +108,15 @@ async function loadMapData() {
         return;
     }
 
-    const loadingMessage = document.getElementById('loadingMessage');
-    loadingMessage.style.display = 'flex';
-
     try {
-        console.log('Iniciando carregamento de dados para cidade:', userCity);
-        const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/geodata/${userCity}/map`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Resposta da API não ok:', response.status, errorText);
-            throw new Error(`Erro ao carregar dados do mapa: ${response.status}`);
+            throw new Error('Erro ao carregar dados do mapa');
         }
 
         const data = await response.json();

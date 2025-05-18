@@ -5,11 +5,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
     loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const cidade = document.getElementById('cidade').value;
+            const senha = document.getElementById('senha').value;
+            
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cidade, senha })
+                });
         
-        // Limpa mensagens de erro anteriores
-        errorMessageDiv.style.display = 'none';
-        errorMessageDiv.textContent = '';
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userCity', cidade);
+                    window.location.href = 'pagina_inicial.html';
+                } else {
+                    showError(data.error || 'Erro ao fazer login');
+                }
+            } catch (error) {
+                showError('Erro ao conectar com o servidor');
+            }
+        }
 
         const cidadeInput = document.getElementById('regional_id');
         const passwordInput = document.getElementById('password');
