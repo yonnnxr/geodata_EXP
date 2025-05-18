@@ -1,11 +1,3 @@
-document.getElementById('toggleRedes').addEventListener('change', function () {
-    if (this.checked && redesLayer) {
-        map.addLayer(redesLayer);
-    } else if (redesLayer) {
-        map.removeLayer(redesLayer);
-    }
-});
-
 document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
@@ -62,4 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', adjustSidebar);
     adjustSidebar();
+
+    // Toggle de camadas
+    document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
+        if (window.map && window.redesLayer) {
+            if (e.target.checked) {
+                window.map.addLayer(window.redesLayer);
+            } else {
+                window.map.removeLayer(window.redesLayer);
+            }
+        }
+    });
 });
