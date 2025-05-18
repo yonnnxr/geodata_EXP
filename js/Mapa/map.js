@@ -1,11 +1,16 @@
 // Variáveis globais
-let map, redesLayer;
+window.map = null;
+window.redesLayer = null;
 let dadosCarregados = false;
 const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
 // Inicialização do mapa com opções responsivas
 function initializeMap() {
-    map = L.map('map', {
+    if (window.map) {
+        return window.map; // Retorna o mapa existente se já estiver inicializado
+    }
+
+    window.map = L.map('map', {
         zoomControl: false,  // Vamos reposicionar os controles de zoom
         minZoom: 10,
         maxZoom: 19
@@ -14,14 +19,14 @@ function initializeMap() {
     // Adicionar controle de zoom em uma posição personalizada
     L.control.zoom({
         position: 'topright'
-    }).addTo(map);
+    }).addTo(window.map);
 
     // Camada base OpenStreetMap
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
         className: 'map-tiles'
-    }).addTo(map);
+    }).addTo(window.map);
 
     // Camada de satélite do Google
     const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
@@ -44,15 +49,15 @@ function initializeMap() {
 
     L.control.layers(baseLayers, null, {
         position: 'topright'
-    }).addTo(map);
+    }).addTo(window.map);
 
     // Criar camada para as redes
-    redesLayer = L.layerGroup().addTo(map);
+    window.redesLayer = L.layerGroup().addTo(window.map);
 
     // Centralizar inicialmente em uma posição padrão
-    map.setView([-20.4695, -54.6052], 13);
+    window.map.setView([-20.4695, -54.6052], 13);
 
-    return map;
+    return window.map;
 }
 
 // Sistema de notificações
@@ -117,7 +122,7 @@ async function loadMapData() {
         }
 
         // Limpar camada existente
-        redesLayer.clearLayers();
+        window.redesLayer.clearLayers();
 
         // Adicionar features ao mapa
         data.features.forEach(feature => {
@@ -141,13 +146,13 @@ async function loadMapData() {
                     `;
                     layer.bindPopup(popupContent);
                 }
-            }).addTo(redesLayer);
+            }).addTo(window.redesLayer);
         });
 
         // Ajustar visualização para os dados
-        const bounds = redesLayer.getBounds();
+        const bounds = window.redesLayer.getBounds();
         if (bounds.isValid()) {
-            map.fitBounds(bounds);
+            window.map.fitBounds(bounds);
         }
 
         dadosCarregados = true;
@@ -176,10 +181,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Toggle da camada de redes
     document.getElementById('toggleRedes').addEventListener('change', (e) => {
-        if (e.target.checked) {
-            map.addLayer(redesLayer);
-        } else {
-            map.removeLayer(redesLayer);
+        if (window.map && window.redesLayer) {
+            if (e.target.checked) {
+                window.map.addLayer(window.redesLayer);
+            } else {
+                window.map.removeLayer(window.redesLayer);
+            }
         }
     });
 
