@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitButton = loginForm.querySelector('button[type="submit"]');
 
         // Get input values
-        const cidade = cidadeInput.value.trim();
+        const cidade = cidadeInput.value.trim().toLowerCase();
         const password = passwordInput.value.trim();
 
         // Validate inputs
@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             submitButton.disabled = true;
             submitButton.textContent = 'Carregando...';
+            errorMessageDiv.style.display = 'none';
 
             const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
@@ -49,9 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
 
-            localStorage.setItem('authToken', data.access_token);
-            localStorage.setItem('userCity', cidade);
-            window.location.href = 'pagina_inicial.html';
+            if (data.access_token) {
+                localStorage.setItem('authToken', data.access_token);
+                localStorage.setItem('userCity', cidade);
+                window.location.href = 'pagina_inicial.html';
+            } else {
+                throw new Error('Token de acesso não recebido');
+            }
 
         } catch (error) {
             console.error('Erro no login:', error);

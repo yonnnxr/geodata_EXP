@@ -59,7 +59,9 @@ function initializeMap() {
         window.redesLayer = L.layerGroup().addTo(window.map);
 
         // Centralizar inicialmente em uma posição padrão
-        window.map.setView([-20.4695, -54.6052], 13);
+        // Get city coordinates based on stored city
+        const cityCoordinates = getCityCoordinates(localStorage.getItem('userCity'));
+        window.map.setView(cityCoordinates, 13);
 
         console.log('Mapa inicializado com sucesso');
         return window.map;
@@ -289,3 +291,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         showError('Erro ao inicializar o mapa. Por favor, recarregue a página.');
     }
 });
+
+// Add this function to get city coordinates
+function getCityCoordinates(city) {
+    const coordinates = {
+        'dourados': [-22.2234, -54.8064],
+        'tres_lagoas': [-20.7516, -51.6795],
+        'coxim': [-18.5013, -54.7603],
+        'jardim': [-21.4799, -56.1489],
+        'navirai': [-23.0616, -54.1995],
+        'ponta_pora': [-22.5361, -55.7256],
+        'nova_andradina': [-22.2333, -53.3437],
+        'paranaiba': [-19.6746, -51.1909],
+        'aquidauana': [-20.4666, -55.7868],
+        'corumba': [-19.0077, -57.6511]
+    };
+    return coordinates[city] || [-20.4695, -54.6052]; // Default to Campo Grande if city not found
