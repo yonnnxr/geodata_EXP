@@ -233,11 +233,16 @@ function isValidGeoJSON(data) {
     }
 }
 
+// Função de inicialização do Google Maps
+function initMap() {
+    console.log('Google Maps API inicializada com sucesso');
+}
+
 // Carregamento de dados com retry e melhor validação
 async function loadMapData(retryCount = 0) {
     const token = localStorage.getItem('authToken');
     const maxRetries = 3;
-    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Backoff exponencial
+    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000);
     
     if (!token) {
         notifications.error('Sessão expirada. Redirecionando...');
@@ -267,69 +272,61 @@ async function loadMapData(retryCount = 0) {
             throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
         }
 
-        const contentType = response.headers.get('Content-Type');
-        if (!contentType?.includes('application/json')) {
-            console.warn('Aviso: Content-Type não é application/json:', contentType);
-        }
+        const textData = await response.text();
+        console.log('Dados brutos recebidos:', textData.substring(0, 200));
 
         let data;
-        const textData = await response.text();
-        
-        // Validação inicial dos dados
-        if (!textData?.trim()) {
-            throw new Error('Dados vazios recebidos da API');
-        }
-
         try {
-            // Verifica formato básico do JSON
-            const firstChar = textData.trim()[0];
-            if (firstChar !== '{' && firstChar !== '[') {
-                console.error('Dados recebidos não estão no formato JSON esperado');
-                throw new Error('Formato de dados inválido');
-            }
-            
             data = JSON.parse(textData);
-            
-            // Log seguro da estrutura dos dados
-            console.log('Estrutura dos dados:', {
-                type: data?.type,
-                isArray: Array.isArray(data),
-                hasFeatures: Array.isArray(data?.features),
-                featuresCount: data?.features?.length || 0,
-                firstFeatureType: data?.features?.[0]?.type,
-                firstGeometryType: data?.features?.[0]?.geometry?.type
+            console.log('Estrutura dos dados recebidos:', {
+                tipo: typeof data,
+                propriedades: Object.keys(data),
+                conteudo: data
             });
-        } catch (parseError) {
-            console.error('Erro detalhado no parse JSON:', {
-                name: parseError.name,
-                message: parseError.message,
-                stack: parseError.stack,
-                dataPreview: textData.substring(0, 200)
-            });
-            throw new Error(`Erro ao processar dados do servidor: ${parseError.message}`);
-        }
 
-        // Normalização dos dados para GeoJSON
-        if (Array.isArray(data)) {
-            if (data.length === 0) {
-                throw new Error('Array de features vazio recebido da API');
+            // Tenta converter os dados para o formato GeoJSON esperado
+            if (typeof data === 'object' && data !== null) {
+                // Se for um array de features
+                if (Array.isArray(data)) {
+                    data = {
+                        type: 'FeatureCollection',
+                        features: data.map(feature => {
+                            if (!feature.type) feature.type = 'Feature';
+                            return feature;
+                        })
+                    };
+                }
+                // Se for uma feature única
+                else if (data.geometry) {
+                    if (!data.type) data.type = 'Feature';
+                    data = {
+                        type: 'FeatureCollection',
+                        features: [data]
+                    };
+                }
+                // Se já for uma FeatureCollection
+                else if (data.features && Array.isArray(data.features)) {
+                    if (!data.type) data.type = 'FeatureCollection';
+                }
+                else {
+                    console.error('Estrutura de dados não reconhecida:', data);
+                    throw new Error('Formato de dados não reconhecido');
+                }
             }
-            data = {
-                type: 'FeatureCollection',
-                features: data
-            };
-        } else if (data.type === 'Feature') {
-            data = {
-                type: 'FeatureCollection',
-                features: [data]
-            };
-        } else if (!data.type || data.type !== 'FeatureCollection') {
-            throw new Error(`Tipo de GeoJSON não suportado: ${data.type || 'indefinido'}`);
+
+            console.log('Dados após normalização:', {
+                tipo: data.type,
+                quantidadeFeatures: data.features?.length,
+                primeiraFeature: data.features?.[0]
+            });
+
+        } catch (e) {
+            console.error('Erro ao processar dados:', e);
+            console.error('Dados recebidos:', textData);
+            throw new Error(`Erro ao processar dados: ${e.message}`);
         }
 
-        // Validação do GeoJSON
         if (!isValidGeoJSON(data)) {
-            console.error('Estrutura GeoJSON inválida:', JSON.stringify(data, null, 2));
             throw new Error('Formato GeoJSON inválido recebido da API');
         }
 
@@ -358,11 +355,18 @@ async function loadMapData(retryCount = 0) {
             }
         }).addTo(map);
 
-        // Ajusta visualização
+        // Define a visualização inicial
         if (data.features && data.features.length > 0) {
-            map.fitBounds(redesLayer.getBounds(), {
-                padding: [50, 50]
-            });
+            try {
+                const bounds = redesLayer.getBounds();
+                map.fitBounds(bounds, {
+                    padding: [50, 50],
+                    maxZoom: 18
+                });
+            } catch (e) {
+                console.warn('Erro ao ajustar visualização:', e);
+                map.setView([-20.4695, -54.6052], 13);
+            }
         } else {
             map.setView([-20.4695, -54.6052], 13);
         }
