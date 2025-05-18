@@ -4,6 +4,9 @@ window.redesLayer = null;
 let dadosCarregados = false;
 const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
+// Debug log for API URL
+console.log('API URL configurada:', API_BASE_URL);
+
 // Inicialização do mapa com opções responsivas
 function initializeMap() {
     if (window.map) {
@@ -108,15 +111,22 @@ async function loadMapData() {
         return;
     }
 
+    const loadingMessage = document.getElementById('loadingMessage');
+    loadingMessage.style.display = 'flex';
+
     try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/geodata/${userCity}/map`, {
+        console.log('Iniciando requisição para:', `${API_BASE_URL}/geodata/${userCity}/map`);
+        const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error('Erro ao carregar dados do mapa');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Erro na resposta da API:', errorData);
+            throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
         }
 
         const data = await response.json();

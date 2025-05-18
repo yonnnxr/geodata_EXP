@@ -8,8 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
         async function handleLogin(event) {
             event.preventDefault();
             
-            const cidade = document.getElementById('cidade').value;
-            const senha = document.getElementById('senha').value;
+            const cidade = document.getElementById('cidade').value; // Errado
+            const senha = document.getElementById('senha').value;   // Errado
+            
+            // Deveria ser:
+            const cidade = document.getElementById('regional_id').value;
+            const password = document.getElementById('password').value;
             
             try {
                 const response = await fetch(`${API_CONFIG.BASE_URL}/login`, {
