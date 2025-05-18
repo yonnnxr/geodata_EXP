@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageDiv = document.getElementById('error-message');
     const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
+    // Prevent form from submitting normally
+    loginForm.setAttribute('action', 'javascript:void(0);');
+    loginForm.setAttribute('method', 'post');
+
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         
         // Get form elements
         const cidadeInput = document.getElementById('regional_id');
@@ -20,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!cidade || !password) {
             errorMessageDiv.textContent = 'Por favor, preencha todos os campos.';
             errorMessageDiv.style.display = 'block';
-            return;
+            return false;
         }
 
         try {
@@ -56,5 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.disabled = false;
             submitButton.textContent = 'Entrar';
         }
+
+        return false;
     });
 });
