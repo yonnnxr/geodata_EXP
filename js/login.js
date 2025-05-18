@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 localStorage.setItem('authToken', data.token);
+                localStorage.setItem('userCity', cidade);
                 console.log('Token armazenado:', data.token);
+                console.log('Cidade armazenada:', cidade);
                 window.location.href = 'pagina_inicial.html';
                 console.log('Login bem-sucedido, redirecionando.');
             } else {

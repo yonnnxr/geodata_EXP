@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função de logout
     function handleLogout() {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userCity');
         window.location.href = 'Login.html';
     }
 
