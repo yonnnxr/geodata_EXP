@@ -231,6 +231,45 @@
         </div>
     </div>
 
+    <div id="localityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Localidade</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="localityForm">
+                <div class="form-group">
+                    <label for="localityName">Nome</label>
+                    <input type="text" id="localityName" required>
+                </div>
+                <div class="form-group">
+                    <label for="localityCode">Código</label>
+                    <input type="text" id="localityCode" required>
+                </div>
+                <div class="form-group">
+                    <label for="localityState">Estado</label>
+                    <select id="localityState" required>
+                        <option value="MS">Mato Grosso do Sul</option>
+                        <option value="SP">São Paulo</option>
+                        <option value="PR">Paraná</option>
+                        <option value="MT">Mato Grosso</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="localityType">Tipo</label>
+                    <select id="localityType" required>
+                        <option value="cidade">Cidade</option>
+                        <option value="distrito">Distrito</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="secondary-button close-modal">Cancelar</button>
+                    <button type="submit" class="primary-button">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/admin.js"></script>

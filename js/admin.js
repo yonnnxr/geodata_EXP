@@ -3,45 +3,6 @@ let currentSection = 'dashboard';
 let usersData = [];
 let localitiesData = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Verificar autenticação
-    const authToken = localStorage.getItem('authToken');
-    const userType = localStorage.getItem('userType');
-    const userName = localStorage.getItem('userName');
-
-    if (!authToken || userType !== 'admin') {
-        window.location.href = 'login.html';
-        return;
-    }
-
-    // Atualizar nome do administrador
-    document.getElementById('adminName').textContent = userName;
-
-    // Configurar data atual
-    const currentDate = new Date();
-    document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    // Configurar navegação
-    setupNavigation();
-    
-    // Configurar modais
-    setupModals();
-    
-    // Configurar formulários
-    setupForms();
-    
-    // Configurar logout
-    setupLogout();
-
-    // Carregar dados iniciais
-    loadDashboardData();
-});
-
 // Configuração da navegação
 function setupNavigation() {
     const navButtons = document.querySelectorAll('.nav-item');
@@ -70,15 +31,92 @@ function setupNavigation() {
     });
 }
 
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Verificar autenticação
+        const authToken = localStorage.getItem('authToken');
+        const userType = localStorage.getItem('userType');
+        const userName = localStorage.getItem('userName');
+
+        if (!authToken || userType !== 'admin') {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Atualizar nome do administrador
+        document.getElementById('adminName').textContent = userName;
+
+        // Configurar data atual
+        const currentDate = new Date();
+        document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Configurar navegação
+        setupNavigation();
+        
+        // Carregar localidades para o select
+        await loadLocalities();
+        
+        // Configurar modais
+        setupModals();
+        
+        // Configurar formulários
+        setupForms();
+        
+        // Configurar logout
+        setupLogout();
+
+        // Carregar dados iniciais
+        await loadDashboardData();
+    } catch (error) {
+        console.error('Erro na inicialização:', error);
+        showNotification('Erro ao carregar dados. Por favor, recarregue a página.', 'error');
+    }
+});
+
+// Carregar localidades para o select
+async function loadLocalities() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/localities`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar localidades');
+        }
+
+        const data = await response.json();
+        const select = document.getElementById('userLocality');
+        
+        select.innerHTML = data.localities.map(locality => 
+            `<option value="${locality.id}">${locality.name}</option>`
+        ).join('');
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
 // Configuração dos modais
 function setupModals() {
     const modals = document.querySelectorAll('.modal');
     const closeButtons = document.querySelectorAll('.close-modal');
     const addUserBtn = document.getElementById('addUserBtn');
+    const addLocalityBtn = document.getElementById('addLocalityBtn');
 
     // Abrir modal de novo usuário
-    addUserBtn.addEventListener('click', () => {
+    addUserBtn?.addEventListener('click', () => {
         document.getElementById('userModal').style.display = 'flex';
+    });
+
+    // Abrir modal de nova localidade
+    addLocalityBtn?.addEventListener('click', () => {
+        document.getElementById('localityModal').style.display = 'flex';
     });
 
     // Fechar modais
@@ -101,8 +139,9 @@ function setupModals() {
 // Configuração dos formulários
 function setupForms() {
     const userForm = document.getElementById('userForm');
+    const localityForm = document.getElementById('localityForm');
 
-    userForm.addEventListener('submit', async (e) => {
+    userForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const formData = {
@@ -137,6 +176,42 @@ function setupForms() {
             showNotification(error.message, 'error');
         }
     });
+
+    localityForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            name: document.getElementById('localityName').value,
+            code: document.getElementById('localityCode').value,
+            state: document.getElementById('localityState').value,
+            type: document.getElementById('localityType').value
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/localities`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao criar localidade');
+            }
+
+            showNotification('Localidade criada com sucesso', 'success');
+            document.getElementById('localityModal').style.display = 'none';
+            localityForm.reset();
+            loadSectionData('localities');
+
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    });
 }
 
 // Configuração do logout
@@ -152,15 +227,18 @@ async function loadSectionData(section) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/admin/${section}`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error('Erro ao carregar dados');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Erro ao carregar dados');
         }
 
         const data = await response.json();
+        console.log(`Dados carregados para seção ${section}:`, data);
 
         switch (section) {
             case 'dashboard':
@@ -177,6 +255,7 @@ async function loadSectionData(section) {
                 break;
         }
     } catch (error) {
+        console.error(`Erro ao carregar dados da seção ${section}:`, error);
         showNotification(error.message, 'error');
     }
 }
@@ -186,17 +265,21 @@ async function loadDashboardData() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error('Erro ao carregar dados do dashboard');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Erro ao carregar dados do dashboard');
         }
 
         const data = await response.json();
+        console.log('Dados do dashboard:', data);
         updateDashboard(data);
     } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
         showNotification(error.message, 'error');
     }
 }
