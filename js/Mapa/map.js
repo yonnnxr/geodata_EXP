@@ -105,6 +105,7 @@ async function loadMapData() {
     loadingMessage.style.display = 'flex';
 
     try {
+        console.log('Iniciando carregamento de dados para cidade:', userCity);
         const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -112,50 +113,67 @@ async function loadMapData() {
         });
 
         if (!response.ok) {
-            throw new Error('Erro ao carregar dados do mapa');
+            const errorText = await response.text();
+            console.error('Resposta da API não ok:', response.status, errorText);
+            throw new Error(`Erro ao carregar dados do mapa: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Dados recebidos da API:', data);
 
         if (!data.features || !Array.isArray(data.features)) {
+            console.error('Estrutura de dados inválida:', data);
             throw new Error('Dados inválidos recebidos da API');
         }
 
         // Limpar camada existente
         window.redesLayer.clearLayers();
+        console.log('Número de features recebidas:', data.features.length);
 
         // Adicionar features ao mapa
-        data.features.forEach(feature => {
-            if (!feature.geometry) return;
+        data.features.forEach((feature, index) => {
+            if (!feature.geometry) {
+                console.warn(`Feature ${index} sem geometria:`, feature);
+                return;
+            }
 
-            const geojsonLayer = L.geoJSON(feature, {
-                style: getFeatureStyle,
-                onEachFeature: (feature, layer) => {
-                    // Popup personalizado
-                    const popupContent = `
-                        <div class="popup-content">
-                            <h3>${feature.properties?.nome || 'Rede'}</h3>
-                            <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
-                            ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
-                            <div class="popup-actions">
-                                <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
-                                    Street View
-                                </button>
+            try {
+                const geojsonLayer = L.geoJSON(feature, {
+                    style: getFeatureStyle,
+                    onEachFeature: (feature, layer) => {
+                        // Popup personalizado
+                        const popupContent = `
+                            <div class="popup-content">
+                                <h3>${feature.properties?.nome || 'Rede'}</h3>
+                                <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
+                                ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
+                                <div class="popup-actions">
+                                    <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
+                                        Street View
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    layer.bindPopup(popupContent);
-                }
-            }).addTo(window.redesLayer);
+                        `;
+                        layer.bindPopup(popupContent);
+                    }
+                }).addTo(window.redesLayer);
+                console.log(`Feature ${index} adicionada com sucesso`);
+            } catch (featureError) {
+                console.error(`Erro ao adicionar feature ${index}:`, featureError);
+            }
         });
 
         // Ajustar visualização para os dados
         const bounds = window.redesLayer.getBounds();
         if (bounds.isValid()) {
             window.map.fitBounds(bounds);
+            console.log('Mapa ajustado para os limites das redes');
+        } else {
+            console.warn('Não foi possível calcular os limites das redes');
         }
 
         dadosCarregados = true;
+        console.log('Carregamento de dados concluído com sucesso');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -165,38 +183,93 @@ async function loadMapData() {
     }
 }
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', async () => {
-    // Verificar autenticação
+// Função auxiliar para debug do GeoJSON
+function validateGeoJSON(feature) {
+    if (!feature.type) {
+        console.error('Feature sem tipo:', feature);
+        return false;
+    }
+    if (!feature.geometry) {
+        console.error('Feature sem geometria:', feature);
+        return false;
+    }
+    if (!feature.geometry.coordinates || !Array.isArray(feature.geometry.coordinates)) {
+        console.error('Feature com coordenadas inválidas:', feature);
+        return false;
+    }
+    return true;
+}
+
+// Verificar status da autenticação
+async function checkAuthStatus() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
 
     if (!token || !userCity) {
+        console.error('Token ou cidade não encontrados');
         window.location.href = 'Login.html';
-        return;
+        return false;
     }
 
-    // Inicializar mapa
-    initializeMap();
-
-    // Toggle da camada de redes
-    document.getElementById('toggleRedes').addEventListener('change', (e) => {
-        if (window.map && window.redesLayer) {
-            if (e.target.checked) {
-                window.map.addLayer(window.redesLayer);
-            } else {
-                window.map.removeLayer(window.redesLayer);
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-        }
-    });
+        });
 
-    // Carregar dados iniciais
-    await loadMapData();
-
-    // Recarregar dados quando o mapa ficar visível novamente
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && dadosCarregados) {
-            loadMapData();
+        if (!response.ok) {
+            console.error('Token inválido ou expirado');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userCity');
+            window.location.href = 'Login.html';
+            return false;
         }
-    });
+
+        return true;
+    } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        return false;
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Verificar autenticação
+        const isAuthenticated = await checkAuthStatus();
+        if (!isAuthenticated) {
+            return;
+        }
+
+        // Inicializar mapa
+        initializeMap();
+
+        // Toggle da camada de redes
+        const toggleRedes = document.getElementById('toggleRedes');
+        if (toggleRedes) {
+            toggleRedes.addEventListener('change', (e) => {
+                if (window.map && window.redesLayer) {
+                    if (e.target.checked) {
+                        window.map.addLayer(window.redesLayer);
+                    } else {
+                        window.map.removeLayer(window.redesLayer);
+                    }
+                }
+            });
+        }
+
+        // Carregar dados iniciais
+        await loadMapData();
+
+        // Recarregar dados quando o mapa ficar visível novamente
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && dadosCarregados) {
+                loadMapData();
+            }
+        });
+    } catch (error) {
+        console.error('Erro na inicialização:', error);
+        showError('Erro ao inicializar o mapa. Por favor, recarregue a página.');
+    }
 });
