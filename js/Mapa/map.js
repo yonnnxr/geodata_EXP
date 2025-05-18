@@ -231,7 +231,6 @@ function validateGeoJSON(feature) {
     return true;
 }
 
-// Verificar token diretamente
 function isValidToken() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
@@ -264,53 +263,7 @@ function isValidToken() {
     }
 }
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // Verificar autenticação localmente
-        if (!isValidToken()) {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userCity');
-            window.location.href = 'Login.html';
-            return;
-        }
-
-        // Inicializar mapa
-        const mapInstance = initializeMap();
-        if (!mapInstance) {
-            throw new Error('Falha ao inicializar o mapa');
-        }
-
-        // Toggle da camada de redes
-        const toggleRedes = document.getElementById('toggleRedes');
-        if (toggleRedes) {
-            toggleRedes.addEventListener('change', (e) => {
-                if (window.map && window.redesLayer) {
-                    if (e.target.checked) {
-                        window.map.addLayer(window.redesLayer);
-                    } else {
-                        window.map.removeLayer(window.redesLayer);
-                    }
-                }
-            });
-        }
-
-        // Carregar dados iniciais
-        await loadMapData();
-
-        // Recarregar dados quando o mapa ficar visível novamente
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && dadosCarregados) {
-                loadMapData();
-            }
-        });
-    } catch (error) {
-        console.error('Erro na inicialização:', error);
-        showError('Erro ao inicializar o mapa. Por favor, recarregue a página.');
-    }
-});
-
-// Add this function to get city coordinates
+// Função para obter coordenadas da cidade
 function getCityCoordinates(city) {
     const coordinates = {
         'dourados': [-22.2234, -54.8064],
@@ -325,3 +278,17 @@ function getCityCoordinates(city) {
         'corumba': [-19.0077, -57.6511]
     };
     return coordinates[city] || [-20.4695, -54.6052]; // Default to Campo Grande if city not found
+}
+
+// Inicializar o mapa quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', () => {
+    if (!isValidToken()) {
+        window.location.href = 'Login.html';
+        return;
+    }
+
+    const map = initializeMap();
+    if (map) {
+        loadMapData();
+    }
+});
