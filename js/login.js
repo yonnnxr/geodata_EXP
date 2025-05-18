@@ -5,41 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
     loginForm.addEventListener('submit', async (event) => {
-        async function handleLogin(event) {
-            event.preventDefault();
-            
-            const cidade = document.getElementById('cidade').value; // Errado
-            const senha = document.getElementById('senha').value;   // Errado
-            
-            // Deveria ser:
-            const cidade = document.getElementById('regional_id').value;
-            const password = document.getElementById('password').value;
-            
-            try {
-                const response = await fetch(`${API_CONFIG.BASE_URL}/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ cidade, senha })
-                });
+        event.preventDefault();
         
-                const data = await response.json();
-                
-                if (response.ok) {
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('userCity', cidade);
-                    window.location.href = 'pagina_inicial.html';
-                } else {
-                    showError(data.error || 'Erro ao fazer login');
-                }
-            } catch (error) {
-                showError('Erro ao conectar com o servidor');
-            }
-        }
-
         const cidadeInput = document.getElementById('regional_id');
         const passwordInput = document.getElementById('password');
+        const submitButton = loginForm.querySelector('button[type="submit"]');
 
         const cidade = cidadeInput.value.trim();
         const password = passwordInput.value.trim();
@@ -51,9 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Mostra indicador de carregamento
-            const submitButton = loginForm.querySelector('button[type="submit"]');
-            const originalText = submitButton.textContent;
+            console.log('Tentando login para:', cidade);
             submitButton.disabled = true;
             submitButton.textContent = 'Carregando...';
 
@@ -69,13 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
+            console.log('Resposta do servidor:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
 
             // Armazena o token e a cidade
-            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userCity', cidade);
 
             // Redireciona para a página inicial
@@ -86,8 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessageDiv.textContent = error.message || 'Erro ao fazer login. Tente novamente.';
             errorMessageDiv.style.display = 'block';
         } finally {
-            // Restaura o botão
-            const submitButton = loginForm.querySelector('button[type="submit"]');
             submitButton.disabled = false;
             submitButton.textContent = 'Entrar';
         }
