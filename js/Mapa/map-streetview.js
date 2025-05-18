@@ -1,5 +1,8 @@
 let choosingStreetView = false;
 let streetViewMarker = null;
+let panorama;
+let streetViewService;
+let isStreetViewInitialized = false;
 
 function showMessage(text, duration = 3000) {
     const box = document.getElementById('message-box');
@@ -74,7 +77,68 @@ document.getElementById('close-streetview').onclick = () => {
     }
 };
 
-// Função de inicialização do Google Maps
+// Função para inicializar o Street View
+function initStreetView() {
+    if (!isStreetViewInitialized) {
+        streetViewService = new google.maps.StreetViewService();
+        isStreetViewInitialized = true;
+    }
+}
+
+// Função para mostrar o Street View
+function showStreetView(lat, lng) {
+    const streetviewPanel = document.getElementById('streetview-panel');
+    const streetviewIframe = document.getElementById('streetview-iframe');
+    
+    if (!isStreetViewInitialized) {
+        initStreetView();
+    }
+
+    const location = new google.maps.LatLng(lat, lng);
+    
+    streetViewService.getPanorama({ location, radius: 50 }, (data, status) => {
+        if (status === google.maps.StreetViewStatus.OK) {
+            const panoId = data.location.pano;
+            const heading = google.maps.geometry.spherical.computeHeading(
+                data.location.latLng,
+                location
+            );
+
+            const streetViewUrl = `https://www.google.com/maps/embed?pb=!4v1&map_action=pano&pano=${panoId}&heading=${heading}&pitch=0`;
+            streetviewIframe.src = streetViewUrl;
+            streetviewPanel.style.display = 'block';
+        } else {
+            showError('Street View não disponível nesta localização.');
+        }
+    });
+}
+
+// Função para fechar o Street View
+function closeStreetView() {
+    const streetviewPanel = document.getElementById('streetview-panel');
+    const streetviewIframe = document.getElementById('streetview-iframe');
+    streetviewIframe.src = '';
+    streetviewPanel.style.display = 'none';
+}
+
+// Event listener para o botão de fechar
+document.getElementById('close-streetview').addEventListener('click', closeStreetView);
+
+// Função para mostrar mensagens de erro
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    errorDiv.style.display = 'block';
+
+    setTimeout(() => {
+        errorDiv.style.opacity = '0';
+        setTimeout(() => errorDiv.remove(), 300);
+    }, 3000);
+}
+
+// Inicializar Street View quando o Google Maps estiver carregado
 function initMap() {
-    console.log('Google Maps API carregada com sucesso');
+    initStreetView();
 }

@@ -412,44 +412,177 @@ async function loadMapData(retryCount = 0) {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Atualiza o título com o nome da cidade
-    const cidade = localStorage.getItem('userCity');
-    if (cidade) {
-        const cidadeFormatada = cidade.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        document.querySelector('#sidebar h2').textContent = `Redes de ${cidadeFormatada}`;
+document.addEventListener('DOMContentLoaded', async () => {
+    // Verificar autenticação
+    const token = localStorage.getItem('authToken');
+    const userCity = localStorage.getItem('userCity');
+
+    if (!token || !userCity) {
+        window.location.href = 'Login.html';
+        return;
     }
 
-    loadMapData();
-    
-    // Atualiza o mapa quando a janela é redimensionada
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            map.invalidateSize();
-            if (redesLayer) {
-                map.fitBounds(redesLayer.getBounds(), {
-                    padding: [50, 50]
-                });
+    const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+    let map, redesLayer;
+    let dadosCarregados = false;
+
+    // Inicializar mapa
+    function initializeMap() {
+        map = L.map('map', {
+            zoomControl: false,
+            minZoom: 10,
+            maxZoom: 19
+        });
+
+        // Adicionar controle de zoom em uma posição personalizada
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        // Camada base OpenStreetMap
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Camada de satélite do Google
+        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Camada híbrida do Google
+        const hybridLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Controle de camadas
+        const baseLayers = {
+            "OpenStreetMap": osmLayer,
+            "Satélite": satelliteLayer,
+            "Híbrido": hybridLayer
+        };
+
+        L.control.layers(baseLayers, null, {
+            position: 'topright'
+        }).addTo(map);
+
+        // Criar camada para as redes
+        redesLayer = L.layerGroup().addTo(map);
+    }
+
+    // Carregar dados da API
+    async function loadMapData() {
+        const loadingMessage = document.getElementById('loadingMessage');
+        loadingMessage.style.display = 'flex';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar dados do mapa');
             }
-        }, 250);
-    });
 
-    // Garante que o botão de voltar está visível
-    const backButton = document.getElementById('back-button');
-    if (backButton) {
-        backButton.style.display = 'flex';
+            const data = await response.json();
+
+            if (!data.features || !Array.isArray(data.features)) {
+                throw new Error('Dados inválidos recebidos da API');
+            }
+
+            // Limpar camada existente
+            redesLayer.clearLayers();
+
+            // Adicionar features ao mapa
+            data.features.forEach(feature => {
+                if (!feature.geometry) return;
+
+                const geojsonLayer = L.geoJSON(feature, {
+                    style: (feature) => ({
+                        color: feature.properties.tipo === 'agua' ? '#2196F3' : '#FF5252',
+                        weight: 3,
+                        opacity: 0.8
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        // Popup personalizado
+                        const popupContent = `
+                            <div class="popup-content">
+                                <h3>${feature.properties.nome || 'Rede'}</h3>
+                                <p>Tipo: ${feature.properties.tipo || 'Não especificado'}</p>
+                                ${feature.properties.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
+                                <div class="popup-actions">
+                                    <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
+                                        Street View
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        layer.bindPopup(popupContent);
+                    }
+                }).addTo(redesLayer);
+            });
+
+            // Ajustar visualização para os dados
+            const bounds = redesLayer.getBounds();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds);
+            } else {
+                // Centralizar no Brasil se não houver dados
+                map.setView([-20.4810, -54.6352], 12);
+            }
+
+            dadosCarregados = true;
+
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+            showError('Erro ao carregar dados do mapa. Por favor, tente novamente.');
+        } finally {
+            loadingMessage.style.display = 'none';
+        }
     }
-});
 
-// Toggle de camadas
-document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
-    if (redesLayer) {
+    // Função para formatar distância
+    function formatDistance(meters) {
+        if (meters >= 1000) {
+            return `${(meters / 1000).toFixed(2)} km`;
+        }
+        return `${meters.toFixed(2)} m`;
+    }
+
+    // Função para mostrar mensagens de erro
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        errorDiv.style.display = 'block';
+
+        setTimeout(() => {
+            errorDiv.style.opacity = '0';
+            setTimeout(() => errorDiv.remove(), 300);
+        }, 3000);
+    }
+
+    // Toggle da camada de redes
+    document.getElementById('toggleRedes').addEventListener('change', (e) => {
         if (e.target.checked) {
             map.addLayer(redesLayer);
         } else {
             map.removeLayer(redesLayer);
         }
-    }
+    });
+
+    // Inicializar mapa e carregar dados
+    initializeMap();
+    await loadMapData();
+
+    // Recarregar dados quando o mapa ficar visível novamente
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && dadosCarregados) {
+            loadMapData();
+        }
+    });
 });

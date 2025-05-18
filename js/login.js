@@ -2,11 +2,14 @@ console.log('Script carregado!');
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
+    const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
     loginForm.addEventListener('submit', async (event) => {
-        console.log('Formulário de login enviado!');
         event.preventDefault();
-        console.log('preventDefault() chamado!');
+        
+        // Limpa mensagens de erro anteriores
+        errorMessageDiv.style.display = 'none';
+        errorMessageDiv.textContent = '';
 
         const cidadeInput = document.getElementById('regional_id');
         const passwordInput = document.getElementById('password');
@@ -14,46 +17,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const cidade = cidadeInput.value.trim();
         const password = passwordInput.value.trim();
 
-        console.log('Cidade:', cidade);
-        console.log('Senha:', password);
-
         if (!cidade || !password) {
             errorMessageDiv.textContent = 'Por favor, preencha todos os campos.';
             errorMessageDiv.style.display = 'block';
             return;
         }
 
-        const apiUrl = 'https://api-geodata-exp.onrender.com/login';
-
         try {
-            console.log('Fazendo requisição para:', apiUrl);
-            const response = await fetch(apiUrl, {
+            // Mostra indicador de carregamento
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Carregando...';
+
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ cidade, password }),
+                body: JSON.stringify({
+                    cidade: cidade,
+                    password: password
+                })
             });
-            console.log('Resposta recebida:', response);
-            const data = await response.json();
-            console.log('Dados da resposta:', data);
 
-            if (response.ok) {
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('userCity', cidade);
-                console.log('Token armazenado:', data.token);
-                console.log('Cidade armazenada:', cidade);
-                window.location.href = 'pagina_inicial.html';
-                console.log('Login bem-sucedido, redirecionando.');
-            } else {
-                errorMessageDiv.textContent = data.message || 'Erro ao fazer login.';
-                errorMessageDiv.style.display = 'block';
-                console.log('Falha no login:', data.message);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao fazer login');
             }
 
+            // Armazena o token e a cidade
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('userCity', cidade);
+
+            // Redireciona para a página inicial
+            window.location.href = 'pagina_inicial.html';
+
         } catch (error) {
-            console.error('Erro ao comunicar com a API:', error);
-            errorMessageDiv.textContent = 'Erro ao comunicar com o servidor.';
+            console.error('Erro no login:', error);
+            errorMessageDiv.textContent = error.message || 'Erro ao fazer login. Tente novamente.';
+            errorMessageDiv.style.display = 'block';
+        } finally {
+            // Restaura o botão
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Entrar';
         }
     });
 });
