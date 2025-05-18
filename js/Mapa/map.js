@@ -10,54 +10,61 @@ function initializeMap() {
         return window.map; // Retorna o mapa existente se já estiver inicializado
     }
 
-    window.map = L.map('map', {
-        zoomControl: false,  // Vamos reposicionar os controles de zoom
-        minZoom: 10,
-        maxZoom: 19
-    });
+    try {
+        window.map = L.map('map', {
+            zoomControl: false,  // Vamos reposicionar os controles de zoom
+            minZoom: 10,
+            maxZoom: 19
+        });
 
-    // Adicionar controle de zoom em uma posição personalizada
-    L.control.zoom({
-        position: 'topright'
-    }).addTo(window.map);
+        // Adicionar controle de zoom em uma posição personalizada
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(window.map);
 
-    // Camada base OpenStreetMap
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-        className: 'map-tiles'
-    }).addTo(window.map);
+        // Camada base OpenStreetMap
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            className: 'map-tiles'
+        }).addTo(window.map);
 
-    // Camada de satélite do Google
-    const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    });
+        // Camada de satélite do Google
+        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
 
-    // Camada híbrida do Google
-    const hybridLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    });
+        // Camada híbrida do Google
+        const hybridLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
 
-    // Controle de camadas
-    const baseLayers = {
-        "OpenStreetMap": osmLayer,
-        "Satélite": satelliteLayer,
-        "Híbrido": hybridLayer
-    };
+        // Controle de camadas
+        const baseLayers = {
+            "OpenStreetMap": osmLayer,
+            "Satélite": satelliteLayer,
+            "Híbrido": hybridLayer
+        };
 
-    L.control.layers(baseLayers, null, {
-        position: 'topright'
-    }).addTo(window.map);
+        L.control.layers(baseLayers, null, {
+            position: 'topright'
+        }).addTo(window.map);
 
-    // Criar camada para as redes
-    window.redesLayer = L.layerGroup().addTo(window.map);
+        // Criar camada para as redes
+        window.redesLayer = L.layerGroup().addTo(window.map);
 
-    // Centralizar inicialmente em uma posição padrão
-    window.map.setView([-20.4695, -54.6052], 13);
+        // Centralizar inicialmente em uma posição padrão
+        window.map.setView([-20.4695, -54.6052], 13);
 
-    return window.map;
+        console.log('Mapa inicializado com sucesso');
+        return window.map;
+    } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+        showError('Erro ao inicializar o mapa');
+        return null;
+    }
 }
 
 // Sistema de notificações
@@ -200,35 +207,35 @@ function validateGeoJSON(feature) {
     return true;
 }
 
-// Verificar status da autenticação
-async function checkAuthStatus() {
+// Verificar token diretamente
+function isValidToken() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
 
     if (!token || !userCity) {
         console.error('Token ou cidade não encontrados');
-        window.location.href = 'Login.html';
+        return false;
+    }
+
+    // Verificar se o token está no formato JWT válido
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+        console.error('Formato de token inválido');
         return false;
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            console.error('Token inválido ou expirado');
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userCity');
-            window.location.href = 'Login.html';
+        // Verificar expiração do token
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const expirationTime = payload.exp * 1000; // Converter para milissegundos
+        if (Date.now() >= expirationTime) {
+            console.error('Token expirado');
             return false;
         }
 
         return true;
     } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+        console.error('Erro ao validar token:', error);
         return false;
     }
 }
@@ -236,14 +243,19 @@ async function checkAuthStatus() {
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Verificar autenticação
-        const isAuthenticated = await checkAuthStatus();
-        if (!isAuthenticated) {
+        // Verificar autenticação localmente
+        if (!isValidToken()) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userCity');
+            window.location.href = 'Login.html';
             return;
         }
 
         // Inicializar mapa
-        initializeMap();
+        const mapInstance = initializeMap();
+        if (!mapInstance) {
+            throw new Error('Falha ao inicializar o mapa');
+        }
 
         // Toggle da camada de redes
         const toggleRedes = document.getElementById('toggleRedes');

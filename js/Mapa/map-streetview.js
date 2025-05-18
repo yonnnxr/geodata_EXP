@@ -3,6 +3,7 @@ let streetViewMarker = null;
 let panorama;
 let streetViewService;
 let isStreetViewInitialized = false;
+let streetViewControl = null;
 
 function showMessage(text, duration = 3000) {
     const box = document.getElementById('message-box');
@@ -18,24 +19,40 @@ function showMessage(text, duration = 3000) {
 const streetviewPanel = document.getElementById('streetview-panel');
 const iframe = document.getElementById('streetview-iframe');
 
-const streetViewControl = L.control({ position: 'topleft' });
+// Função para inicializar o controle do Street View
+function initStreetViewControl() {
+    if (!window.map || streetViewControl) return;
 
-streetViewControl.onAdd = function () {
-    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-    div.innerHTML = `<img src="https://w7.pngwing.com/pngs/275/833/png-transparent-google-maps-geolocation-google-street-view-google-thumbnail.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
+    streetViewControl = L.control({ position: 'topleft' });
 
-    div.onclick = (e) => {
-        e.stopPropagation();
-        choosingStreetView = true;
-        showMessage('Clique no mapa para escolher o local do Street View.');
+    streetViewControl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        div.innerHTML = `<img src="https://w7.pngwing.com/pngs/275/833/png-transparent-google-maps-geolocation-google-street-view-google-thumbnail.png" alt="Street View" title="Clique para escolher local do Street View" style="width: 26px; height: 26px; cursor: pointer;">`;
+
+        div.onclick = (e) => {
+            e.stopPropagation();
+            choosingStreetView = true;
+            showMessage('Clique no mapa para escolher o local do Street View.');
+        };
+
+        return div;
     };
 
-    return div;
-};
+    streetViewControl.addTo(window.map);
+}
 
-streetViewControl.addTo(map);
+// Event listener para inicializar o controle quando o mapa estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
+    // Aguardar a inicialização do mapa
+    const checkMapInterval = setInterval(() => {
+        if (window.map) {
+            initStreetViewControl();
+            clearInterval(checkMapInterval);
+        }
+    }, 100);
+});
 
-map.on('click', function (e) {
+window.map?.on('click', function (e) {
     if (!choosingStreetView) return;
 
     choosingStreetView = false;
@@ -44,7 +61,7 @@ map.on('click', function (e) {
     const lng = e.latlng.lng;
 
     if (streetViewMarker) {
-        map.removeLayer(streetViewMarker);
+        window.map.removeLayer(streetViewMarker);
         streetViewMarker = null;
     }
 
@@ -56,7 +73,7 @@ map.on('click', function (e) {
     });
 
     streetViewMarker = L.marker([lat, lng], { icon: pegmanIcon })
-        .addTo(map)
+        .addTo(window.map)
         .bindPopup('Street View aberto aqui!')
 
     const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
@@ -65,14 +82,14 @@ map.on('click', function (e) {
     iframe.src = streetViewUrl;
     streetviewPanel.style.display = 'block';
 
-    map.setView([lat, lng], 18);
+    window.map.setView([lat, lng], 18);
 });
 
 document.getElementById('close-streetview').onclick = () => {
     streetviewPanel.style.display = 'none';
     iframe.src = '';
     if (streetViewMarker) {
-        map.removeLayer(streetViewMarker);
+        window.map.removeLayer(streetViewMarker);
         streetViewMarker = null;
     }
 };
