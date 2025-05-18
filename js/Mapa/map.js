@@ -291,4 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (map) {
         loadMapData();
     }
-});
+}); // Certifique-se de que esta chave está fechando o evento DOMContentLoaded
+
+// Não deve haver nenhum código após esta linha sem o fechamento adequado

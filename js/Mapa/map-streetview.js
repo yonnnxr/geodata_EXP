@@ -20,8 +20,13 @@ const streetviewPanel = document.getElementById('streetview-panel');
 const iframe = document.getElementById('streetview-iframe');
 
 // Função para inicializar o controle do Street View
+// Modificar a função initStreetViewControl para verificar melhor se o mapa existe
 function initStreetViewControl() {
-    if (!window.map || streetViewControl) return;
+    // Verificação mais robusta para garantir que o mapa está inicializado
+    if (!window.map || typeof window.map.addControl !== 'function' || streetViewControl) {
+        console.log('Mapa não está pronto ou controle já inicializado');
+        return;
+    }
 
     try {
         streetViewControl = L.control({ position: 'topleft' });
@@ -39,71 +44,78 @@ function initStreetViewControl() {
             return div;
         };
 
-        streetViewControl.addTo(window.map);
-        console.log('Controle do Street View inicializado com sucesso');
+        // Adicionar o controle ao mapa com tratamento de erro
+        try {
+            streetViewControl.addTo(window.map);
+            console.log('Controle do Street View inicializado com sucesso');
+        } catch (addError) {
+            console.error('Erro ao adicionar controle ao mapa:', addError);
+        }
     } catch (error) {
         console.error('Erro ao inicializar controle do Street View:', error);
     }
 }
 
-// Event listener para inicializar o controle quando o mapa estiver pronto
+// Modificar o event listener para ser mais robusto
 document.addEventListener('DOMContentLoaded', () => {
-    // Aguardar a inicialização do mapa
+    console.log('DOM carregado, aguardando inicialização do mapa...');
+    
+    // Aguardar a inicialização do mapa com verificação mais robusta
     const checkMapInterval = setInterval(() => {
-        if (window.map) {
+        if (window.map && typeof window.map.on === 'function') {
+            console.log('Mapa detectado e inicializado corretamente');
+            
             // Inicializar o controle do Street View
             initStreetViewControl();
             
             // Adicionar o evento de clique ao mapa
-            window.map.on('click', function (e) {
-                if (!choosingStreetView) return;
+            try {
+                window.map.on('click', function (e) {
+                    if (!choosingStreetView) return;
 
-                choosingStreetView = false;
+                    choosingStreetView = false;
 
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
+                    const lat = e.latlng.lat;
+                    const lng = e.latlng.lng;
 
-                if (streetViewMarker) {
-                    window.map.removeLayer(streetViewMarker);
-                    streetViewMarker = null;
-                }
+                    if (streetViewMarker) {
+                        window.map.removeLayer(streetViewMarker);
+                        streetViewMarker = null;
+                    }
 
-                const pegmanIcon = L.icon({
-                    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 32],
-                    popupAnchor: [0, -32]
+                    const pegmanIcon = L.icon({
+                        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -32]
+                    });
+
+                    streetViewMarker = L.marker([lat, lng], { icon: pegmanIcon })
+                        .addTo(window.map)
+                        .bindPopup('Street View aberto aqui!');
+
+                    const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
+                    const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
+
+                    iframe.src = streetViewUrl;
+                    streetviewPanel.style.display = 'block';
+
+                    window.map.setView([lat, lng], 18);
                 });
-
-                streetViewMarker = L.marker([lat, lng], { icon: pegmanIcon })
-                    .addTo(window.map)
-                    .bindPopup('Street View aberto aqui!');
-
-                const apiKey = 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8';
-                const streetViewUrl = `https://www.google.com/maps/embed/v1/streetview?key=${apiKey}&location=${lat},${lng}&heading=0&pitch=0&fov=90`;
-
-                iframe.src = streetViewUrl;
-                streetviewPanel.style.display = 'block';
-
-                window.map.setView([lat, lng], 18);
-            });
+                
+                console.log('Evento de clique adicionado ao mapa');
+            } catch (clickError) {
+                console.error('Erro ao adicionar evento de clique:', clickError);
+            }
             
             clearInterval(checkMapInterval);
+        } else {
+            console.log('Aguardando inicialização do mapa...');
         }
-    }, 100);
+    }, 500); // Aumentei o intervalo para 500ms para reduzir a carga
 });
 
-// Remova o código duplicado do evento DOMContentLoaded (linhas 45-53)
-// document.addEventListener('DOMContentLoaded', () => {
-//     // Aguardar a inicialização do mapa
-//     const checkMapInterval = setInterval(() => {
-//         if (window.map) {
-//             initStreetViewControl();
-//             clearInterval(checkMapInterval);
-//         }
-//     }, 100);
-// });
-
+// Remover os comentários de código duplicado
 document.getElementById('close-streetview').onclick = () => {
     streetviewPanel.style.display = 'none';
     iframe.src = '';
