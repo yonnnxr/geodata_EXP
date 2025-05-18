@@ -164,6 +164,7 @@ function isValidGeoJSON(data) {
 async function loadMapData(retryCount = 0) {
     const token = localStorage.getItem('authToken');
     const maxRetries = 3;
+    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Backoff exponencial
     
     if (!token) {
         notifications.error('Sessão expirada. Redirecionando...');
@@ -183,40 +184,79 @@ async function loadMapData(retryCount = 0) {
         });
 
         if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Erro na resposta da API:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries([...response.headers]),
+                body: errorText
+            });
+            throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('Content-Type');
+        if (!contentType?.includes('application/json')) {
+            console.warn('Aviso: Content-Type não é application/json:', contentType);
         }
 
         let data;
         const textData = await response.text();
         
+        // Validação inicial dos dados
+        if (!textData?.trim()) {
+            throw new Error('Dados vazios recebidos da API');
+        }
+
         try {
-            console.log('Tentando fazer parse dos dados brutos...');
-            console.log('Primeiros 200 caracteres dos dados:', textData.substring(0, 200));
+            // Verifica formato básico do JSON
+            const firstChar = textData.trim()[0];
+            if (firstChar !== '{' && firstChar !== '[') {
+                console.error('Dados recebidos não estão no formato JSON esperado');
+                throw new Error('Formato de dados inválido');
+            }
+            
             data = JSON.parse(textData);
-            console.log('Parse JSON realizado com sucesso. Estrutura:', {
-                tipo: data.type,
-                quantidadeFeatures: data.features?.length,
-                primeiraFeature: data.features?.[0]
+            
+            // Log seguro da estrutura dos dados
+            console.log('Estrutura dos dados:', {
+                type: data?.type,
+                isArray: Array.isArray(data),
+                hasFeatures: Array.isArray(data?.features),
+                featuresCount: data?.features?.length || 0,
+                firstFeatureType: data?.features?.[0]?.type,
+                firstGeometryType: data?.features?.[0]?.geometry?.type
             });
-        } catch (e) {
-            console.error('Erro ao fazer parse do JSON:', e);
-            throw new Error('Erro ao processar dados do servidor: ' + e.message);
+        } catch (parseError) {
+            console.error('Erro detalhado no parse JSON:', {
+                name: parseError.name,
+                message: parseError.message,
+                stack: parseError.stack,
+                dataPreview: textData.substring(0, 200)
+            });
+            throw new Error(`Erro ao processar dados do servidor: ${parseError.message}`);
         }
 
-        // Verifica se é um objeto
-        if (!data || typeof data !== 'object') {
-            console.error('Dados inválidos:', data);
-            throw new Error('Dados recebidos não são um objeto válido');
+        // Normalização dos dados para GeoJSON
+        if (Array.isArray(data)) {
+            if (data.length === 0) {
+                throw new Error('Array de features vazio recebido da API');
+            }
+            data = {
+                type: 'FeatureCollection',
+                features: data
+            };
+        } else if (data.type === 'Feature') {
+            data = {
+                type: 'FeatureCollection',
+                features: [data]
+            };
+        } else if (!data.type || data.type !== 'FeatureCollection') {
+            throw new Error(`Tipo de GeoJSON não suportado: ${data.type || 'indefinido'}`);
         }
 
-        // Se os dados estiverem em uma propriedade específica
-        if (data.data) {
-            data = data.data;
-        }
-
-        // Garante que é um GeoJSON válido
+        // Validação do GeoJSON
         if (!isValidGeoJSON(data)) {
-            console.error('Estrutura dos dados:', JSON.stringify(data, null, 2));
+            console.error('Estrutura GeoJSON inválida:', JSON.stringify(data, null, 2));
             throw new Error('Formato GeoJSON inválido recebido da API');
         }
 
@@ -260,7 +300,7 @@ async function loadMapData(retryCount = 0) {
         
         if (retryCount < maxRetries) {
             notifications.show('Tentando reconectar...');
-            setTimeout(() => loadMapData(retryCount + 1), 2000);
+            setTimeout(() => loadMapData(retryCount + 1), retryDelay);
         } else {
             notifications.error(error.message);
         }
