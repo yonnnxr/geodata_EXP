@@ -72,19 +72,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Salvar dados no localStorage
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('userCity', data.city);
-            localStorage.setItem('userData', JSON.stringify({
-                nome: data.name,
-                cidade: data.city_name
-            }));
+            localStorage.setItem('authToken', data.access_token);
+            localStorage.setItem('userType', data.user_type);
+            localStorage.setItem('userName', data.name);
 
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
             submitButton.style.background = 'var(--success-color)';
             
+            // Redirecionar baseado no tipo de usuário
             setTimeout(() => {
-                window.location.href = 'pagina_inicial.html';
+                if (data.user_type === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'pagina_inicial.html';
+                }
             }, 1000);
 
         } catch (error) {
@@ -118,4 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // Adicionar event listeners
+    document.querySelector('.toggle-password').addEventListener('click', togglePassword);
 });
