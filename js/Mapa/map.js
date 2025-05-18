@@ -71,7 +71,8 @@ function getFeatureStyle(feature) {
     const defaultStyle = {
         weight: 3,
         opacity: 0.8,
-        color: '#3388ff'
+        color: '#3388ff',
+        dashArray: null
     };
 
     if (!feature.properties) return defaultStyle;
@@ -79,9 +80,12 @@ function getFeatureStyle(feature) {
     switch (feature.properties.tipo?.toLowerCase()) {
         case 'agua':
             return {
-                ...defaultStyle,
                 color: '#2196F3',
-                weight: 4
+                weight: 4,
+                opacity: 0.8,
+                dashArray: null,
+                lineCap: 'round',
+                lineJoin: 'round'
             };
         default:
             return {
@@ -241,6 +245,7 @@ function initMap() {
 // Carregamento de dados com retry e melhor validação
 async function loadMapData(retryCount = 0) {
     const token = localStorage.getItem('authToken');
+    const cidade = localStorage.getItem('userCity'); // Pegando a cidade do usuário do localStorage
     const maxRetries = 3;
     const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000);
     
@@ -250,10 +255,16 @@ async function loadMapData(retryCount = 0) {
         return;
     }
 
+    if (!cidade) {
+        notifications.error('Cidade não identificada. Por favor, faça login novamente.');
+        setTimeout(() => window.location.href = 'Login.html', 2000);
+        return;
+    }
+
     document.getElementById('loadingMessage').style.display = 'block';
 
     try {
-        const response = await fetch(`${API_BASE_URL}/geodata_regional`, {
+        const response = await fetch(`${API_BASE_URL}/geodata_regional/${cidade}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -283,6 +294,12 @@ async function loadMapData(retryCount = 0) {
                 propriedades: Object.keys(data),
                 conteudo: data
             });
+
+            // Verificar se a resposta é um erro ou não contém os dados esperados
+            if (data.cidades) {
+                console.error('Resposta da API incorreta: endpoint de cidades ao invés de redes');
+                throw new Error('Endpoint incorreto: recebido lista de cidades ao invés de dados de rede');
+            }
 
             // Tenta converter os dados para o formato GeoJSON esperado
             if (typeof data === 'object' && data !== null) {
@@ -388,6 +405,13 @@ async function loadMapData(retryCount = 0) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Atualiza o título com o nome da cidade
+    const cidade = localStorage.getItem('userCity');
+    if (cidade) {
+        const cidadeFormatada = cidade.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        document.querySelector('#sidebar h2').textContent = `Redes de ${cidadeFormatada}`;
+    }
+
     loadMapData();
     
     // Atualiza o mapa quando a janela é redimensionada

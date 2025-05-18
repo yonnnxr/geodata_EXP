@@ -211,12 +211,18 @@ body {
 
 /* Controles de camadas */
 .layer-section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .layer-section h3 {
+    margin-bottom: 10px;
     color: var(--text-color);
-    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
 .layer-toggle {
@@ -318,4 +324,33 @@ body {
     .map-tiles {
         filter: brightness(0.8) contrast(1.2);
     }
+}
+
+/* Seletor de Cidades */
+.cidade-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    background-color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cidade-select:hover {
+    border-color: var(--primary-color);
+}
+
+.cidade-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.cidade-select option {
+    padding: 8px;
 }
