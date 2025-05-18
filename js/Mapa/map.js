@@ -96,59 +96,131 @@ function isValidGeoJSON(data) {
     try {
         // Verificações básicas
         if (!data || typeof data !== 'object') {
-            console.error('GeoJSON inválido: dados vazios ou não é um objeto');
+            console.error('GeoJSON inválido: dados vazios ou não é um objeto', data);
             return false;
         }
 
         // Verifica o tipo principal
         if (!data.type) {
-            console.error('GeoJSON inválido: propriedade type não encontrada');
+            console.error('GeoJSON inválido: propriedade type não encontrada', data);
             return false;
         }
 
         // Verifica se é uma FeatureCollection
         if (data.type === 'FeatureCollection') {
-            if (!Array.isArray(data.features)) {
-                console.error('GeoJSON inválido: features não é um array');
+            if (!data.features) {
+                console.error('GeoJSON inválido: FeatureCollection sem propriedade features', data);
                 return false;
             }
             
+            if (!Array.isArray(data.features)) {
+                console.error('GeoJSON inválido: features não é um array', typeof data.features);
+                return false;
+            }
+
+            if (data.features.length === 0) {
+                console.warn('GeoJSON aviso: FeatureCollection vazia');
+                return true; // Permitimos coleções vazias
+            }
+            
             // Verifica cada feature
-            return data.features.every((feature, index) => {
+            const invalidFeatures = data.features.map((feature, index) => {
+                if (!feature || typeof feature !== 'object') {
+                    return `Feature ${index}: não é um objeto válido`;
+                }
                 if (!feature.type || feature.type !== 'Feature') {
-                    console.error(`GeoJSON inválido: feature ${index} não tem type correto`);
-                    return false;
+                    return `Feature ${index}: type inválido ou ausente (${feature.type})`;
                 }
                 if (!feature.geometry || typeof feature.geometry !== 'object') {
-                    console.error(`GeoJSON inválido: feature ${index} não tem geometry válida`);
-                    return false;
+                    return `Feature ${index}: geometry inválida ou ausente`;
                 }
-                if (!feature.geometry.type || !feature.geometry.coordinates) {
-                    console.error(`GeoJSON inválido: feature ${index} tem geometry incompleta`);
-                    return false;
+                if (!feature.geometry.type) {
+                    return `Feature ${index}: geometry.type ausente`;
+                }
+                if (!feature.geometry.coordinates) {
+                    return `Feature ${index}: coordinates ausentes`;
                 }
                 if (!Array.isArray(feature.geometry.coordinates)) {
-                    console.error(`GeoJSON inválido: feature ${index} tem coordinates inválidas`);
-                    return false;
+                    return `Feature ${index}: coordinates não é um array`;
                 }
-                return true;
-            });
+                
+                // Validação específica por tipo de geometria
+                switch (feature.geometry.type) {
+                    case 'Point':
+                        if (feature.geometry.coordinates.length !== 2) {
+                            return `Feature ${index}: Point deve ter exatamente 2 coordenadas`;
+                        }
+                        break;
+                    case 'LineString':
+                        if (!Array.isArray(feature.geometry.coordinates[0])) {
+                            return `Feature ${index}: LineString deve ter array de coordenadas`;
+                        }
+                        break;
+                    case 'Polygon':
+                        if (!Array.isArray(feature.geometry.coordinates[0]) || 
+                            !Array.isArray(feature.geometry.coordinates[0][0])) {
+                            return `Feature ${index}: Polygon deve ter array de arrays de coordenadas`;
+                        }
+                        break;
+                    default:
+                        return `Feature ${index}: Tipo de geometria não suportado (${feature.geometry.type})`;
+                }
+                return null;
+            }).filter(error => error !== null);
+
+            if (invalidFeatures.length > 0) {
+                console.error('GeoJSON inválido: Features com problemas:', invalidFeatures);
+                return false;
+            }
+
+            return true;
         }
 
         // Se for uma única feature
         if (data.type === 'Feature') {
             if (!data.geometry || typeof data.geometry !== 'object') {
-                console.error('GeoJSON inválido: geometry não é um objeto válido');
+                console.error('GeoJSON inválido: Feature sem geometry válida', data);
                 return false;
             }
-            if (!data.geometry.type || !data.geometry.coordinates) {
-                console.error('GeoJSON inválido: geometry está incompleta');
+            if (!data.geometry.type) {
+                console.error('GeoJSON inválido: geometry sem type', data.geometry);
+                return false;
+            }
+            if (!data.geometry.coordinates) {
+                console.error('GeoJSON inválido: geometry sem coordinates', data.geometry);
                 return false;
             }
             if (!Array.isArray(data.geometry.coordinates)) {
-                console.error('GeoJSON inválido: coordinates não é um array');
+                console.error('GeoJSON inválido: coordinates não é um array', data.geometry.coordinates);
                 return false;
             }
+
+            // Validação específica por tipo de geometria
+            switch (data.geometry.type) {
+                case 'Point':
+                    if (data.geometry.coordinates.length !== 2) {
+                        console.error('GeoJSON inválido: Point deve ter exatamente 2 coordenadas', data.geometry.coordinates);
+                        return false;
+                    }
+                    break;
+                case 'LineString':
+                    if (!Array.isArray(data.geometry.coordinates[0])) {
+                        console.error('GeoJSON inválido: LineString deve ter array de coordenadas', data.geometry.coordinates);
+                        return false;
+                    }
+                    break;
+                case 'Polygon':
+                    if (!Array.isArray(data.geometry.coordinates[0]) || 
+                        !Array.isArray(data.geometry.coordinates[0][0])) {
+                        console.error('GeoJSON inválido: Polygon deve ter array de arrays de coordenadas', data.geometry.coordinates);
+                        return false;
+                    }
+                    break;
+                default:
+                    console.error('GeoJSON inválido: Tipo de geometria não suportado', data.geometry.type);
+                    return false;
+            }
+
             return true;
         }
 
@@ -156,6 +228,7 @@ function isValidGeoJSON(data) {
         return false;
     } catch (e) {
         console.error('Erro na validação do GeoJSON:', e);
+        console.error('Dados que causaram o erro:', JSON.stringify(data, null, 2));
         return false;
     }
 }
