@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoData EXP - Painel Administrativo</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="img/favicon.png">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-map-marked-alt"></i>
+                <h2>GeoData EXP</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-section="users">
+                    <i class="fas fa-users"></i>
+                    Usuários
+                </button>
+                <button class="nav-item" data-section="localities">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Localidades
+                </button>
+                <button class="nav-item" data-section="permissions">
+                    <i class="fas fa-lock"></i>
+                    Permissões
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1 id="sectionTitle">Dashboard</h1>
+                    <p id="currentDate"></p>
+                </div>
+                <div class="header-right">
+                    <div class="admin-info">
+                        <span id="adminName">Carregando...</span>
+                        <span class="admin-role">Administrador</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Total de Usuários</h3>
+                            <span id="totalUsers">Carregando...</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Localidades Ativas</h3>
+                            <span id="activeLocalities">Carregando...</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Total de Acessos</h3>
+                            <span id="totalAccess">Carregando...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h2>Atividade Recente</h2>
+                    <div class="activity-list" id="activityList">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Section -->
+            <section id="users" class="content-section">
+                <div class="section-header">
+                    <h2>Gerenciar Usuários</h2>
+                    <button id="addUserBtn" class="primary-button">
+                        <i class="fas fa-plus"></i>
+                        Novo Usuário
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <input type="text" id="userSearch" placeholder="Buscar usuários...">
+                    <i class="fas fa-search"></i>
+                </div>
+
+                <div class="users-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Localidade</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Preenchido via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Localities Section -->
+            <section id="localities" class="content-section">
+                <div class="section-header">
+                    <h2>Gerenciar Localidades</h2>
+                    <button id="addLocalityBtn" class="primary-button">
+                        <i class="fas fa-plus"></i>
+                        Nova Localidade
+                    </button>
+                </div>
+
+                <div class="localities-grid" id="localitiesGrid">
+                    <!-- Preenchido via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Permissions Section -->
+            <section id="permissions" class="content-section">
+                <div class="section-header">
+                    <h2>Gerenciar Permissões</h2>
+                </div>
+
+                <div class="permissions-grid">
+                    <div class="role-card">
+                        <h3>Administrador</h3>
+                        <ul class="permissions-list">
+                            <li><i class="fas fa-check"></i> Gerenciar usuários</li>
+                            <li><i class="fas fa-check"></i> Gerenciar localidades</li>
+                            <li><i class="fas fa-check"></i> Definir permissões</li>
+                            <li><i class="fas fa-check"></i> Visualizar relatórios</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-card">
+                        <h3>Gerente Local</h3>
+                        <ul class="permissions-list">
+                            <li><i class="fas fa-check"></i> Gerenciar usuários da localidade</li>
+                            <li><i class="fas fa-check"></i> Visualizar dados da localidade</li>
+                            <li><i class="fas fa-times"></i> Definir permissões</li>
+                            <li><i class="fas fa-check"></i> Relatórios locais</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-card">
+                        <h3>Usuário</h3>
+                        <ul class="permissions-list">
+                            <li><i class="fas fa-times"></i> Gerenciar usuários</li>
+                            <li><i class="fas fa-check"></i> Visualizar dados</li>
+                            <li><i class="fas fa-times"></i> Definir permissões</li>
+                            <li><i class="fas fa-times"></i> Visualizar relatórios</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Usuário</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userName">Nome</label>
+                    <input type="text" id="userName" required>
+                </div>
+                <div class="form-group">
+                    <label for="userLocality">Localidade</label>
+                    <select id="userLocality" required>
+                        <!-- Preenchido via JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userType">Tipo de Usuário</label>
+                    <select id="userType" required>
+                        <option value="user">Usuário</option>
+                        <option value="manager">Gerente Local</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">Senha</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="secondary-button close-modal">Cancelar</button>
+                    <button type="submit" class="primary-button">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html> 

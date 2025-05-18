@@ -4,44 +4,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageDiv = document.getElementById('error-message');
     const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
-    // Prevent form from submitting normally
     loginForm.setAttribute('action', 'javascript:void(0);');
     loginForm.setAttribute('method', 'post');
 
-    loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // Get form elements
-        const cidadeInput = document.getElementById('regional_id');
+    function showError(message) {
+        errorMessageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
+        errorMessageDiv.style.display = 'flex';
+        errorMessageDiv.style.opacity = '0';
+        requestAnimationFrame(() => {
+            errorMessageDiv.style.opacity = '1';
+        });
+    }
+
+    function hideError() {
+        errorMessageDiv.style.opacity = '0';
+        setTimeout(() => {
+            errorMessageDiv.style.display = 'none';
+        }, 300);
+    }
+
+    function togglePassword() {
         const passwordInput = document.getElementById('password');
-        const submitButton = loginForm.querySelector('button[type="submit"]');
+        const toggleButton = document.querySelector('.toggle-password i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleButton.classList.remove('fa-eye');
+            toggleButton.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleButton.classList.remove('fa-eye-slash');
+            toggleButton.classList.add('fa-eye');
+        }
+    }
 
-        // Get input values
-        const cidade = cidadeInput.value.trim().toLowerCase();
-        const password = passwordInput.value.trim();
+    async function handleSubmit(event) {
+        event.preventDefault();
+        hideError();
 
-        // Validate inputs
-        if (!cidade || !password) {
-            errorMessageDiv.textContent = 'Por favor, preencha todos os campos.';
-            errorMessageDiv.style.display = 'block';
-            return false;
+        const regional_id = document.getElementById('regional_id').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!regional_id || !password) {
+            showError('Por favor, preencha todos os campos');
+            return;
         }
 
-        try {
-            submitButton.disabled = true;
-            submitButton.textContent = 'Carregando...';
-            errorMessageDiv.style.display = 'none';
+        // Adicionar classe de submitting para mostrar loading
+        loginForm.classList.add('submitting');
+        const submitButton = loginForm.querySelector('button[type="submit"]');
+        const buttonText = submitButton.innerHTML;
+        submitButton.disabled = true;
 
+        try {
             const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    cidade: cidade,
-                    password: password
-                })
+                body: JSON.stringify({ regional_id, password })
             });
 
             const data = await response.json();
@@ -50,23 +71,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
 
-            if (data.access_token) {
-                localStorage.setItem('authToken', data.access_token);
-                localStorage.setItem('userCity', cidade);
+            // Salvar dados no localStorage
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('userCity', data.city);
+            localStorage.setItem('userData', JSON.stringify({
+                nome: data.name,
+                cidade: data.city_name
+            }));
+
+            // Adicionar animação de sucesso antes de redirecionar
+            submitButton.innerHTML = '<i class="fas fa-check"></i>';
+            submitButton.style.background = 'var(--success-color)';
+            
+            setTimeout(() => {
                 window.location.href = 'pagina_inicial.html';
-            } else {
-                throw new Error('Token de acesso não recebido');
-            }
+            }, 1000);
 
         } catch (error) {
             console.error('Erro no login:', error);
-            errorMessageDiv.textContent = error.message || 'Erro ao fazer login. Tente novamente.';
-            errorMessageDiv.style.display = 'block';
-        } finally {
+            showError(error.message || 'Usuário ou senha inválidos');
+            
+            // Restaurar botão
+            submitButton.innerHTML = buttonText;
+            loginForm.classList.remove('submitting');
             submitButton.disabled = false;
-            submitButton.textContent = 'Entrar';
         }
+    }
 
-        return false;
+    // Event Listeners
+    loginForm.addEventListener('submit', handleSubmit);
+
+    // Limpar erro quando o usuário começa a digitar
+    document.getElementById('regional_id').addEventListener('input', hideError);
+    document.getElementById('password').addEventListener('input', hideError);
+
+    // Adicionar funcionalidade de pressionar Enter
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const activeElement = document.activeElement;
+            if (activeElement.tagName === 'INPUT') {
+                if (activeElement.id === 'regional_id') {
+                    document.getElementById('password').focus();
+                } else if (activeElement.id === 'password') {
+                    handleSubmit(new Event('submit'));
+                }
+            }
+        }
     });
 });

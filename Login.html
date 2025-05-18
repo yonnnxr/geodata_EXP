@@ -3,27 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>GeoData EXP - Login</title>
     <link rel="stylesheet" href="css/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="img/favicon.png">
 </head>
 <body>
-    <div class="container">
-        <h1>Login</h1>
-        <form id="login-form" onsubmit="return false">
-            <div class="form-group">
-                <label for="regional_id">Usuario:</label>
-                <input type="text" id="regional_id" name="regional_id" required>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-map-marked-alt"></i>
+                <h1>GeoData EXP</h1>
+                <p>Sistema de Visualização de Dados Geográficos</p>
             </div>
-            <div class="form-group">
-                <label for="password">Senha:</label>
-                <input type="password" id="password" name="password" required>
+            
+            <form id="login-form" onsubmit="return false">
+                <div class="form-group">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="regional_id" name="regional_id" placeholder="Usuário" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Senha" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-button">
+                    <span class="button-text">Entrar</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+
+                <div id="error-message" class="error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span></span>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>© 2024 GeoData EXP</p>
+                <p>Todos os direitos reservados</p>
             </div>
-            <button type="submit">Entrar</button>
-            <div id="error-message" class="error" style="display: none;"></div>
-        </form>
+        </div>
+
+        <!-- Círculos decorativos -->
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
     </div>
 
-    <!-- Add before other script tags -->
     <script src="js/config.js"></script>
     <script src="js/login.js"></script>
 </body>

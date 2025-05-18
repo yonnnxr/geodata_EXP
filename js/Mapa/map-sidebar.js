@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('close-btn');
     const userCity = localStorage.getItem('userCity');
 
-    // Atualizar título do sidebar com o nome da cidade
     if (userCity) {
         const cidadeFormatada = userCity
             .split('_')
@@ -13,23 +12,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#sidebar h2').textContent = `Controle de Camadas - ${cidadeFormatada}`;
     }
 
-    // Função para abrir o sidebar
     function openSidebar() {
         sidebar.classList.add('active');
         menuToggle.style.display = 'none';
     }
 
-    // Função para fechar o sidebar
     function closeSidebar() {
         sidebar.classList.remove('active');
         menuToggle.style.display = 'block';
     }
 
-    // Event listeners
     menuToggle.addEventListener('click', openSidebar);
     closeBtn.addEventListener('click', closeSidebar);
 
-    // Fechar sidebar ao clicar fora dele
     document.addEventListener('click', (e) => {
         if (!sidebar.contains(e.target) && 
             !menuToggle.contains(e.target) && 
@@ -38,14 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Fechar sidebar ao pressionar ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sidebar.classList.contains('active')) {
             closeSidebar();
         }
     });
 
-    // Ajustar sidebar em telas pequenas
     function adjustSidebar() {
         if (window.innerWidth <= 768) {
             closeSidebar();
@@ -55,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', adjustSidebar);
     adjustSidebar();
 
-    // Toggle de camadas
     document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
         if (window.map && window.redesLayer) {
             if (e.target.checked) {

@@ -21,7 +21,7 @@ body {
     overflow: hidden;
 }
 
-/* Garantindo que o mapa ocupe toda a tela */
+
 html, body {
     height: 100%;
     margin: 0;
@@ -34,7 +34,7 @@ html, body {
     z-index: 1;
 }
 
-/* Garantindo que os controles do mapa fiquem visíveis */
+
 .leaflet-control-container {
     z-index: 1000;
 }
@@ -43,7 +43,7 @@ html, body {
     clear: both;
 }
 
-/* Controles do Mapa */
+
 .leaflet-control-zoom {
     border: none !important;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
@@ -67,7 +67,6 @@ html, body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
 }
 
-/* Popup Personalizado */
 .custom-popup {
     border-radius: var(--border-radius);
     border: none;
@@ -88,7 +87,6 @@ html, body {
     background: white;
 }
 
-/* Botões e Controles */
 .map-controls {
     position: fixed;
     top: 10px;
@@ -139,7 +137,6 @@ html, body {
     font-size: 20px;
 }
 
-/* Mensagens e Loading */
 .message-box {
     position: absolute;
     top: 20px;
@@ -170,7 +167,6 @@ html, body {
     color: white;
 }
 
-/* Sidebar */
 .sidebar {
     position: fixed;
     top: 0;
@@ -211,7 +207,6 @@ html, body {
     transform: rotate(90deg);
 }
 
-/* Controles de camadas */
 .layer-section {
     margin-bottom: 20px;
 }
@@ -263,7 +258,6 @@ html, body {
     color: #666;
 }
 
-/* Animações */
 @keyframes slideDown {
     from {
         transform: translate(-50%, -100%);
@@ -275,7 +269,6 @@ html, body {
     }
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
     .sidebar {
         width: 100%;
@@ -323,14 +316,13 @@ html, body {
     }
 }
 
-/* Tema escuro para o mapa */
 @media (prefers-color-scheme: dark) {
     .map-tiles {
         filter: brightness(0.8) contrast(1.2);
     }
 }
 
-/* Seletor de Cidades */
+
 .cidade-select {
     width: 100%;
     padding: 8px 12px;
@@ -359,13 +351,43 @@ html, body {
     padding: 8px;
 }
 
+#message-box {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    display: none;
+    z-index: 1100;
+}
+
+
 #streetview-panel {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 400px;
+    height: 300px;
+    display: none;
+    border: 2px solid #ccc;
+    z-index: 999;
+    background-color: white;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 #close-streetview {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 10;
+    cursor: pointer;
     background: white;
     border: none;
     width: 24px;

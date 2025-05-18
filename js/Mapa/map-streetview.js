@@ -19,10 +19,9 @@ function showMessage(text, duration = 3000) {
 const streetviewPanel = document.getElementById('streetview-panel');
 const iframe = document.getElementById('streetview-iframe');
 
-// Função para inicializar o controle do Street View
-// Modificar a função initStreetViewControl para verificar melhor se o mapa existe
+
+
 function initStreetViewControl() {
-    // Verificação mais robusta para garantir que o mapa está inicializado
     if (!window.map || typeof window.map.addControl !== 'function' || streetViewControl) {
         console.log('Mapa não está pronto ou controle já inicializado');
         return;
@@ -44,7 +43,6 @@ function initStreetViewControl() {
             return div;
         };
 
-        // Adicionar o controle ao mapa com tratamento de erro
         try {
             streetViewControl.addTo(window.map);
             console.log('Controle do Street View inicializado com sucesso');
@@ -56,19 +54,15 @@ function initStreetViewControl() {
     }
 }
 
-// Modificar o event listener para ser mais robusto
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM carregado, aguardando inicialização do mapa...');
     
-    // Aguardar a inicialização do mapa com verificação mais robusta
     const checkMapInterval = setInterval(() => {
         if (window.map && typeof window.map.on === 'function') {
             console.log('Mapa detectado e inicializado corretamente');
             
-            // Inicializar o controle do Street View
             initStreetViewControl();
             
-            // Adicionar o evento de clique ao mapa
             try {
                 window.map.on('click', function (e) {
                     if (!choosingStreetView) return;
@@ -112,10 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.log('Aguardando inicialização do mapa...');
         }
-    }, 500); // Aumentei o intervalo para 500ms para reduzir a carga
+    }, 500);
 });
 
-// Remover os comentários de código duplicado
 document.getElementById('close-streetview').onclick = () => {
     streetviewPanel.style.display = 'none';
     iframe.src = '';
@@ -125,7 +118,6 @@ document.getElementById('close-streetview').onclick = () => {
     }
 };
 
-// Função para inicializar o Street View
 function initStreetView() {
     if (!isStreetViewInitialized) {
         streetViewService = new google.maps.StreetViewService();
@@ -133,7 +125,6 @@ function initStreetView() {
     }
 }
 
-// Função para mostrar o Street View
 function showStreetView(lat, lng) {
     const streetviewPanel = document.getElementById('streetview-panel');
     const streetviewIframe = document.getElementById('streetview-iframe');
@@ -161,7 +152,6 @@ function showStreetView(lat, lng) {
     });
 }
 
-// Função para fechar o Street View
 function closeStreetView() {
     const streetviewPanel = document.getElementById('streetview-panel');
     const streetviewIframe = document.getElementById('streetview-iframe');
@@ -169,10 +159,8 @@ function closeStreetView() {
     streetviewPanel.style.display = 'none';
 }
 
-// Event listener para o botão de fechar
 document.getElementById('close-streetview').addEventListener('click', closeStreetView);
 
-// Função para mostrar mensagens de erro
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
@@ -186,7 +174,6 @@ function showError(message) {
     }, 3000);
 }
 
-// Inicializar Street View quando o Google Maps estiver carregado
 function initMap() {
     initStreetView();
 }

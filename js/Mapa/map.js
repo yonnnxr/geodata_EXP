@@ -1,50 +1,44 @@
-// Variáveis globais
 window.map = null;
 window.redesLayer = null;
 let dadosCarregados = false;
 const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+const BATCH_SIZE = 100; // Número de features a serem processadas por vez
+let featuresCache = new Map(); // Cache para features já processadas
 
-// Debug log for API URL
 console.log('API URL configurada:', API_BASE_URL);
 
-// Inicialização do mapa com opções responsivas
 function initializeMap() {
     if (window.map) {
-        return window.map; // Retorna o mapa existente se já estiver inicializado
+        return window.map;
     }
 
     try {
         window.map = L.map('map', {
-            zoomControl: false,  // Vamos reposicionar os controles de zoom
-            minZoom: 10,
-            maxZoom: 19
+            zoomControl: false,
+            maxZoom: 19,
+            preferCanvas: true // Usar Canvas renderer para melhor performance
         });
 
-        // Adicionar controle de zoom em uma posição personalizada
         L.control.zoom({
             position: 'topright'
         }).addTo(window.map);
 
-        // Camada base OpenStreetMap
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19,
             className: 'map-tiles'
         }).addTo(window.map);
 
-        // Camada de satélite do Google
-        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        const satelliteLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={y}&y={y}&z={z}', {
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         });
 
-        // Camada híbrida do Google
         const hybridLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         });
 
-        // Controle de camadas
         const baseLayers = {
             "OpenStreetMap": osmLayer,
             "Satélite": satelliteLayer,
@@ -55,13 +49,19 @@ function initializeMap() {
             position: 'topright'
         }).addTo(window.map);
 
-        // Criar camada para as redes
         window.redesLayer = L.layerGroup().addTo(window.map);
 
-        // Centralizar inicialmente em uma posição padrão
-        // Get city coordinates based on stored city
         const cityCoordinates = getCityCoordinates(localStorage.getItem('userCity'));
         window.map.setView(cityCoordinates, 13);
+
+        // Otimizar eventos de zoom/pan
+        window.map.on('zoomstart movestart', () => {
+            window.map.getPane('overlayPane').style.display = 'none';
+        });
+
+        window.map.on('zoomend moveend', () => {
+            window.map.getPane('overlayPane').style.display = 'block';
+        });
 
         console.log('Mapa inicializado com sucesso');
         return window.map;
@@ -72,7 +72,6 @@ function initializeMap() {
     }
 }
 
-// Sistema de notificações
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
@@ -86,7 +85,6 @@ function showError(message) {
     }, 3000);
 }
 
-// Função para formatar distância
 function formatDistance(meters) {
     if (meters >= 1000) {
         return `${(meters / 1000).toFixed(2)} km`;
@@ -94,7 +92,6 @@ function formatDistance(meters) {
     return `${meters.toFixed(2)} m`;
 }
 
-// Estilo das redes
 function getFeatureStyle(feature) {
     return {
         color: feature.properties?.tipo === 'agua' ? '#2196F3' : '#FF5252',
@@ -103,7 +100,6 @@ function getFeatureStyle(feature) {
     };
 }
 
-// Carregar dados da API
 async function loadMapData() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
@@ -117,94 +113,115 @@ async function loadMapData() {
     loadingMessage.style.display = 'flex';
 
     try {
-        console.log('Iniciando requisição para:', `${API_BASE_URL}/geodata/${userCity}/map`);
-        const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        // Verificar cache primeiro
+        const cacheKey = `${userCity}_mapData`;
+        const cachedData = localStorage.getItem(cacheKey);
+        let data;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Erro na resposta da API:', errorData);
-            throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
+        if (cachedData) {
+            try {
+                data = JSON.parse(cachedData);
+                console.log('Usando dados do cache');
+            } catch (e) {
+                console.warn('Cache inválido, buscando dados novos');
+                localStorage.removeItem(cacheKey);
+            }
         }
 
-        const data = await response.json();
-        console.log('Dados recebidos da API:', data);
+        if (!data) {
+            console.log('Iniciando requisição para:', `${API_BASE_URL}/geodata/${userCity}/map`);
+            const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Erro na resposta da API:', errorData);
+                throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
+            }
+
+            data = await response.json();
+            
+            // Salvar no cache
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify(data));
+            } catch (e) {
+                console.warn('Não foi possível salvar no cache:', e);
+            }
+        }
 
         if (!data.features || !Array.isArray(data.features)) {
             console.error('Estrutura de dados inválida:', data);
             throw new Error('Dados inválidos recebidos da API');
         }
 
-        // Limpar camada existente
         window.redesLayer.clearLayers();
         console.log('Número de features recebidas:', data.features.length);
 
         if (data.features.length === 0) {
             console.warn('Nenhuma feature encontrada para esta cidade');
-            // Não mostrar erro, apenas aviso no console
         } else {
-            // Adicionar features ao mapa
-            let validFeaturesCount = 0;
-            
-            data.features.forEach((feature, index) => {
-                if (!feature.geometry) {
-                    console.warn(`Feature ${index} sem geometria:`, feature);
-                    return;
-                }
+            // Processar features em lotes
+            const processFeatures = async (features, startIndex) => {
+                const batch = features.slice(startIndex, startIndex + BATCH_SIZE);
+                if (batch.length === 0) return;
 
-                try {
-                    const geojsonLayer = L.geoJSON(feature, {
-                        style: getFeatureStyle,
-                        onEachFeature: (feature, layer) => {
-                            // Popup personalizado
-                            const popupContent = `
-                                <div class="popup-content">
-                                    <h3>${feature.properties?.nome || 'Rede'}</h3>
-                                    <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
-                                    ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
-                                    <div class="popup-actions">
-                                        <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
-                                            Street View
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                            layer.bindPopup(popupContent);
-                        }
-                    }).addTo(window.redesLayer);
-                    validFeaturesCount++;
-                    console.log(`Feature ${index} adicionada com sucesso`);
-                } catch (featureError) {
-                    console.error(`Erro ao adicionar feature ${index}:`, featureError);
-                }
-            });
+                const validFeatures = batch.filter(feature => feature.geometry);
+                const featureGroup = L.featureGroup();
 
-            // Ajustar visualização para os dados apenas se houver features válidas
-            if (validFeaturesCount > 0) {
-                const bounds = window.redesLayer.getBounds();
-                if (bounds.isValid()) {
-                    window.map.fitBounds(bounds);
-                    console.log('Mapa ajustado para os limites das redes');
+                validFeatures.forEach((feature, index) => {
+                    try {
+                        const geojsonLayer = L.geoJSON(feature, {
+                            style: getFeatureStyle,
+                            onEachFeature: (feature, layer) => {
+                                // Lazy loading para popups
+                                layer.on('click', () => {
+                                    const popupContent = `
+                                        <div class="popup-content">
+                                            <h3>${feature.properties?.nome || 'Rede'}</h3>
+                                            <p>Tipo: ${feature.properties?.tipo || 'Não especificado'}</p>
+                                            ${feature.properties?.length ? `<p>Extensão: ${formatDistance(feature.properties.length)}</p>` : ''}
+                                            <div class="popup-actions">
+                                                <button class="popup-button" onclick="showStreetView(${feature.geometry.coordinates[0][1]}, ${feature.geometry.coordinates[0][0]})">
+                                                    Street View
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                                    layer.bindPopup(popupContent).openPopup();
+                                });
+                            }
+                        });
+                        featureGroup.addLayer(geojsonLayer);
+                    } catch (featureError) {
+                        console.error(`Erro ao adicionar feature ${startIndex + index}:`, featureError);
+                    }
+                });
+
+                window.redesLayer.addLayer(featureGroup);
+
+                // Processar próximo lote
+                if (startIndex + BATCH_SIZE < features.length) {
+                    setTimeout(() => processFeatures(features, startIndex + BATCH_SIZE), 0);
                 } else {
-                    // Se não conseguir obter bounds válidos, centralizar na cidade
-                    const cityCoordinates = getCityCoordinates(userCity);
-                    window.map.setView(cityCoordinates, 13);
-                    console.log('Usando coordenadas da cidade como fallback');
+                    // Ajustar visualização após processar todas as features
+                    const bounds = window.redesLayer.getBounds();
+                    if (bounds.isValid()) {
+                        window.map.fitBounds(bounds);
+                    } else {
+                        const cityCoordinates = getCityCoordinates(userCity);
+                        window.map.setView(cityCoordinates, 13);
+                    }
+                    dadosCarregados = true;
                 }
-            } else {
-                // Se não houver features válidas, centralizar na cidade
-                const cityCoordinates = getCityCoordinates(userCity);
-                window.map.setView(cityCoordinates, 13);
-                console.log('Nenhuma feature válida encontrada, centralizando na cidade');
-            }
-        }
+            };
 
-        dadosCarregados = true;
-        console.log('Carregamento de dados concluído com sucesso');
+            // Iniciar processamento em lotes
+            await processFeatures(data.features, 0);
+        }
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -214,7 +231,6 @@ async function loadMapData() {
     }
 }
 
-// Função auxiliar para debug do GeoJSON
 function validateGeoJSON(feature) {
     if (!feature.type) {
         console.error('Feature sem tipo:', feature);
@@ -240,7 +256,6 @@ function isValidToken() {
         return false;
     }
 
-    // Verificar se o token está no formato JWT válido
     const tokenParts = token.split('.');
     if (tokenParts.length !== 3) {
         console.error('Formato de token inválido');
@@ -248,9 +263,8 @@ function isValidToken() {
     }
 
     try {
-        // Verificar expiração do token
         const payload = JSON.parse(atob(tokenParts[1]));
-        const expirationTime = payload.exp * 1000; // Converter para milissegundos
+        const expirationTime = payload.exp * 1000;
         if (Date.now() >= expirationTime) {
             console.error('Token expirado');
             return false;
@@ -263,7 +277,6 @@ function isValidToken() {
     }
 }
 
-// Função para obter coordenadas da cidade
 function getCityCoordinates(city) {
     const coordinates = {
         'dourados': [-22.2234, -54.8064],
@@ -277,10 +290,9 @@ function getCityCoordinates(city) {
         'aquidauana': [-20.4666, -55.7868],
         'corumba': [-19.0077, -57.6511]
     };
-    return coordinates[city] || [-20.4695, -54.6052]; // Default to Campo Grande if city not found
+    return coordinates[city] || [-20.4695, -54.6052];
 }
 
-// Inicializar o mapa quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {
     if (!isValidToken()) {
         window.location.href = 'Login.html';
@@ -291,6 +303,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (map) {
         loadMapData();
     }
-}); // Certifique-se de que esta chave está fechando o evento DOMContentLoaded
-
-// Não deve haver nenhum código após esta linha sem o fechamento adequado
+});
