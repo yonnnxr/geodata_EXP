@@ -7,13 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         
+        // Get form elements
         const cidadeInput = document.getElementById('regional_id');
         const passwordInput = document.getElementById('password');
         const submitButton = loginForm.querySelector('button[type="submit"]');
 
+        // Get input values
         const cidade = cidadeInput.value.trim();
         const password = passwordInput.value.trim();
 
+        // Validate inputs
         if (!cidade || !password) {
             errorMessageDiv.textContent = 'Por favor, preencha todos os campos.';
             errorMessageDiv.style.display = 'block';
@@ -21,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            console.log('Tentando login para:', cidade);
             submitButton.disabled = true;
             submitButton.textContent = 'Carregando...';
 
@@ -37,17 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            console.log('Resposta do servidor:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
 
-            // Armazena o token e a cidade
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userCity', cidade);
-
-            // Redireciona para a página inicial
             window.location.href = 'pagina_inicial.html';
 
         } catch (error) {
