@@ -2,7 +2,9 @@
 const map = L.map('map', {
     zoomControl: false,  // Vamos reposicionar os controles de zoom
     attributionControl: false  // Vamos reposicionar os créditos
-});
+}).setView([-20.4695, -54.6052], 13); // Definindo uma visualização inicial padrão
+
+console.log('Mapa inicializado:', map);
 
 // Adiciona controles de zoom em uma posição melhor para mobile
 L.control.zoom({
@@ -20,6 +22,8 @@ const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
     maxZoom: 19,
     className: 'map-tiles'  // Para estilização CSS
 }).addTo(map);
+
+console.log('Camada OSM adicionada:', osmLayer);
 
 const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: '© Esri',
@@ -244,8 +248,12 @@ function initMap() {
 
 // Carregamento de dados com retry e melhor validação
 async function loadMapData(retryCount = 0) {
+    console.log('Iniciando loadMapData, tentativa:', retryCount + 1);
+    
     const token = localStorage.getItem('authToken');
-    const cidade = localStorage.getItem('userCity'); // Pegando a cidade do usuário do localStorage
+    const cidade = localStorage.getItem('userCity');
+    console.log('Dados do usuário:', { cidade, temToken: !!token });
+
     const maxRetries = 3;
     const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000);
     
@@ -264,7 +272,8 @@ async function loadMapData(retryCount = 0) {
     document.getElementById('loadingMessage').style.display = 'block';
 
     try {
-        const response = await fetch(`${API_BASE_URL}/geodata_regional/${cidade}`, {
+        console.log('Fazendo requisição para:', `${API_BASE_URL}/geodata/${cidade}/map`);
+        const response = await fetch(`${API_BASE_URL}/geodata/${cidade}/map`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -294,12 +303,6 @@ async function loadMapData(retryCount = 0) {
                 propriedades: Object.keys(data),
                 conteudo: data
             });
-
-            // Verificar se a resposta é um erro ou não contém os dados esperados
-            if (data.cidades) {
-                console.error('Resposta da API incorreta: endpoint de cidades ao invés de redes');
-                throw new Error('Endpoint incorreto: recebido lista de cidades ao invés de dados de rede');
-            }
 
             // Tenta converter os dados para o formato GeoJSON esperado
             if (typeof data === 'object' && data !== null) {
@@ -353,6 +356,7 @@ async function loadMapData(retryCount = 0) {
         }
 
         // Cria nova camada com popup responsivo
+        console.log('Criando camada GeoJSON com os dados:', data);
         redesLayer = L.geoJSON(data, {
             style: getFeatureStyle,
             onEachFeature: (feature, layer) => {
@@ -372,10 +376,13 @@ async function loadMapData(retryCount = 0) {
             }
         }).addTo(map);
 
+        console.log('Camada GeoJSON adicionada ao mapa:', redesLayer);
+
         // Define a visualização inicial
         if (data.features && data.features.length > 0) {
             try {
                 const bounds = redesLayer.getBounds();
+                console.log('Bounds calculados:', bounds);
                 map.fitBounds(bounds, {
                     padding: [50, 50],
                     maxZoom: 18
@@ -385,6 +392,7 @@ async function loadMapData(retryCount = 0) {
                 map.setView([-20.4695, -54.6052], 13);
             }
         } else {
+            console.log('Nenhuma feature encontrada, usando visualização padrão');
             map.setView([-20.4695, -54.6052], 13);
         }
 
