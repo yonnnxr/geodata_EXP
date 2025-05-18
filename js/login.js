@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         hideError();
 
-        const regional_id = document.getElementById('regional_id').value.trim();
+        const cidade = document.getElementById('regional_id').value.trim();
         const password = document.getElementById('password').value;
 
-        if (!regional_id || !password) {
+        if (!cidade || !password) {
             showError('Por favor, preencha todos os campos');
             return;
         }
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ regional_id, password })
+                body: JSON.stringify({ cidade, password })
             });
 
             const data = await response.json();
