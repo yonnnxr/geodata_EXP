@@ -9,57 +9,41 @@ const totalLengthElement = document.getElementById('totalLength');
 const totalPointsElement = document.getElementById('totalPoints');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Função para verificar autenticação
-async function checkAuth() {
-    const token = localStorage.getItem('authToken');
-    const userName = localStorage.getItem('userName');
-    const userCity = localStorage.getItem('userCity');
-    const userType = localStorage.getItem('userType');
-
-    console.log('Verificando autenticação:', {
-        token: token ? 'presente' : 'ausente',
-        userName,
-        userCity,
-        userType
-    });
-
-    if (!token) {
-        console.error('Token não encontrado');
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.authUtils.checkAuth()) {
         window.location.href = 'Login.html';
         return;
     }
 
-    try {
-        if (userName && userCity) {
-            if (userNameElement) userNameElement.textContent = userName;
-            if (cityNameElement) cityNameElement.textContent = userCity;
-        } else {
-            throw new Error('Dados do usuário incompletos');
-        }
-    } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        localStorage.clear();
-        window.location.href = 'Login.html';
-    }
+    // Atualizar informações do usuário
+    const userName = localStorage.getItem('userName');
+    const userCity = localStorage.getItem('userCity');
+
+    if (userNameElement) userNameElement.textContent = userName;
+    if (cityNameElement) cityNameElement.textContent = userCity;
+
+    loadStatistics();
+});
+
+// Configurar botão de logout
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        window.authUtils.logout();
+    });
 }
 
 // Função para carregar estatísticas
 async function loadStatistics() {
     try {
-        const userCity = localStorage.getItem('userCity');
         const token = localStorage.getItem('authToken');
+        const userCity = localStorage.getItem('userCity');
 
-        if (!userCity || !token) {
-            console.error('Dados necessários não encontrados');
-            return;
+        if (!token || !userCity) {
+            throw new Error('Dados de autenticação incompletos');
         }
 
-        // Adicionar classe de loading
-        if (waterNetworksElement) waterNetworksElement.classList.add('loading');
-        if (totalLengthElement) totalLengthElement.classList.add('loading');
-        if (totalPointsElement) totalPointsElement.classList.add('loading');
-
-        const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/query`, {
+        const response = await fetch(`${API_BASE_URL}/api/statistics/${userCity}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -67,47 +51,37 @@ async function loadStatistics() {
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                window.authUtils.logout();
+                return;
+            }
             throw new Error('Erro ao carregar estatísticas');
         }
 
         const data = await response.json();
-
-        // Remover classe de loading e atualizar dados
-        if (waterNetworksElement) {
-            waterNetworksElement.classList.remove('loading');
-            waterNetworksElement.textContent = data.total_networks?.toLocaleString('pt-BR') || '0';
-        }
-        if (totalLengthElement) {
-            totalLengthElement.classList.remove('loading');
-            totalLengthElement.textContent = `${(data.total_length / 1000).toLocaleString('pt-BR')} km`;
-        }
-        if (totalPointsElement) {
-            totalPointsElement.classList.remove('loading');
-            totalPointsElement.textContent = data.total_points?.toLocaleString('pt-BR') || '0';
-        }
-
+        updateStatistics(data);
     } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
-        if (waterNetworksElement) waterNetworksElement.textContent = 'Erro';
-        if (totalLengthElement) totalLengthElement.textContent = 'Erro';
-        if (totalPointsElement) totalPointsElement.textContent = 'Erro';
+        console.error('Erro:', error);
+        showError('Erro ao carregar estatísticas');
     }
 }
 
-// Função para fazer logout
-function logout() {
-    localStorage.clear();
-    window.location.href = 'Login.html';
+function updateStatistics(data) {
+    if (waterNetworksElement) waterNetworksElement.textContent = data.total_networks || 0;
+    if (totalLengthElement) totalLengthElement.textContent = formatDistance(data.total_length || 0);
+    if (totalPointsElement) totalPointsElement.textContent = data.total_points || 0;
 }
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    loadStatistics();
-});
+function formatDistance(meters) {
+    if (meters >= 1000) {
+        return `${(meters / 1000).toFixed(2)} km`;
+    }
+    return `${meters.toFixed(2)} m`;
+}
 
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', logout);
+function showError(message) {
+    // Implementar lógica de exibição de erro
+    console.error(message);
 }
 
 // Adicionar animações aos cards quando ficarem visíveis

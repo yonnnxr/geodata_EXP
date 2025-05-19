@@ -1,5 +1,8 @@
 console.log('Script carregado!');
 document.addEventListener('DOMContentLoaded', () => {
+    // Limpar dados antigos do localStorage ao entrar na página de login
+    localStorage.clear();
+
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
 
@@ -38,17 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         hideError();
 
-        console.log('Iniciando login...');
-
         const username = document.getElementById('username');
         const password = document.getElementById('password');
         const submitButton = loginForm.querySelector('button[type="submit"]');
-
-        console.log('Elementos encontrados:', {
-            username: username ? 'sim' : 'não',
-            password: password ? 'sim' : 'não',
-            submitButton: submitButton ? 'sim' : 'não'
-        });
 
         if (!username || !password) {
             showError('Por favor, preencha todos os campos');
@@ -69,8 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
-            console.log('Enviando requisição para:', `${window.API_BASE_URL}/api/login`);
-            
             const response = await fetch(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: {
@@ -80,14 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            console.log('Resposta recebida:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
-
-            // Limpar dados antigos
-            localStorage.clear();
 
             // Salvar dados no localStorage
             localStorage.setItem('authToken', data.access_token);
@@ -95,28 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('userName', data.name);
             localStorage.setItem('userCity', data.city);
 
-            console.log('Dados salvos:', {
-                userType: data.user_type,
-                userName: data.name,
-                userCity: data.city
-            });
-
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
             submitButton.style.background = 'var(--success-color)';
             
-            // Redirecionar baseado no tipo de usuário
+            // Redirecionar baseado no tipo de usuário após validar os dados
             setTimeout(() => {
-                if (data.user_type === 'admin_central' || data.user_type === 'admin_city' || data.user_type === 'admin') {
-                    console.log('Redirecionando para admin.html');
-                    window.location.href = 'admin.html';
-                } else if (data.user_type === 'user') {
-                    console.log('Redirecionando para pagina_inicial.html');
-                    window.location.href = 'pagina_inicial.html';
-                } else {
-                    console.log('Tipo de usuário não reconhecido, redirecionando para pagina_inicial.html');
-                    window.location.href = 'pagina_inicial.html';
-                }
+                const redirectUrl = data.user_type === 'admin' ? 'admin.html' : 'pagina_inicial.html';
+                window.location.replace(redirectUrl);
             }, 1000);
 
         } catch (error) {
@@ -132,10 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event Listeners
     loginForm.addEventListener('submit', handleSubmit);
-
-    // Limpar erro quando o usuário começa a digitar
     document.getElementById('username').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
+    document.querySelector('.toggle-password').addEventListener('click', togglePassword);
 
     // Adicionar funcionalidade de pressionar Enter
     document.addEventListener('keypress', function(e) {
@@ -150,7 +124,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // Adicionar event listeners
-    document.querySelector('.toggle-password').addEventListener('click', togglePassword);
 });
