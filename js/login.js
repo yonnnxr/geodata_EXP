@@ -69,9 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
-            console.log('Enviando requisição para:', `${window.API_BASE_URL}/api/auth/login`);
+            console.log('Enviando requisição para:', `${window.API_BASE_URL}/api/login`);
             
-            const response = await fetch(`${window.API_BASE_URL}/api/auth/login`, {
+            const response = await fetch(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
