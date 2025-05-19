@@ -247,22 +247,28 @@ async function loadDashboardData() {    try {        const response = await wind
 
 // Atualizar seções
 function updateDashboard(data) {
-    document.getElementById('totalUsers').textContent = data.total_users;
-    document.getElementById('activeLocalities').textContent = data.active_localities;
-    document.getElementById('totalAccess').textContent = data.total_access;
+    // Atualizar estatísticas de usuários
+    document.getElementById('totalUsers').textContent = data.users.total;
+    document.getElementById('activeLocalities').textContent = data.localities.total;
+    document.getElementById('totalAccess').textContent = data.users.active;
 
+    // Atualizar lista de atividades
     const activityList = document.getElementById('activityList');
-    activityList.innerHTML = data.recent_activities.map(activity => `
-        <div class="activity-item">
-            <div class="activity-icon">
-                <i class="fas fa-${getActivityIcon(activity.type)}"></i>
+    if (data.recent_activities && Array.isArray(data.recent_activities)) {
+        activityList.innerHTML = data.recent_activities.map(activity => `
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-${getActivityIcon(activity.type)}"></i>
+                </div>
+                <div class="activity-details">
+                    <p class="activity-description">${activity.description}</p>
+                    <span class="activity-time">${formatDate(activity.timestamp)}</span>
+                </div>
             </div>
-            <div class="activity-details">
-                <p class="activity-description">${activity.description}</p>
-                <span class="activity-time">${formatDate(activity.timestamp)}</span>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    } else {
+        activityList.innerHTML = '<p class="no-data">Nenhuma atividade recente</p>';
+    }
 }
 
 function updateUsers(data) {
