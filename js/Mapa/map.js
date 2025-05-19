@@ -129,8 +129,8 @@ async function loadMapData() {
         }
 
         if (!data) {
-            console.log('Iniciando requisição para:', `${API_BASE_URL}/geodata/${userCity}/map`);
-            const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
+            console.log('Iniciando requisição para:', `${API_BASE_URL}/api/geodata/${userCity}/map`);
+            const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

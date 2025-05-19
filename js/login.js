@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirecionar baseado no tipo de usuário
             setTimeout(() => {
-                if (data.user_type === 'admin_central' || data.user_type === 'admin_city') {
+                if (data.user_type === 'admin' || data.user_type === 'admin_central' || data.user_type === 'admin_city') {
                     window.location.href = 'admin.html';
                 } else {
                     window.location.href = 'map.html';
