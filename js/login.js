@@ -86,11 +86,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Erro ao fazer login');
             }
 
+            // Limpar dados antigos
+            localStorage.clear();
+
             // Salvar dados no localStorage
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userType', data.user_type);
             localStorage.setItem('userName', data.name);
             localStorage.setItem('userCity', data.city);
+
+            console.log('Dados salvos:', {
+                userType: data.user_type,
+                userName: data.name,
+                userCity: data.city
+            });
 
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
@@ -98,10 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirecionar baseado no tipo de usuário
             setTimeout(() => {
-                if (data.user_type === 'admin' || data.user_type === 'admin_central' || data.user_type === 'admin_city') {
+                if (data.user_type === 'admin_central' || data.user_type === 'admin_city' || data.user_type === 'admin') {
+                    console.log('Redirecionando para admin.html');
                     window.location.href = 'admin.html';
+                } else if (data.user_type === 'user') {
+                    console.log('Redirecionando para pagina_inicial.html');
+                    window.location.href = 'pagina_inicial.html';
                 } else {
-                    window.location.href = 'map.html';
+                    console.log('Tipo de usuário não reconhecido, redirecionando para pagina_inicial.html');
+                    window.location.href = 'pagina_inicial.html';
                 }
             }, 1000);
 

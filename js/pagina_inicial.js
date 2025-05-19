@@ -13,7 +13,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 async function checkAuth() {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = 'Login.html';
         return;
     }
 
@@ -26,7 +26,7 @@ async function checkAuth() {
         }
     } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
-        window.location.href = 'login.html';
+        window.location.href = 'Login.html';
     }
 }
 
@@ -66,7 +66,7 @@ async function loadStatistics() {
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    window.location.href = 'login.html';
+    window.location.href = 'Login.html';
 }
 
 // Event Listeners

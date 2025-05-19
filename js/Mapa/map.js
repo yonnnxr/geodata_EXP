@@ -103,14 +103,33 @@ function getFeatureStyle(feature) {
 async function loadMapData() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
-    
-    if (!token || !userCity) {
+    const userType = localStorage.getItem('userType');
+
+    console.log('Dados do usuário:', {
+        token: token ? 'presente' : 'ausente',
+        userCity,
+        userType
+    });
+
+    if (!token) {
+        console.error('Token não encontrado');
         window.location.href = 'Login.html';
         return;
     }
 
+    if (!userCity) {
+        console.error('Cidade do usuário não encontrada');
+        showError('Erro: Cidade do usuário não definida');
+        setTimeout(() => {
+            window.location.href = 'Login.html';
+        }, 2000);
+        return;
+    }
+
     const loadingMessage = document.getElementById('loadingMessage');
-    loadingMessage.style.display = 'flex';
+    if (loadingMessage) {
+        loadingMessage.style.display = 'flex';
+    }
 
     try {
         // Verificar cache primeiro
@@ -121,7 +140,7 @@ async function loadMapData() {
         if (cachedData) {
             try {
                 data = JSON.parse(cachedData);
-                console.log('Usando dados do cache');
+                console.log('Usando dados do cache para cidade:', userCity);
             } catch (e) {
                 console.warn('Cache inválido, buscando dados novos');
                 localStorage.removeItem(cacheKey);
@@ -129,18 +148,32 @@ async function loadMapData() {
         }
 
         if (!data) {
-            console.log('Iniciando requisição para:', `${API_BASE_URL}/api/geodata/${userCity}/map`);
-            const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map`, {
+            const url = `${API_BASE_URL}/api/geodata/${userCity}/map`;
+            console.log('Iniciando requisição para:', url);
+            console.log('Token:', token);
+            console.log('Cidade:', userCity);
+
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Erro na resposta da API:', errorData);
-                throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
+                
+                if (response.status === 401) {
+                    console.error('Token expirado ou inválido');
+                    localStorage.clear();
+                    window.location.href = 'Login.html';
+                    return;
+                }
+                
+                throw new Error(errorData.message || `Erro ao carregar dados do mapa para ${userCity}`);
             }
 
             data = await response.json();
@@ -227,7 +260,9 @@ async function loadMapData() {
         console.error('Erro ao carregar dados:', error);
         showError('Erro ao carregar dados do mapa. Por favor, tente novamente.');
     } finally {
-        loadingMessage.style.display = 'none';
+        if (loadingMessage) {
+            loadingMessage.style.display = 'none';
+        }
     }
 }
 
