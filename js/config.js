@@ -30,7 +30,8 @@ window.fetchWithRetry = async function(url, options = {}) {
             const response = await fetch(url, {
                 ...options,
                 signal: controller.signal,
-                headers
+                headers,
+                credentials: 'include'
             });
             
             clearTimeout(timeoutId);
@@ -38,6 +39,13 @@ window.fetchWithRetry = async function(url, options = {}) {
             if (!response.ok) {
                 if (response.status === 401) {
                     // Token expirado ou inválido
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                if (response.status === 422) {
+                    // Erro de processamento - provavelmente token inválido
                     localStorage.removeItem('authToken');
                     window.location.href = '/login.html';
                     return;
@@ -51,13 +59,10 @@ window.fetchWithRetry = async function(url, options = {}) {
             
         } catch (error) {
             attempts++;
-            
             if (attempts === window.API_RETRY_ATTEMPTS) {
                 throw error;
             }
-            
-            // Esperar antes de tentar novamente
-            await new Promise(resolve => setTimeout(resolve, window.API_RETRY_DELAY));
+            await new Promise(resolve => setTimeout(resolve, window.API_RETRY_DELAY * attempts));
         }
     }
-};
+}
