@@ -64,19 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
-            const response = await fetch(`${window.API_BASE_URL}/api/login`, {
+            const response = await window.fetchWithRetry(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ username: usernameValue, password: passwordValue })
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao fazer login');
-            }
 
             // Salvar dados no localStorage
             localStorage.setItem('authToken', data.access_token);
