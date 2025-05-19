@@ -7,7 +7,30 @@ let featuresCache = new Map(); // Cache para features já processadas
 
 console.log('API URL configurada:', API_BASE_URL);
 
+// Função para verificar autenticação
+function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    const userCity = localStorage.getItem('userCity');
+    const userType = localStorage.getItem('userType');
+
+    console.log('Verificando autenticação:', {
+        token: token ? 'presente' : 'ausente',
+        userCity,
+        userType
+    });
+
+    if (!token || !userCity) {
+        console.error('Dados de autenticação incompletos');
+        window.location.href = 'Login.html';
+        return false;
+    }
+
+    return true;
+}
+
 function initializeMap() {
+    if (!checkAuth()) return null;
+
     if (window.map) {
         return window.map;
     }
@@ -51,7 +74,8 @@ function initializeMap() {
 
         window.redesLayer = L.layerGroup().addTo(window.map);
 
-        const cityCoordinates = getCityCoordinates(localStorage.getItem('userCity'));
+        const userCity = localStorage.getItem('userCity');
+        const cityCoordinates = getCityCoordinates(userCity);
         window.map.setView(cityCoordinates, 13);
 
         // Otimizar eventos de zoom/pan
@@ -63,7 +87,7 @@ function initializeMap() {
             window.map.getPane('overlayPane').style.display = 'block';
         });
 
-        console.log('Mapa inicializado com sucesso');
+        console.log('Mapa inicializado para cidade:', userCity);
         return window.map;
     } catch (error) {
         console.error('Erro ao inicializar mapa:', error);
