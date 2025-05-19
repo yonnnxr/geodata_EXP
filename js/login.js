@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         hideError();
 
-        const cidade = document.getElementById('regional_id').value.trim();
+        const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
 
-        if (!cidade || !password) {
+        if (!username || !password) {
             showError('Por favor, preencha todos os campos');
             return;
         }
@@ -57,12 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/login`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ cidade, password })
+                body: JSON.stringify({ username, password })
             });
 
             const data = await response.json();
@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userType', data.user_type);
             localStorage.setItem('userName', data.name);
+            localStorage.setItem('userCity', data.city);
 
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
@@ -82,10 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirecionar baseado no tipo de usuário
             setTimeout(() => {
-                if (data.user_type === 'admin') {
+                if (data.user_type === 'admin_central' || data.user_type === 'admin_city') {
                     window.location.href = 'admin.html';
                 } else {
-                    window.location.href = 'pagina_inicial.html';
+                    window.location.href = 'map.html';
                 }
             }, 1000);
 
@@ -104,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', handleSubmit);
 
     // Limpar erro quando o usuário começa a digitar
-    document.getElementById('regional_id').addEventListener('input', hideError);
+    document.getElementById('username').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
 
     // Adicionar funcionalidade de pressionar Enter
@@ -112,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') {
             const activeElement = document.activeElement;
             if (activeElement.tagName === 'INPUT') {
-                if (activeElement.id === 'regional_id') {
+                if (activeElement.id === 'username') {
                     document.getElementById('password').focus();
                 } else if (activeElement.id === 'password') {
                     handleSubmit(new Event('submit'));

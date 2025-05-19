@@ -72,6 +72,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Carregar dados iniciais
         await loadDashboardData();
+
+        // Botão do mapa
+        const mapButton = document.getElementById('mapButton');
+        if (mapButton) {
+            mapButton.addEventListener('click', () => {
+                window.location.href = 'map.html';
+            });
+        }
     } catch (error) {
         console.error('Erro na inicialização:', error);
         showNotification('Erro ao carregar dados. Por favor, recarregue a página.', 'error');
@@ -325,6 +333,9 @@ function updateUsers(data) {
                 <button class="action-btn toggle-status" onclick="toggleUserStatus('${user.id}')">
                     <i class="fas fa-${user.status ? 'ban' : 'check'}"></i>
                 </button>
+                <button class="action-btn delete" onclick="deleteUser('${user.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
             </td>
         </tr>
     `).join('');
@@ -463,6 +474,30 @@ async function toggleLocalityStatus(localityId) {
 
         loadSectionData('localities');
         showNotification('Status da localidade alterado com sucesso', 'success');
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+async function deleteUser(userId) {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao excluir usuário');
+        }
+
+        loadSectionData('users');
+        showNotification('Usuário excluído com sucesso', 'success');
     } catch (error) {
         showNotification(error.message, 'error');
     }
