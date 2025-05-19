@@ -12,7 +12,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     if (!window.authUtils.checkAuth()) {
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
         return;
     }
 

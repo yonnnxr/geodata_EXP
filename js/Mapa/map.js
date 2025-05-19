@@ -21,7 +21,7 @@ function checkAuth() {
 
     if (!token || !userCity) {
         console.error('Dados de autenticação incompletos');
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
         return false;
     }
 
@@ -137,7 +137,7 @@ async function loadMapData() {
 
     if (!token) {
         console.error('Token não encontrado');
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
         return;
     }
 
@@ -185,7 +185,7 @@ async function loadMapData() {
             if (response.status === 401) {
                 console.error('Token expirado ou inválido');
                 localStorage.clear();
-                window.location.href = 'Login.html';
+                window.location.href = 'login.html';
                 return;
             }
             
@@ -383,7 +383,7 @@ async function loadCityData(cityId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!isValidToken()) {
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
         return;
     }
 

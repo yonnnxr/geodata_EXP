@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userName = localStorage.getItem('userName');
 
         if (!authToken || userType !== 'admin') {
-            window.location.href = 'Login.html';
+            window.location.href = 'login.html';
             return;
         }
 
@@ -256,7 +256,7 @@ function setupForms() {
 function setupLogout() {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.clear();
-        window.location.href = 'Login.html';
+        window.location.href = 'login.html';
     });
 }
 
