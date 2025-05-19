@@ -87,12 +87,45 @@ function checkAuth() {
 
 function logout() {
     localStorage.clear();
-    window.location.href = 'login.html';
+    window.location.href = 'Login.html';
 }
+
+// Função para gerenciar navegação
+function handleNavigation(event) {
+    const userType = localStorage.getItem('userType');
+    
+    // Se não houver tipo de usuário, deixa o comportamento padrão
+    if (!userType) return;
+
+    // Se for botão voltar do navegador
+    if (event && event.type === 'popstate') {
+        event.preventDefault();
+        redirectToHome();
+        return;
+    }
+
+    // Para outros tipos de navegação
+    redirectToHome();
+}
+
+// Função para redirecionar para a página inicial correta
+function redirectToHome() {
+    const userType = localStorage.getItem('userType');
+    if (userType === 'admin') {
+        window.location.replace('admin.html');
+    } else {
+        window.location.replace('pagina_inicial.html');
+    }
+}
+
+// Interceptar evento de voltar do navegador
+window.addEventListener('popstate', handleNavigation);
 
 // Exportar funções
 window.authUtils = {
     isValidToken,
     checkAuth,
-    logout
+    logout,
+    handleNavigation,
+    redirectToHome
 }; 
