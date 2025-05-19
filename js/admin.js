@@ -89,16 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Carregar localidades para o select
 async function loadLocalities() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/localities`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Erro ao carregar localidades');
-        }
-
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/localities`);
         const data = await response.json();
         const select = document.getElementById('userLocality');
         
@@ -263,21 +254,9 @@ function setupLogout() {
 // Carregar dados das seções
 async function loadSectionData(section) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/${section}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao carregar dados');
-        }
-
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/${section}`);
         const data = await response.json();
-        console.log(`Dados carregados para seção ${section}:`, data);
-
+        
         switch (section) {
             case 'dashboard':
                 updateDashboard(data);
@@ -301,24 +280,12 @@ async function loadSectionData(section) {
 // Carregar dados do dashboard
 async function loadDashboardData() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao carregar dados do dashboard');
-        }
-
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/dashboard`);
         const data = await response.json();
-        console.log('Dados do dashboard:', data);
         updateDashboard(data);
     } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
-        showNotification(error.message, 'error');
+        throw new Error('Erro ao carregar dados do dashboard');
     }
 }
 

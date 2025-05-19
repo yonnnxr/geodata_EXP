@@ -17,20 +17,32 @@ window.fetchWithRetry = async function(url, options = {}) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), window.API_TIMEOUT);
             
+            // Adiciona o token JWT ao header Authorization
+            const token = localStorage.getItem('authToken');
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': window.location.origin,
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                ...(options.headers || {})
+            };
+            
             const response = await fetch(url, {
                 ...options,
                 signal: controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Origin': window.location.origin,
-                    ...(options.headers || {})
-                }
+                headers
             });
             
             clearTimeout(timeoutId);
             
             if (!response.ok) {
+                if (response.status === 401) {
+                    // Token expirado ou inválido
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
                 const error = await response.json().catch(() => ({}));
                 throw new Error(error.message || `HTTP error! status: ${response.status}`);
             }
