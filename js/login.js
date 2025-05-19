@@ -38,30 +38,49 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         hideError();
 
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
+        console.log('Iniciando login...');
+
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const submitButton = loginForm.querySelector('button[type="submit"]');
+
+        console.log('Elementos encontrados:', {
+            username: username ? 'sim' : 'não',
+            password: password ? 'sim' : 'não',
+            submitButton: submitButton ? 'sim' : 'não'
+        });
 
         if (!username || !password) {
             showError('Por favor, preencha todos os campos');
             return;
         }
 
+        const usernameValue = username.value.trim();
+        const passwordValue = password.value;
+
+        if (!usernameValue || !passwordValue) {
+            showError('Por favor, preencha todos os campos');
+            return;
+        }
+
         // Adicionar classe de submitting para mostrar loading
         loginForm.classList.add('submitting');
-        const submitButton = loginForm.querySelector('button[type="submit"]');
-        const buttonText = submitButton.innerHTML;
+        const buttonText = submitButton.querySelector('.button-text').textContent;
         submitButton.disabled = true;
 
         try {
+            console.log('Enviando requisição para:', `${window.API_BASE_URL}/api/auth/login`);
+            
             const response = await fetch(`${window.API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username: usernameValue, password: passwordValue })
             });
 
             const data = await response.json();
+            console.log('Resposta recebida:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao fazer login');
@@ -91,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(error.message || 'Usuário ou senha inválidos');
             
             // Restaurar botão
-            submitButton.innerHTML = buttonText;
+            submitButton.innerHTML = `<span class="button-text">${buttonText}</span><i class="fas fa-arrow-right"></i>`;
             loginForm.classList.remove('submitting');
             submitButton.disabled = false;
         }
