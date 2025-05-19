@@ -149,77 +149,107 @@ function setupForms() {
     const userForm = document.getElementById('userForm');
     const localityForm = document.getElementById('localityForm');
 
-    userForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = {
-            name: document.getElementById('userName').value,
-            locality: document.getElementById('userLocality').value,
-            user_type: document.getElementById('userType').value,
-            password: document.getElementById('userPassword').value
-        };
+    if (userForm) {
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userName = document.getElementById('userName');
+            const userLocality = document.getElementById('userLocality');
+            const userType = document.getElementById('userType');
+            const userPassword = document.getElementById('userPassword');
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao criar usuário');
+            if (!userName || !userLocality || !userType || !userPassword) {
+                showNotification('Erro ao acessar campos do formulário', 'error');
+                return;
             }
+            
+            const formData = {
+                name: userName.value,
+                city: userLocality.value,
+                user_type: userType.value,
+                password: userPassword.value
+            };
 
-            showNotification('Usuário criado com sucesso', 'success');
-            document.getElementById('userModal').style.display = 'none';
-            userForm.reset();
-            loadSectionData('users');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
 
-        } catch (error) {
-            showNotification(error.message, 'error');
-        }
-    });
+                const data = await response.json();
 
-    localityForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = {
-            name: document.getElementById('localityName').value,
-            code: document.getElementById('localityCode').value,
-            state: document.getElementById('localityState').value,
-            type: document.getElementById('localityType').value
-        };
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao criar usuário');
+                }
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/admin/localities`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify(formData)
-            });
+                showNotification('Usuário criado com sucesso', 'success');
+                const userModal = document.getElementById('userModal');
+                if (userModal) {
+                    userModal.style.display = 'none';
+                }
+                userForm.reset();
+                loadSectionData('users');
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao criar localidade');
+            } catch (error) {
+                showNotification(error.message, 'error');
             }
+        });
+    }
 
-            showNotification('Localidade criada com sucesso', 'success');
-            document.getElementById('localityModal').style.display = 'none';
-            localityForm.reset();
-            loadSectionData('localities');
+    if (localityForm) {
+        localityForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const localityName = document.getElementById('localityName');
+            const localityCode = document.getElementById('localityCode');
+            const localityState = document.getElementById('localityState');
+            const localityType = document.getElementById('localityType');
 
-        } catch (error) {
-            showNotification(error.message, 'error');
-        }
-    });
+            if (!localityName || !localityCode || !localityState || !localityType) {
+                showNotification('Erro ao acessar campos do formulário', 'error');
+                return;
+            }
+            
+            const formData = {
+                name: localityName.value,
+                code: localityCode.value,
+                state: localityState.value,
+                type: localityType.value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/localities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao criar localidade');
+                }
+
+                showNotification('Localidade criada com sucesso', 'success');
+                const localityModal = document.getElementById('localityModal');
+                if (localityModal) {
+                    localityModal.style.display = 'none';
+                }
+                localityForm.reset();
+                loadSectionData('localities');
+
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        });
+    }
 }
 
 // Configuração do logout
@@ -421,14 +451,28 @@ function showNotification(message, type = 'success') {
 // Funções de edição
 async function editUser(userId) {
     const user = usersData.find(u => u.id === userId);
-    if (!user) return;
+    if (!user) {
+        showNotification('Usuário não encontrado', 'error');
+        return;
+    }
 
-    document.getElementById('userName').value = user.name;
-    document.getElementById('userLocality').value = user.locality;
-    document.getElementById('userType').value = user.user_type;
-    document.getElementById('userPassword').value = '';
+    const userName = document.getElementById('userName');
+    const userLocality = document.getElementById('userLocality');
+    const userType = document.getElementById('userType');
+    const userPassword = document.getElementById('userPassword');
+    const userModal = document.getElementById('userModal');
+
+    if (!userName || !userLocality || !userType || !userPassword || !userModal) {
+        showNotification('Erro ao acessar campos do formulário', 'error');
+        return;
+    }
+
+    userName.value = user.name;
+    userLocality.value = user.city;
+    userType.value = user.user_type;
+    userPassword.value = '';
     
-    document.getElementById('userModal').style.display = 'flex';
+    userModal.style.display = 'flex';
 }
 
 async function toggleUserStatus(userId) {

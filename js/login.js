@@ -2,10 +2,6 @@ console.log('Script carregado!');
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
-    const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
-
-    loginForm.setAttribute('action', 'javascript:void(0);');
-    loginForm.setAttribute('method', 'post');
 
     function showError(message) {
         errorMessageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
@@ -57,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            const response = await fetch(`${window.API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
