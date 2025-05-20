@@ -125,7 +125,7 @@ async function loadMapData() {
 
                         if (cityResponse.ok) {
                             const cityData = await cityResponse.json();
-                            if (cityData && cityData.features) {
+                            if (cityData && cityData.features && Array.isArray(cityData.features)) {
                                 // Adiciona informação da localidade em cada feature
                                 cityData.features.forEach(feature => {
                                     feature.properties.locality = city.name;
@@ -156,10 +156,18 @@ async function loadMapData() {
             if (cachedData) {
                 try {
                     data = JSON.parse(cachedData);
-                    console.log('Usando dados do cache');
+                    // Valida os dados do cache
+                    if (!data || !data.features || !Array.isArray(data.features)) {
+                        console.warn('Dados do cache inválidos, buscando dados novos');
+                        localStorage.removeItem(cacheKey);
+                        data = null;
+                    } else {
+                        console.log('Usando dados do cache');
+                    }
                 } catch (e) {
                     console.warn('Cache inválido, buscando dados novos');
                     localStorage.removeItem(cacheKey);
+                    data = null;
                 }
             }
 
@@ -183,15 +191,20 @@ async function loadMapData() {
 
                 data = await response.json();
                 
-                // Salvar no cache
-                try {
-                    localStorage.setItem(cacheKey, JSON.stringify(data));
-                } catch (e) {
-                    console.warn('Não foi possível salvar no cache:', e);
+                // Valida os dados antes de salvar no cache
+                if (data && data.features && Array.isArray(data.features)) {
+                    // Salvar no cache
+                    try {
+                        localStorage.setItem(cacheKey, JSON.stringify(data));
+                    } catch (e) {
+                        console.warn('Não foi possível salvar no cache:', e);
+                    }
+                } else {
+                    throw new Error('Dados recebidos da API em formato inválido');
                 }
             }
 
-            if (data && data.features) {
+            if (data && data.features && Array.isArray(data.features)) {
                 await processFeatures(data.features);
             } else {
                 throw new Error('Dados do mapa não encontrados ou em formato inválido');
