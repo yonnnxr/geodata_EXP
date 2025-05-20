@@ -101,7 +101,9 @@ async function loadMapData() {
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao carregar lista de localidades');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Erro na resposta da API:', errorData);
+                throw new Error(errorData.message || 'Erro ao carregar lista de localidades');
             }
 
             const data = await response.json();
