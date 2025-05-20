@@ -90,7 +90,7 @@ async function loadMapData() {
         // Se for acesso global, carrega todas as localidades
         if (userCity === 'global') {
             // Primeiro, busca a lista de localidades disponíveis
-            const response = await fetch(`${API_BASE_URL}/api/geodata/null/map`, {
+            const response = await fetch(`${API_BASE_URL}/api/localities`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -106,14 +106,14 @@ async function loadMapData() {
 
             const data = await response.json();
             
-            // Verifica se é uma lista de cidades
-            if (data.type === 'CityList' && data.cities) {
+            // Verifica se é uma lista de localidades
+            if (data && data.localities && Array.isArray(data.localities)) {
                 // Carrega dados para cada localidade
                 let allFeatures = [];
-                for (const city of data.cities) {
+                for (const locality of data.localities) {
                     try {
-                        console.log('Carregando dados para:', city.name);
-                        const cityResponse = await fetch(`${API_BASE_URL}/api/geodata/${city.id}/map`, {
+                        console.log('Carregando dados para:', locality.name);
+                        const cityResponse = await fetch(`${API_BASE_URL}/api/geodata/${locality.id}/map`, {
                             method: 'GET',
                             headers: {
                                 'Authorization': `Bearer ${token}`,
@@ -128,13 +128,13 @@ async function loadMapData() {
                             if (cityData && cityData.features && Array.isArray(cityData.features)) {
                                 // Adiciona informação da localidade em cada feature
                                 cityData.features.forEach(feature => {
-                                    feature.properties.locality = city.name;
+                                    feature.properties.locality = locality.name;
                                 });
                                 allFeatures = allFeatures.concat(cityData.features);
                             }
                         }
                     } catch (error) {
-                        console.warn(`Erro ao carregar dados para ${city.name}:`, error);
+                        console.warn(`Erro ao carregar dados para ${locality.name}:`, error);
                     }
                 }
 
