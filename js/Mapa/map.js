@@ -11,30 +11,125 @@ window.markerClusters = {
 };
 let dadosCarregados = false;
 const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
-const BATCH_SIZE = 1000; // Aumentado para melhor performance
+const BATCH_SIZE = 1000; // Para processamento em lotes geral
+const ECONOMIA_PAGE_SIZE = 10000; // Tamanho da página específico para economias
 let featuresCache = new Map();
+let currentEconomiaPage = 1; // Página atual apenas para economias
+let isLoadingMore = false;
+let hasMoreEconomias = true; // Controle apenas para economias
+
+// Variáveis globais para pesquisa
+window.searchResults = [];
+window.selectedFeature = null;
+window.highlightedLayer = null;
 
 console.log('API URL configurada:', API_BASE_URL);
 
-// Função para inicializar o mapa
+// Configurações de estilo por tipo de camada
+const LAYER_CONFIGS = {
+    'file': {
+        title: 'Rede de Distribuição',
+        style: {
+            color: '#3388ff',
+            weight: 2,
+            opacity: 0.7
+        },
+        fields: [
+            { key: 'tipo', label: 'Tipo de Rede' },
+            { key: 'mat', label: 'Material' },
+            { key: 'dia', label: 'Diâmetro', format: (v) => `${formatNumber(v, 0)} mm` },
+            { key: 'ext', label: 'Extensão', format: (v) => `${formatNumber(v, 2)} m` },
+            { key: 'status', label: 'Status' }
+        ]
+    },
+    'file-1': {
+        title: 'Economia Zero',
+        style: {
+            color: '#ff3333',
+            weight: 2,
+            opacity: 0.7
+        },
+        fields: [
+            { key: 'matricula', label: 'Matrícula' },
+            { key: 'logradouro', label: 'Logradouro' },
+            { key: 'numero', label: 'Número' },
+            { key: 'bairro', label: 'Bairro' },
+            { key: 'complemento', label: 'Complemento' },
+            { key: 'economias', label: 'Economias', format: (v) => formatNumber(v, 0) },
+            { key: 'consumo_medio', label: 'Consumo Médio', format: (v) => `${formatNumber(v)} m³` },
+            { key: 'ultima_leitura', label: 'Última Leitura', format: (v) => formatDate(v) },
+            { key: 'status', label: 'Status' },
+        ],
+        // Função especial para formatar o endereço completo
+        formatAddress: (props) => {
+            const parts = [];
+            if (props.logradouro) parts.push(props.logradouro);
+            if (props.numero) parts.push(`Nº ${props.numero}`);
+            if (props.complemento) parts.push(props.complemento);
+            if (props.bairro) parts.push(`- ${props.bairro}`);
+            return parts.join(' ');
+        }
+    },
+    'file-2': {
+        title: 'Ocorrências',
+        style: {
+            color: '#33ff33',
+            weight: 2,
+            opacity: 0.7
+        },
+        fields: [
+            { key: 'tipo_ocorrencia', label: 'Tipo de Ocorrência' },
+            { key: 'data_ocorrencia', label: 'Data', format: (v) => formatDate(v) },
+            { key: 'descricao', label: 'Descrição' },
+            { key: 'solucao', label: 'Solução' },
+            { key: 'prioridade', label: 'Prioridade' },
+            { key: 'status', label: 'Status' }
+        ]
+    }
+};
+
+// Função para detectar dispositivo móvel
+function isMobileDevice() {
+    return (window.innerWidth <= 768) || ('ontouchstart' in window);
+}
+
+// Função para inicializar o mapa com configurações responsivas
 async function initMap() {
-    window.map = L.map('map').setView([-20.4697, -54.6201], 12);
+    const isMobile = isMobileDevice();
+    
+    window.map = L.map('map', {
+        zoomControl: !isMobile, // Remove controles de zoom padrão em mobile
+        tap: true, // Habilita tap para mobile
+        bounceAtZoomLimits: false, // Evita bounce ao atingir limites de zoom
+        maxZoom: 19,
+        minZoom: 4
+    }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+
+    // Adiciona controles de zoom em posição otimizada para mobile
+    if (isMobile) {
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(window.map);
+    }
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+        maxNativeZoom: 18
     }).addTo(window.map);
 
-    // Inicializa clusters para cada camada
+    // Configurações responsivas para clusters
     Object.keys(window.layers).forEach(layerType => {
         window.markerClusters[layerType] = L.markerClusterGroup({
             chunkedLoading: true,
             chunkInterval: 100,
             chunkDelay: 50,
-            maxClusterRadius: 50,
+            maxClusterRadius: isMobile ? 40 : 50,
             spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
+            showCoverageOnHover: !isMobile,
             zoomToBoundsOnClick: true,
-            removeOutsideVisibleBounds: true
+            removeOutsideVisibleBounds: true,
+            disableClusteringAtZoom: isMobile ? 19 : 18
         });
         window.map.addLayer(window.markerClusters[layerType]);
     });
@@ -42,36 +137,23 @@ async function initMap() {
     await loadMapData();
 }
 
-// Função para estilizar as features
-function getFeatureStyle(feature, layerType) {
-    const styles = {
-        'file': {
-            color: '#3388ff',
-            weight: 2,
-            opacity: 0.7
-        },
-        'file-1': {
-            color: '#ff3333',
-            weight: 2,
-            opacity: 0.7
-        },
-        'file-2': {
-            color: '#33ff33',
-            weight: 2,
-            opacity: 0.7
-        }
-    };
-
-    if (localStorage.getItem('userCity') === 'global') {
-        const locality = feature.properties.locality || 'Desconhecida';
-        const hash = hashString(locality);
-        return {
-            ...styles[layerType],
-            color: `#${hash.toString(16).substr(0, 6)}`
-        };
+// Função para formatar datas
+function formatDate(value) {
+    if (!value) return 'N/A';
+    try {
+        return new Date(value).toLocaleDateString('pt-BR');
+    } catch (e) {
+        return value;
     }
+}
 
-    return styles[layerType] || styles['file'];
+// Função para formatar números
+function formatNumber(value, decimals = 2) {
+    if (!value || isNaN(value)) return 'N/A';
+    return Number(value).toLocaleString('pt-BR', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
 }
 
 // Função para gerar hash de string para cores
@@ -85,28 +167,164 @@ function hashString(str) {
     return Math.abs(hash);
 }
 
-// Função para criar popup com informações da feature
+// Função para formatar rótulos
+function formatLabel(key, value) {
+    const labels = {
+        'tipo': 'Tipo',
+        'mat': 'Material',
+        'dia': 'Diâmetro',
+        'ext': 'Extensão',
+        'status': 'Status',
+        'economias': 'Economias',
+        'consumo_medio': 'Consumo Médio',
+        'data_ocorrencia': 'Data da Ocorrência',
+        'tipo_ocorrencia': 'Tipo de Ocorrência',
+        'descricao': 'Descrição',
+        'solucao': 'Solução',
+        'prioridade': 'Prioridade'
+    };
+
+    // Formatação específica por tipo de dado
+    if (key === 'ext') {
+        return `${formatNumber(value)} m`;
+    } else if (key === 'dia') {
+        return `${formatNumber(value, 0)} mm`;
+    } else if (key === 'consumo_medio') {
+        return `${formatNumber(value)} m³`;
+    } else if (key === 'data_ocorrencia' && value) {
+        return new Date(value).toLocaleDateString('pt-BR');
+    }
+
+    return value || 'N/A';
+}
+
+// Função para criar popup com informações da feature (otimizada para mobile)
 function createFeaturePopup(feature, metadata) {
     const props = feature.properties;
+    const layerType = metadata?.file_type || 'file';
+    const config = LAYER_CONFIGS[layerType];
+    const isMobile = isMobileDevice();
+    
     let content = '<div class="feature-popup">';
     
-    // Adiciona informação da localidade se for visualização global
+    content += `<h4 class="popup-title ${layerType}">${config.title}</h4>`;
+    
     if (localStorage.getItem('userCity') === 'global') {
-        content += `<p><strong>Localidade:</strong> ${props.locality || 'Desconhecida'}</p>`;
+        content += `<p class="locality"><strong>Localidade:</strong> ${props.locality || 'Desconhecida'}</p>`;
+    }
+
+    if (layerType === 'file-1' && config.formatAddress) {
+        const address = config.formatAddress(props);
+        if (address) {
+            content += `<p class="address"><strong>Endereço:</strong> ${address}</p>`;
+        }
     }
     
-    content += `
-        <p><strong>Tipo:</strong> ${props.tipo || 'Não especificado'}</p>
-        <p><strong>Material:</strong> ${props.mat || 'Não especificado'}</p>
-        <p><strong>Diâmetro:</strong> ${props.dia || 'Não especificado'} mm</p>
-        <p><strong>Extensão:</strong> ${props.ext || 'Não especificada'} m</p>
-        <p><strong>Status:</strong> ${props.status || 'Não especificado'}</p>
-    </div>`;
+    config.fields.forEach(field => {
+        if (layerType === 'file-1' && ['logradouro', 'numero', 'bairro', 'complemento'].includes(field.key)) {
+            return;
+        }
+
+        const value = props[field.key];
+        if (value !== undefined && value !== null && value !== '') {
+            const formattedValue = field.format ? field.format(value) : value;
+            content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+        }
+    });
+
+    // Adiciona botões de ação para mobile
+    if (isMobile && layerType === 'file-1') {
+        // Obtém as coordenadas do feature
+        const coordinates = feature.geometry.coordinates;
+        const lat = coordinates[1]; // Latitude é o segundo elemento
+        const lng = coordinates[0]; // Longitude é o primeiro elemento
+        
+        content += `
+            <div class="popup-actions">
+                <button onclick="zoomToFeature(${lat}, ${lng})" class="popup-button">
+                    <i class="fas fa-search-plus"></i> Zoom
+                </button>
+            </div>
+        `;
+    }
     
+    content += '</div>';
     return content;
 }
 
-async function loadMapData() {
+// Função para estilizar as features
+function getFeatureStyle(feature, layerType) {
+    const config = LAYER_CONFIGS[layerType];
+    
+    if (localStorage.getItem('userCity') === 'global') {
+        const locality = feature.properties.locality || 'Desconhecida';
+        const hash = hashString(locality);
+        return {
+            ...config.style,
+            color: `#${hash.toString(16).substr(0, 6)}`
+        };
+    }
+    
+    return config.style;
+}
+
+// Atualiza os estilos do CSS para os popups
+const style = document.createElement('style');
+style.textContent = `
+    .feature-popup {
+        padding: 12px;
+        max-width: 300px;
+        font-family: Arial, sans-serif;
+    }
+    
+    .popup-title {
+        margin: 0 0 10px 0;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #eee;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .popup-title.file { color: #3388ff; border-color: #3388ff; }
+    .popup-title.file-1 { color: #ff3333; border-color: #ff3333; }
+    .popup-title.file-2 { color: #33ff33; border-color: #33ff33; }
+    
+    .feature-popup p {
+        margin: 5px 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .feature-popup .locality {
+        font-style: italic;
+        color: #666;
+    }
+    
+    .feature-popup .address {
+        margin: 10px 0;
+        padding: 5px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    
+    .feature-popup strong {
+        color: #444;
+        font-weight: 600;
+    }
+`;
+document.head.appendChild(style);
+
+// Função para mostrar/ocultar indicador de carregamento de mais dados
+function toggleLoadMoreIndicator(show) {
+    const indicator = document.getElementById('loadMoreIndicator');
+    if (indicator) {
+        indicator.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// Função para carregar dados do mapa com paginação
+async function loadMapData(page = 1) {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
     
@@ -116,7 +334,15 @@ async function loadMapData() {
     }
 
     const loadingMessage = document.getElementById('loadingMessage');
-    loadingMessage.style.display = 'flex';
+    if (page === 1) {
+        loadingMessage.style.display = 'flex';
+        // Limpa clusters existentes apenas na primeira página
+        Object.values(window.markerClusters).forEach(cluster => {
+            if (cluster) cluster.clearLayers();
+        });
+    } else {
+        toggleLoadMoreIndicator(true);
+    }
 
     try {
         const layersResponse = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
@@ -131,44 +357,78 @@ async function loadMapData() {
         const layersData = await layersResponse.json();
         console.log('Camadas disponíveis:', layersData);
 
-        // Limpa clusters existentes
-        Object.values(window.markerClusters).forEach(cluster => {
-            if (cluster) cluster.clearLayers();
-        });
-
-        // Carrega cada camada em lotes
+        // Carrega cada camada
         for (const layer of layersData.layers) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                // Aplica paginação APENAS para economias (file-1)
+                const isEconomia = layer.type === 'file-1';
+                
+                // Se não for economia ou for a primeira página de qualquer camada
+                if (!isEconomia || page === 1) {
+                    const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.error(`Erro ao carregar camada ${layer.type}`);
+                        continue;
                     }
-                });
 
-                if (!response.ok) {
-                    console.error(`Erro ao carregar camada ${layer.type}`);
-                    continue;
+                    const data = await response.json();
+                    if (data?.features?.length > 0) {
+                        await processFeatures(data.features, layer.type, data.metadata);
+                        updateLayerControl(layer.type, data.metadata.description);
+                    }
                 }
+                // Se for economia e não for primeira página, aplica paginação
+                else if (isEconomia && page > 1) {
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
 
-                const data = await response.json();
-                if (data?.features?.length > 0) {
-                    await processFeatures(data.features, layer.type, data.metadata);
-                    updateLayerControl(layer.type, data.metadata.description);
+                    if (!response.ok) {
+                        console.error(`Erro ao carregar página ${page} das economias`);
+                        continue;
+                    }
+
+                    const data = await response.json();
+                    if (data?.features?.length > 0) {
+                        await processFeatures(data.features, layer.type, data.metadata);
+                        hasMoreEconomias = data.metadata?.has_more || false;
+                        currentEconomiaPage = page;
+                    } else {
+                        hasMoreEconomias = false;
+                    }
                 }
             } catch (error) {
                 console.error(`Erro ao carregar camada ${layer.type}:`, error);
             }
         }
 
-        fitMapToBounds();
+        if (page === 1) {
+            fitMapToBounds();
+        }
+        
         dadosCarregados = true;
         loadingMessage.style.display = 'none';
+        toggleLoadMoreIndicator(false);
+        isLoadingMore = false;
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
         loadingMessage.style.display = 'none';
+        toggleLoadMoreIndicator(false);
         showError(error.message);
+        isLoadingMore = false;
     }
 }
 
@@ -192,7 +452,6 @@ async function processFeatures(features, layerType, metadata) {
         cluster.addLayers(layers);
         processed += batch.length;
 
-        // Permite que a UI responda entre os lotes
         await new Promise(resolve => setTimeout(resolve, 0));
     }
 
@@ -295,5 +554,149 @@ function showError(message) {
     document.getElementById('map').appendChild(errorMessage);
 }
 
+// Função para zoom em feature específica
+function zoomToFeature(lat, lng) {
+    if (window.map) {
+        window.map.setView([lat, lng], 19, {
+            animate: true,
+            duration: 1
+        });
+    }
+}
+
+// Função para pesquisar matrícula
+async function searchMatricula() {
+    const searchInput = document.getElementById('searchMatricula');
+    const searchValue = searchInput.value.trim();
+    const resultsContainer = document.getElementById('searchResults');
+    const isMobile = isMobileDevice();
+    
+    if (!searchValue) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    clearHighlight();
+    resultsContainer.innerHTML = '';
+    window.searchResults = [];
+
+    Object.entries(window.layers).forEach(([layerType, layer]) => {
+        if (layerType === 'file-1' && layer) {
+            layer.eachLayer(function(featureLayer) {
+                const feature = featureLayer.feature;
+                const matricula = feature.properties.matricula;
+                
+                if (matricula && matricula.toString().includes(searchValue)) {
+                    window.searchResults.push({
+                        feature: feature,
+                        layer: featureLayer,
+                        matricula: matricula,
+                        endereco: LAYER_CONFIGS['file-1'].formatAddress(feature.properties)
+                    });
+                }
+            });
+        }
+    });
+
+    if (window.searchResults.length > 0) {
+        window.searchResults.forEach((result, index) => {
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.innerHTML = `
+                <strong>${result.matricula}</strong><br>
+                <small>${result.endereco}</small>
+            `;
+            
+            // Ajusta o comportamento do clique para mobile
+            if (isMobile) {
+                div.addEventListener('touchstart', () => {
+                    div.style.backgroundColor = '#e3f2fd';
+                });
+            }
+            
+            div.onclick = () => selectSearchResult(index);
+            resultsContainer.appendChild(div);
+        });
+    } else {
+        resultsContainer.innerHTML = '<div class="search-result-item">Nenhum resultado encontrado</div>';
+    }
+
+    // Em mobile, fecha o teclado após a pesquisa
+    if (isMobile) {
+        searchInput.blur();
+    }
+}
+
+// Função para selecionar um resultado da pesquisa
+function selectSearchResult(index) {
+    const result = window.searchResults[index];
+    if (!result) return;
+
+    // Limpa seleção anterior
+    clearHighlight();
+    
+    // Atualiza seleção visual na lista
+    document.querySelectorAll('.search-result-item').forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+    });
+
+    // Destaca a feature no mapa
+    const layer = result.layer;
+    window.highlightedLayer = layer;
+    
+    // Aplica estilo de destaque
+    if (layer.setStyle) {
+        const originalStyle = layer.options;
+        layer.setStyle({
+            color: '#ff0000',
+            weight: 4,
+            opacity: 1,
+            className: 'highlight-feature'
+        });
+        layer.originalStyle = originalStyle;
+    }
+
+    // Centraliza o mapa na feature
+    const bounds = layer.getBounds ? layer.getBounds() : layer.getLatLng();
+    window.map.fitBounds(bounds, { padding: [50, 50] });
+
+    // Abre o popup
+    layer.openPopup();
+}
+
+// Função para limpar destaque
+function clearHighlight() {
+    if (window.highlightedLayer) {
+        if (window.highlightedLayer.setStyle && window.highlightedLayer.originalStyle) {
+            window.highlightedLayer.setStyle(window.highlightedLayer.originalStyle);
+            window.highlightedLayer.originalStyle = null;
+        }
+        window.highlightedLayer = null;
+    }
+}
+
+// Adiciona evento de tecla Enter no campo de pesquisa
+document.getElementById('searchMatricula')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchMatricula();
+    }
+});
+
+// Função para carregar mais dados quando o usuário move o mapa
+function onMapMoveEnd() {
+    if (!dadosCarregados || isLoadingMore || !hasMoreEconomias) return;
+    
+    const zoom = window.map.getZoom();
+    // Só carrega mais dados se o zoom for suficiente para visualizar detalhes
+    if (zoom >= 14) {
+        isLoadingMore = true;
+        loadMapData(currentEconomiaPage + 1);
+    }
+}
+
 // Inicializa o mapa quando a página carregar
-document.addEventListener('DOMContentLoaded', initMap);
+document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    // Adiciona evento para carregar mais dados quando o mapa é movido
+    window.map.on('moveend', onMapMoveEnd);
+});

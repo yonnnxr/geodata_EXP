@@ -2,15 +2,22 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mapa de Dados Geográficos</title>
+    <link rel="icon" type="image/png" href="img/favicon-32x32.png">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     
     <!-- MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Google Maps API com async -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&libraries=geometry"></script>
     
     <style>
         #map {
@@ -149,25 +156,272 @@
         .feature-popup strong {
             color: #444;
         }
+
+        .search-control {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            width: 300px;
+        }
+
+        .search-control input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .search-control button {
+            background: #3388ff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .search-control button:hover {
+            background: #2370e0;
+        }
+
+        .search-results {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .search-result-item:hover {
+            background: #f5f5f5;
+        }
+
+        .search-result-item.selected {
+            background: #e3f2fd;
+        }
+
+        .highlight-feature {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        /* Estilo para o indicador de carregamento de mais dados */
+        #loadMoreIndicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3388ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilos responsivos */
+        @media (max-width: 768px) {
+            .search-control {
+                top: auto;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: calc(100% - 40px);
+                max-width: 400px;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.95);
+            }
+
+            .search-control input {
+                height: 40px;
+                font-size: 16px; /* Evita zoom em iOS */
+                padding: 8px 12px;
+            }
+
+            .search-control button {
+                height: 40px;
+                padding: 0 15px;
+            }
+
+            .layer-control {
+                top: auto;
+                bottom: 90px;
+                right: 10px;
+                max-height: 200px;
+                width: auto;
+                max-width: 150px;
+                background: rgba(255, 255, 255, 0.95);
+            }
+
+            .layer-control h3 {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .layer-toggle label {
+                font-size: 12px;
+            }
+
+            #loadMoreIndicator {
+                bottom: 70px;
+                font-size: 12px;
+                padding: 8px 15px;
+            }
+
+            .feature-popup {
+                max-width: 250px;
+            }
+
+            .feature-popup p {
+                font-size: 12px;
+                margin: 3px 0;
+            }
+
+            .popup-title {
+                font-size: 13px;
+                margin-bottom: 8px;
+            }
+
+            /* Ajustes para clusters em telas pequenas */
+            .marker-cluster {
+                width: 25px !important;
+                height: 25px !important;
+            }
+
+            .marker-cluster div {
+                width: 21px !important;
+                height: 21px !important;
+                font-size: 11px !important;
+                line-height: 21px !important;
+            }
+        }
+
+        /* Ajustes para telas muito pequenas */
+        @media (max-width: 380px) {
+            .search-control {
+                padding: 8px;
+            }
+
+            .layer-control {
+                max-width: 120px;
+                padding: 10px;
+            }
+
+            .search-results {
+                max-height: 150px;
+            }
+        }
+
+        /* Ajustes para modo paisagem em dispositivos móveis */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .search-control {
+                bottom: 10px;
+                max-width: 300px;
+            }
+
+            .layer-control {
+                bottom: 70px;
+                max-height: 150px;
+            }
+
+            #loadMoreIndicator {
+                bottom: 50px;
+            }
+        }
+
+        /* Melhorias de acessibilidade */
+        .search-control input:focus,
+        .search-control button:focus,
+        .layer-toggle input:focus {
+            outline: 2px solid #3388ff;
+            outline-offset: 2px;
+        }
+
+        /* Melhorias de interação tátil */
+        @media (hover: none) {
+            .search-result-item {
+                padding: 12px 8px;
+            }
+
+            .layer-toggle {
+                padding: 8px 5px;
+            }
+
+            .layer-toggle input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    
+    <div class="search-control">
+        <input type="text" id="searchMatricula" placeholder="Pesquisar matrícula...">
+        <button onclick="searchMatricula()">
+            <i class="fas fa-search"></i>
+            Buscar
+        </button>
+        <div id="searchResults" class="search-results"></div>
+    </div>
+    
     <div id="loadingMessage">
         <div class="spinner"></div>
         Carregando dados...
     </div>
+    
     <div id="layerControl" class="layer-control">
         <h3>Camadas</h3>
     </div>
 
-    <!-- Leaflet JS -->
+    <div id="loadMoreIndicator">
+        <div class="spinner"></div>
+        Carregando mais dados...
+    </div>
+
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    
-    <!-- MarkerCluster JS -->
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    
-    <!-- Nossos scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
     <script src="js/Mapa/map.js"></script>
+    <script src="js/Mapa/map-streetview.js"></script>
 </body>
 </html> 
