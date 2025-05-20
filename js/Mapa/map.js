@@ -90,7 +90,7 @@ async function loadMapData() {
         // Se for acesso global, carrega todas as localidades
         if (userCity === 'global') {
             // Primeiro, busca a lista de localidades disponíveis
-            const localitiesResponse = await fetch(`${API_BASE_URL}/api/localities`, {
+            const response = await fetch(`${API_BASE_URL}/api/geodata/null/map`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -100,48 +100,52 @@ async function loadMapData() {
                 credentials: 'include'
             });
 
-            if (!localitiesResponse.ok) {
+            if (!response.ok) {
                 throw new Error('Erro ao carregar lista de localidades');
             }
 
-            const localitiesData = await localitiesResponse.json();
-            const localities = localitiesData.localities || [];
+            const data = await response.json();
+            
+            // Verifica se é uma lista de cidades
+            if (data.type === 'CityList' && data.cities) {
+                // Carrega dados para cada localidade
+                let allFeatures = [];
+                for (const city of data.cities) {
+                    try {
+                        console.log('Carregando dados para:', city.name);
+                        const cityResponse = await fetch(`${API_BASE_URL}/api/geodata/${city.id}/map`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'include'
+                        });
 
-            // Carrega dados para cada localidade
-            let allFeatures = [];
-            for (const locality of localities) {
-                try {
-                    console.log('Carregando dados para:', locality.name);
-                    const response = await fetch(`${API_BASE_URL}/api/geodata/${locality.id}/map`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        credentials: 'include'
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.features) {
-                            // Adiciona informação da localidade em cada feature
-                            data.features.forEach(feature => {
-                                feature.properties.locality = locality.name;
-                            });
-                            allFeatures = allFeatures.concat(data.features);
+                        if (cityResponse.ok) {
+                            const cityData = await cityResponse.json();
+                            if (cityData && cityData.features) {
+                                // Adiciona informação da localidade em cada feature
+                                cityData.features.forEach(feature => {
+                                    feature.properties.locality = city.name;
+                                });
+                                allFeatures = allFeatures.concat(cityData.features);
+                            }
                         }
+                    } catch (error) {
+                        console.warn(`Erro ao carregar dados para ${city.name}:`, error);
                     }
-                } catch (error) {
-                    console.warn(`Erro ao carregar dados para ${locality.name}:`, error);
                 }
-            }
 
-            // Processa todas as features juntas
-            if (allFeatures.length > 0) {
-                await processFeatures(allFeatures);
+                // Processa todas as features juntas
+                if (allFeatures.length > 0) {
+                    await processFeatures(allFeatures);
+                } else {
+                    throw new Error('Nenhum dado encontrado para as localidades');
+                }
             } else {
-                throw new Error('Nenhum dado encontrado para as localidades');
+                throw new Error('Formato de resposta inválido ao carregar localidades');
             }
         } else {
             // Carrega dados para uma cidade específica
@@ -199,19 +203,8 @@ async function loadMapData() {
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        loadingMessage.textContent = `Erro ao carregar dados: ${error.message}`;
-        loadingMessage.style.color = 'red';
-        
-        // Mostrar mensagem de erro mais amigável
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'error-message';
-        errorMessage.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <p>Não foi possível carregar os dados do mapa.</p>
-            <p>Por favor, tente novamente mais tarde.</p>
-            <button onclick="loadMapData()">Tentar Novamente</button>
-        `;
-        document.getElementById('map').appendChild(errorMessage);
+        loadingMessage.style.display = 'none';
+        showError(error.message);
     }
 }
 
@@ -279,6 +272,19 @@ function updateStatistics(stats) {
     }
 
     statsContainer.innerHTML = html;
+}
+
+// Função para mostrar mensagens de erro
+function showError(message) {
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    errorMessage.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <p>Não foi possível carregar os dados do mapa.</p>
+        <p>${message}</p>
+        <button onclick="loadMapData()">Tentar Novamente</button>
+    `;
+    document.getElementById('map').appendChild(errorMessage);
 }
 
 // Inicializa o mapa quando a página carregar
