@@ -419,9 +419,31 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <!-- MarkerCluster JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+    
+    <!-- Aplicação -->
+    <script src="js/config.js"></script>
     <script src="js/Mapa/map.js"></script>
     <script src="js/Mapa/map-streetview.js"></script>
+
+    <!-- Inicialização -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM carregado, iniciando aplicação...');
+            if (typeof initMap === 'function') {
+                initMap().catch(error => {
+                    console.error('Erro ao inicializar mapa:', error);
+                    alert('Erro ao carregar o mapa. Por favor, recarregue a página.');
+                });
+            } else {
+                console.error('Função initMap não encontrada');
+                alert('Erro ao carregar o mapa. Por favor, recarregue a página.');
+            }
+        });
+    </script>
 </body>
 </html> 

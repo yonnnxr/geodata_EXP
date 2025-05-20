@@ -23,7 +23,11 @@ window.searchResults = [];
 window.selectedFeature = null;
 window.highlightedLayer = null;
 
-console.log('API URL configurada:', API_BASE_URL);
+console.log('Configurações iniciais:', {
+    BATCH_SIZE,
+    ECONOMIA_PAGE_SIZE,
+    API_BASE_URL
+});
 
 // Configurações de estilo por tipo de camada
 const LAYER_CONFIGS = {
@@ -95,46 +99,50 @@ function isMobileDevice() {
 
 // Função para inicializar o mapa com configurações responsivas
 async function initMap() {
+    console.log('Iniciando mapa...');
     const isMobile = isMobileDevice();
     
-    window.map = L.map('map', {
-        zoomControl: !isMobile, // Remove controles de zoom padrão em mobile
-        tap: true, // Habilita tap para mobile
-        bounceAtZoomLimits: false, // Evita bounce ao atingir limites de zoom
-        maxZoom: 19,
-        minZoom: 4
-    }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+    try {
+        window.map = L.map('map', {
+            zoomControl: !isMobile,
+            tap: true,
+            bounceAtZoomLimits: false,
+            maxZoom: 19,
+            minZoom: 4
+        }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
 
-    // Adiciona controles de zoom em posição otimizada para mobile
-    if (isMobile) {
-        L.control.zoom({
-            position: 'bottomright'
+        console.log('Mapa inicializado');
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            maxNativeZoom: 18
         }).addTo(window.map);
-    }
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-        maxNativeZoom: 18
-    }).addTo(window.map);
-
-    // Configurações responsivas para clusters
-    Object.keys(window.layers).forEach(layerType => {
-        window.markerClusters[layerType] = L.markerClusterGroup({
-            chunkedLoading: true,
-            chunkInterval: 100,
-            chunkDelay: 50,
-            maxClusterRadius: isMobile ? 40 : 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: !isMobile,
-            zoomToBoundsOnClick: true,
-            removeOutsideVisibleBounds: true,
-            disableClusteringAtZoom: isMobile ? 19 : 18
+        // Inicializa clusters para cada camada
+        Object.keys(window.layers).forEach(layerType => {
+            console.log(`Inicializando cluster para ${layerType}`);
+            window.markerClusters[layerType] = L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkInterval: 100,
+                chunkDelay: 50,
+                maxClusterRadius: isMobile ? 40 : 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: !isMobile,
+                zoomToBoundsOnClick: true,
+                removeOutsideVisibleBounds: true,
+                disableClusteringAtZoom: isMobile ? 19 : 18
+            });
+            window.map.addLayer(window.markerClusters[layerType]);
         });
-        window.map.addLayer(window.markerClusters[layerType]);
-    });
 
-    await loadMapData();
+        await loadMapData();
+        console.log('Carregamento inicial concluído');
+
+    } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+        showError('Erro ao inicializar o mapa: ' + error.message);
+    }
 }
 
 // Função para formatar datas
@@ -325,10 +333,12 @@ function toggleLoadMoreIndicator(show) {
 
 // Função para carregar dados do mapa com paginação
 async function loadMapData(page = 1) {
+    console.log(`Iniciando carregamento de dados - Página ${page}`);
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
     
     if (!token || !userCity) {
+        console.error('Token ou cidade não encontrados');
         handleAuthError();
         return;
     }
@@ -336,7 +346,6 @@ async function loadMapData(page = 1) {
     const loadingMessage = document.getElementById('loadingMessage');
     if (page === 1) {
         loadingMessage.style.display = 'flex';
-        // Limpa clusters existentes apenas na primeira página
         Object.values(window.markerClusters).forEach(cluster => {
             if (cluster) cluster.clearLayers();
         });
@@ -345,6 +354,7 @@ async function loadMapData(page = 1) {
     }
 
     try {
+        console.log(`Carregando camadas para ${userCity}`);
         const layersResponse = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -352,18 +362,18 @@ async function loadMapData(page = 1) {
             }
         });
 
-        if (!layersResponse.ok) throw new Error('Erro ao carregar informações das camadas');
+        if (!layersResponse.ok) {
+            throw new Error(`Erro ao carregar camadas: ${layersResponse.status}`);
+        }
 
         const layersData = await layersResponse.json();
         console.log('Camadas disponíveis:', layersData);
 
-        // Carrega cada camada
         for (const layer of layersData.layers) {
             try {
-                // Aplica paginação APENAS para economias (file-1)
                 const isEconomia = layer.type === 'file-1';
-                
-                // Se não for economia ou for a primeira página de qualquer camada
+                console.log(`Processando camada ${layer.type}, isEconomia: ${isEconomia}, página: ${page}`);
+
                 if (!isEconomia || page === 1) {
                     const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`, {
                         headers: {
@@ -373,34 +383,41 @@ async function loadMapData(page = 1) {
                     });
 
                     if (!response.ok) {
-                        console.error(`Erro ao carregar camada ${layer.type}`);
+                        console.error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
                         continue;
                     }
 
                     const data = await response.json();
+                    console.log(`Dados recebidos para ${layer.type}:`, {
+                        featuresCount: data?.features?.length || 0
+                    });
+
                     if (data?.features?.length > 0) {
                         await processFeatures(data.features, layer.type, data.metadata);
                         updateLayerControl(layer.type, data.metadata.description);
                     }
-                }
-                // Se for economia e não for primeira página, aplica paginação
-                else if (isEconomia && page > 1) {
-                    const response = await fetch(
-                        `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`,
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            }
+                } else if (isEconomia && page > 1) {
+                    const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`;
+                    console.log(`Carregando economias - URL:`, url);
+
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
-                    );
+                    });
 
                     if (!response.ok) {
-                        console.error(`Erro ao carregar página ${page} das economias`);
+                        console.error(`Erro ao carregar página ${page} das economias: ${response.status}`);
                         continue;
                     }
 
                     const data = await response.json();
+                    console.log(`Dados de economia recebidos - Página ${page}:`, {
+                        featuresCount: data?.features?.length || 0,
+                        hasMore: data.metadata?.has_more
+                    });
+
                     if (data?.features?.length > 0) {
                         await processFeatures(data.features, layer.type, data.metadata);
                         hasMoreEconomias = data.metadata?.has_more || false;
@@ -410,7 +427,7 @@ async function loadMapData(page = 1) {
                     }
                 }
             } catch (error) {
-                console.error(`Erro ao carregar camada ${layer.type}:`, error);
+                console.error(`Erro ao processar camada ${layer.type}:`, error);
             }
         }
 
@@ -422,6 +439,8 @@ async function loadMapData(page = 1) {
         loadingMessage.style.display = 'none';
         toggleLoadMoreIndicator(false);
         isLoadingMore = false;
+
+        console.log('Carregamento concluído com sucesso');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
