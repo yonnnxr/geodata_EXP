@@ -78,7 +78,7 @@ async function loadMapData() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
     
-    if (!token || !userCity) {
+    if (!token) {
         window.location.href = 'Login.html';
         return;
     }
@@ -87,86 +87,110 @@ async function loadMapData() {
     loadingMessage.style.display = 'flex';
 
     try {
-        // Verificar cache primeiro
-        const cacheKey = `${userCity}_mapData`;
-        const cachedData = localStorage.getItem(cacheKey);
-        let data;
-
-        if (cachedData) {
-            try {
-                data = JSON.parse(cachedData);
-                console.log('Usando dados do cache');
-            } catch (e) {
-                console.warn('Cache inválido, buscando dados novos');
-                localStorage.removeItem(cacheKey);
-            }
-        }
-
-        if (!data) {
-            console.log('Iniciando requisição para:', `${API_BASE_URL}/geodata/${userCity}/map`);
-            const response = await fetch(`${API_BASE_URL}/geodata/${userCity}/map`, {
+        // Se for acesso global, carrega todas as localidades
+        if (userCity === 'global') {
+            // Primeiro, busca a lista de localidades disponíveis
+            const localitiesResponse = await fetch(`${API_BASE_URL}/api/localities`, {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Erro na resposta da API:', errorData);
-                throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
+            if (!localitiesResponse.ok) {
+                throw new Error('Erro ao carregar lista de localidades');
             }
 
-            data = await response.json();
-            
-            // Salvar no cache
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify(data));
-            } catch (e) {
-                console.warn('Não foi possível salvar no cache:', e);
-            }
-        }
+            const localitiesData = await localitiesResponse.json();
+            const localities = localitiesData.localities || [];
 
-        // Processa os dados em lotes
-        if (data && data.features) {
-            const features = data.features;
-            const totalFeatures = features.length;
-            let processedFeatures = 0;
+            // Carrega dados para cada localidade
+            let allFeatures = [];
+            for (const locality of localities) {
+                try {
+                    console.log('Carregando dados para:', locality.name);
+                    const response = await fetch(`${API_BASE_URL}/api/geodata/${locality.id}/map`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
 
-            while (processedFeatures < totalFeatures) {
-                const batch = features.slice(processedFeatures, processedFeatures + BATCH_SIZE);
-                
-                // Cria camada GeoJSON para o lote
-                const layer = L.geoJSON(batch, {
-                    style: getFeatureStyle,
-                    onEachFeature: (feature, layer) => {
-                        layer.bindPopup(createFeaturePopup(feature));
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.features) {
+                            // Adiciona informação da localidade em cada feature
+                            data.features.forEach(feature => {
+                                feature.properties.locality = locality.name;
+                            });
+                            allFeatures = allFeatures.concat(data.features);
+                        }
                     }
+                } catch (error) {
+                    console.warn(`Erro ao carregar dados para ${locality.name}:`, error);
+                }
+            }
+
+            // Processa todas as features juntas
+            if (allFeatures.length > 0) {
+                await processFeatures(allFeatures);
+            } else {
+                throw new Error('Nenhum dado encontrado para as localidades');
+            }
+        } else {
+            // Carrega dados para uma cidade específica
+            const cacheKey = `${userCity}_mapData`;
+            const cachedData = localStorage.getItem(cacheKey);
+            let data;
+
+            if (cachedData) {
+                try {
+                    data = JSON.parse(cachedData);
+                    console.log('Usando dados do cache');
+                } catch (e) {
+                    console.warn('Cache inválido, buscando dados novos');
+                    localStorage.removeItem(cacheKey);
+                }
+            }
+
+            if (!data) {
+                console.log('Iniciando requisição para:', `${API_BASE_URL}/api/geodata/${userCity}/map`);
+                const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
                 });
 
-                // Adiciona ao mapa
-                layer.addTo(window.map);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Erro na resposta da API:', errorData);
+                    throw new Error(errorData.message || 'Erro ao carregar dados do mapa');
+                }
+
+                data = await response.json();
                 
-                // Atualiza contador
-                processedFeatures += batch.length;
-                
-                // Atualiza mensagem de carregamento
-                const progress = Math.round((processedFeatures / totalFeatures) * 100);
-                loadingMessage.textContent = `Carregando dados... ${progress}%`;
-                
-                // Pequena pausa para não bloquear a UI
-                await new Promise(resolve => setTimeout(resolve, 10));
+                // Salvar no cache
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                } catch (e) {
+                    console.warn('Não foi possível salvar no cache:', e);
+                }
             }
 
-            // Ajusta a visualização do mapa para mostrar todas as features
-            if (window.map && processedFeatures > 0) {
-                const layer = L.geoJSON(features);
-                window.map.fitBounds(layer.getBounds());
-            }
-
-            // Atualiza estatísticas se disponíveis
-            if (data.statistics) {
-                updateStatistics(data.statistics);
+            if (data && data.features) {
+                await processFeatures(data.features);
+            } else {
+                throw new Error('Dados do mapa não encontrados ou em formato inválido');
             }
         }
 
@@ -177,6 +201,55 @@ async function loadMapData() {
         console.error('Erro ao carregar dados:', error);
         loadingMessage.textContent = `Erro ao carregar dados: ${error.message}`;
         loadingMessage.style.color = 'red';
+        
+        // Mostrar mensagem de erro mais amigável
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Não foi possível carregar os dados do mapa.</p>
+            <p>Por favor, tente novamente mais tarde.</p>
+            <button onclick="loadMapData()">Tentar Novamente</button>
+        `;
+        document.getElementById('map').appendChild(errorMessage);
+    }
+}
+
+// Função auxiliar para processar features
+async function processFeatures(features) {
+    const totalFeatures = features.length;
+    let processedFeatures = 0;
+    const loadingMessage = document.getElementById('loadingMessage');
+
+    while (processedFeatures < totalFeatures) {
+        const batch = features.slice(processedFeatures, processedFeatures + BATCH_SIZE);
+        
+        // Cria camada GeoJSON para o lote
+        const layer = L.geoJSON(batch, {
+            style: getFeatureStyle,
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup(createFeaturePopup(feature));
+            }
+        });
+
+        // Adiciona ao mapa
+        layer.addTo(window.map);
+        
+        // Atualiza contador
+        processedFeatures += batch.length;
+        
+        // Atualiza mensagem de carregamento
+        const progress = Math.round((processedFeatures / totalFeatures) * 100);
+        loadingMessage.textContent = `Carregando dados... ${progress}%`;
+        
+        // Pequena pausa para não bloquear a UI
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    // Ajusta a visualização do mapa para mostrar todas as features
+    if (window.map && processedFeatures > 0) {
+        const layer = L.geoJSON(features);
+        window.map.fitBounds(layer.getBounds());
     }
 }
 
