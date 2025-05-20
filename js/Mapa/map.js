@@ -4,41 +4,51 @@ window.layers = {
     'file-1': null,    // Economias Zero
     'file-2': null     // Ocorrências
 };
+window.markerClusters = {
+    'file': null,
+    'file-1': null,
+    'file-2': null
+};
 let dadosCarregados = false;
 const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
-const BATCH_SIZE = 100; // Número de features a serem processadas por vez
-let featuresCache = new Map(); // Cache para features já processadas
+const BATCH_SIZE = 1000; // Aumentado para melhor performance
+let featuresCache = new Map();
 
 console.log('API URL configurada:', API_BASE_URL);
 
 // Função para inicializar o mapa
 async function initMap() {
-    // Configuração inicial do mapa
     window.map = L.map('map').setView([-20.4697, -54.6201], 12);
 
-    // Adiciona camada base do OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(window.map);
 
-    // Carrega dados do mapa
+    // Inicializa clusters para cada camada
+    Object.keys(window.layers).forEach(layerType => {
+        window.markerClusters[layerType] = L.markerClusterGroup({
+            chunkedLoading: true,
+            chunkInterval: 100,
+            chunkDelay: 50,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            removeOutsideVisibleBounds: true
+        });
+        window.map.addLayer(window.markerClusters[layerType]);
+    });
+
     await loadMapData();
 }
 
 // Função para estilizar as features
 function getFeatureStyle(feature, layerType) {
-    const defaultStyle = {
-        color: '#3388ff',
-        weight: 3,
-        opacity: 0.8
-    };
-
-    // Estilos específicos por tipo de camada
     const styles = {
         'file': {
             color: '#3388ff',
-            weight: 3,
-            opacity: 0.8
+            weight: 2,
+            opacity: 0.7
         },
         'file-1': {
             color: '#ff3333',
@@ -52,17 +62,16 @@ function getFeatureStyle(feature, layerType) {
         }
     };
 
-    // Se for visualização global, usa cores diferentes para cada localidade
     if (localStorage.getItem('userCity') === 'global') {
         const locality = feature.properties.locality || 'Desconhecida';
         const hash = hashString(locality);
         return {
-            ...defaultStyle,
+            ...styles[layerType],
             color: `#${hash.toString(16).substr(0, 6)}`
         };
     }
 
-    return styles[layerType] || defaultStyle;
+    return styles[layerType] || styles['file'];
 }
 
 // Função para gerar hash de string para cores
@@ -101,18 +110,8 @@ async function loadMapData() {
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity');
     
-    if (!token) {
-        console.error('Token não encontrado');
-        window.location.href = 'Login.html';
-        return;
-    }
-
-    if (!userCity) {
-        console.error('Cidade não definida');
-        showError('É necessário definir uma cidade válida. Por favor, faça login novamente.');
-        setTimeout(() => {
-            window.location.href = 'Login.html';
-        }, 3000);
+    if (!token || !userCity) {
+        handleAuthError();
         return;
     }
 
@@ -120,30 +119,30 @@ async function loadMapData() {
     loadingMessage.style.display = 'flex';
 
     try {
-        // Primeiro, carrega as camadas disponíveis
         const layersResponse = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Content-Type': 'application/json'
             }
         });
 
-        if (!layersResponse.ok) {
-            throw new Error('Erro ao carregar informações das camadas');
-        }
+        if (!layersResponse.ok) throw new Error('Erro ao carregar informações das camadas');
 
         const layersData = await layersResponse.json();
         console.log('Camadas disponíveis:', layersData);
 
-        // Carrega cada camada disponível
+        // Limpa clusters existentes
+        Object.values(window.markerClusters).forEach(cluster => {
+            if (cluster) cluster.clearLayers();
+        });
+
+        // Carrega cada camada em lotes
         for (const layer of layersData.layers) {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Content-Type': 'application/json'
                     }
                 });
 
@@ -153,20 +152,8 @@ async function loadMapData() {
                 }
 
                 const data = await response.json();
-                if (data && data.features && Array.isArray(data.features)) {
-                    // Cria camada GeoJSON
-                    const geoJsonLayer = L.geoJSON(data.features, {
-                        style: (feature) => getFeatureStyle(feature, layer.type),
-                        onEachFeature: (feature, layer) => {
-                            layer.bindPopup(createFeaturePopup(feature, data.metadata));
-                        }
-                    });
-
-                    // Adiciona ao mapa e armazena a referência
-                    window.layers[layer.type] = geoJsonLayer;
-                    geoJsonLayer.addTo(window.map);
-
-                    // Atualiza o controle de camadas
+                if (data?.features?.length > 0) {
+                    await processFeatures(data.features, layer.type, data.metadata);
                     updateLayerControl(layer.type, data.metadata.description);
                 }
             } catch (error) {
@@ -174,13 +161,7 @@ async function loadMapData() {
             }
         }
 
-        // Ajusta a visualização para mostrar todas as features
-        const allLayers = Object.values(window.layers).filter(layer => layer !== null);
-        if (allLayers.length > 0) {
-            const group = L.featureGroup(allLayers);
-            window.map.fitBounds(group.getBounds());
-        }
-
+        fitMapToBounds();
         dadosCarregados = true;
         loadingMessage.style.display = 'none';
 
@@ -191,9 +172,42 @@ async function loadMapData() {
     }
 }
 
+async function processFeatures(features, layerType, metadata) {
+    const cluster = window.markerClusters[layerType];
+    const total = features.length;
+    let processed = 0;
+
+    while (processed < total) {
+        const batch = features.slice(processed, processed + BATCH_SIZE);
+        const layers = batch.map(feature => {
+            const layer = L.geoJSON(feature, {
+                style: () => getFeatureStyle(feature, layerType),
+                onEachFeature: (feature, layer) => {
+                    layer.bindPopup(createFeaturePopup(feature, metadata));
+                }
+            });
+            return layer;
+        });
+
+        cluster.addLayers(layers);
+        processed += batch.length;
+
+        // Permite que a UI responda entre os lotes
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    window.layers[layerType] = cluster;
+}
+
 function updateLayerControl(layerType, description) {
     const layerControl = document.getElementById('layerControl');
     if (!layerControl) return;
+
+    const existingToggle = document.getElementById(`toggle-${layerType}`);
+    if (existingToggle) return;
+
+    const div = document.createElement('div');
+    div.className = 'layer-toggle';
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -204,23 +218,40 @@ function updateLayerControl(layerType, description) {
     label.htmlFor = `toggle-${layerType}`;
     label.textContent = description;
 
-    const div = document.createElement('div');
-    div.className = 'layer-toggle';
     div.appendChild(checkbox);
     div.appendChild(label);
-
     layerControl.appendChild(div);
 
     checkbox.addEventListener('change', (e) => {
-        const layer = window.layers[layerType];
-        if (layer) {
+        const cluster = window.markerClusters[layerType];
+        if (cluster) {
             if (e.target.checked) {
-                window.map.addLayer(layer);
+                window.map.addLayer(cluster);
             } else {
-                window.map.removeLayer(layer);
+                window.map.removeLayer(cluster);
             }
         }
     });
+}
+
+function fitMapToBounds() {
+    const bounds = [];
+    Object.values(window.markerClusters).forEach(cluster => {
+        if (cluster && cluster.getBounds().isValid()) {
+            bounds.push(cluster.getBounds());
+        }
+    });
+
+    if (bounds.length > 0) {
+        const fullBounds = bounds[0];
+        bounds.slice(1).forEach(b => fullBounds.extend(b));
+        window.map.fitBounds(fullBounds);
+    }
+}
+
+function handleAuthError() {
+    console.error('Erro de autenticação');
+    window.location.href = 'Login.html';
 }
 
 // Função para atualizar estatísticas

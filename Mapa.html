@@ -1,33 +1,173 @@
-    <div id="map"></div>
-    <div id="loadingMessage" style="display: none;">Carregando dados...</div>
-    <div id="layerControl" class="layer-control">
-        <h3>Camadas</h3>
-    </div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Dados Geográficos</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <!-- MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
     <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
         .layer-control {
             position: absolute;
             top: 10px;
             right: 10px;
             background: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
         }
+
         .layer-control h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
         }
+
         .layer-toggle {
-            margin: 5px 0;
+            margin: 8px 0;
             display: flex;
             align-items: center;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
         }
+
+        .layer-toggle:hover {
+            background-color: #f5f5f5;
+        }
+
         .layer-toggle input {
-            margin-right: 5px;
-        }
-        .layer-toggle label {
-            font-size: 12px;
+            margin-right: 8px;
             cursor: pointer;
         }
-    </style> 
+
+        .layer-toggle label {
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            color: #444;
+        }
+
+        #loadingMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff5252;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Estilos personalizados para clusters */
+        .marker-cluster {
+            background-clip: padding-box;
+            border-radius: 20px;
+        }
+
+        .marker-cluster div {
+            width: 30px;
+            height: 30px;
+            margin-left: 5px;
+            margin-top: 5px;
+            text-align: center;
+            border-radius: 15px;
+            font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        }
+
+        .marker-cluster-small {
+            background-color: rgba(181, 226, 140, 0.6);
+        }
+
+        .marker-cluster-small div {
+            background-color: rgba(110, 204, 57, 0.6);
+        }
+
+        .marker-cluster-medium {
+            background-color: rgba(241, 211, 87, 0.6);
+        }
+
+        .marker-cluster-medium div {
+            background-color: rgba(240, 194, 12, 0.6);
+        }
+
+        .marker-cluster-large {
+            background-color: rgba(253, 156, 115, 0.6);
+        }
+
+        .marker-cluster-large div {
+            background-color: rgba(241, 128, 23, 0.6);
+        }
+
+        .feature-popup {
+            padding: 10px;
+            max-width: 300px;
+        }
+
+        .feature-popup p {
+            margin: 5px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .feature-popup strong {
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="loadingMessage">
+        <div class="spinner"></div>
+        Carregando dados...
+    </div>
+    <div id="layerControl" class="layer-control">
+        <h3>Camadas</h3>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <!-- MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <!-- Nossos scripts -->
+    <script src="js/Mapa/map.js"></script>
+</body>
+</html> 
