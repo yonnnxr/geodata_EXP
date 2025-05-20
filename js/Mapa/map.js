@@ -105,6 +105,7 @@ async function loadMapData() {
             }
 
             const data = await response.json();
+            console.log('Resposta da API de localidades:', data);
             
             // Verifica se é uma lista de localidades
             if (data && data.localities && Array.isArray(data.localities)) {
@@ -125,13 +126,20 @@ async function loadMapData() {
 
                         if (cityResponse.ok) {
                             const cityData = await cityResponse.json();
+                            console.log('Dados recebidos para', locality.name, ':', cityData);
+                            
                             if (cityData && cityData.features && Array.isArray(cityData.features)) {
                                 // Adiciona informação da localidade em cada feature
                                 cityData.features.forEach(feature => {
                                     feature.properties.locality = locality.name;
                                 });
                                 allFeatures = allFeatures.concat(cityData.features);
+                            } else {
+                                console.warn(`Formato inválido de dados para ${locality.name}:`, cityData);
                             }
+                        } else {
+                            const errorData = await cityResponse.json().catch(() => ({}));
+                            console.warn(`Erro ao carregar dados para ${locality.name}:`, errorData);
                         }
                     } catch (error) {
                         console.warn(`Erro ao carregar dados para ${locality.name}:`, error);
@@ -140,11 +148,13 @@ async function loadMapData() {
 
                 // Processa todas as features juntas
                 if (allFeatures.length > 0) {
+                    console.log('Total de features carregadas:', allFeatures.length);
                     await processFeatures(allFeatures);
                 } else {
                     throw new Error('Nenhum dado encontrado para as localidades');
                 }
             } else {
+                console.error('Formato inválido de resposta:', data);
                 throw new Error('Formato de resposta inválido ao carregar localidades');
             }
         } else {
@@ -190,6 +200,7 @@ async function loadMapData() {
                 }
 
                 data = await response.json();
+                console.log('Dados recebidos da API:', data);
                 
                 // Valida os dados antes de salvar no cache
                 if (data && data.features && Array.isArray(data.features)) {
@@ -200,6 +211,7 @@ async function loadMapData() {
                         console.warn('Não foi possível salvar no cache:', e);
                     }
                 } else {
+                    console.error('Formato inválido de dados:', data);
                     throw new Error('Dados recebidos da API em formato inválido');
                 }
             }
