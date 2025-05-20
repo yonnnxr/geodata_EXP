@@ -79,7 +79,17 @@ async function loadMapData() {
     const userCity = localStorage.getItem('userCity');
     
     if (!token) {
+        console.error('Token não encontrado');
         window.location.href = 'Login.html';
+        return;
+    }
+
+    if (!userCity) {
+        console.error('Cidade não definida');
+        showError('É necessário definir uma cidade válida. Por favor, faça login novamente.');
+        setTimeout(() => {
+            window.location.href = 'Login.html';
+        }, 3000);
         return;
     }
 

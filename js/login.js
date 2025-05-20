@@ -71,11 +71,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
+            // Validar dados retornados
+            if (!data.city) {
+                throw new Error('Cidade não definida na resposta do servidor');
+            }
+
+            console.log('Dados do login:', {
+                userType: data.user_type,
+                userName: data.name,
+                userCity: data.city
+            });
+
             // Salvar dados no localStorage
             localStorage.setItem('authToken', data.access_token);
             localStorage.setItem('userType', data.user_type);
             localStorage.setItem('userName', data.name);
             localStorage.setItem('userCity', data.city);
+
+            // Verificar se os dados foram salvos
+            const savedCity = localStorage.getItem('userCity');
+            if (!savedCity) {
+                throw new Error('Falha ao salvar cidade no localStorage');
+            }
 
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
