@@ -390,6 +390,36 @@
                 height: 20px;
             }
         }
+
+        /* Estilos para o Street View */
+        .streetview-popup .leaflet-popup-content-wrapper {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .streetview-popup .leaflet-popup-content {
+            margin: 0;
+            width: 600px !important;
+        }
+
+        .streetview-popup .leaflet-popup-close-button {
+            z-index: 1000;
+            font-size: 20px;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .streetview-popup .leaflet-popup-content {
+                width: 300px !important;
+            }
+
+            .streetview-popup iframe {
+                height: 300px !important;
+            }
+        }
     </style>
 </head>
 <body>
