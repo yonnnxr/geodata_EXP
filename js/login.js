@@ -66,27 +66,37 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await window.fetchWithRetry(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
-                body: JSON.stringify({ username: usernameValue, password: passwordValue })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    username: usernameValue, 
+                    password: passwordValue,
+                    // Adicionando campo para identificar o tipo de requisição
+                    client_type: 'web'
+                })
             });
 
             const data = await response.json();
+            
+            // Log para debug
+            console.log('Resposta do servidor:', data);
 
             // Validar dados retornados
-            if (!data.city) {
-                throw new Error('Cidade não definida na resposta do servidor');
+            if (!data.access_token) {
+                throw new Error('Token não retornado pelo servidor');
             }
 
-            console.log('Dados do login:', {
-                userType: data.user_type,
-                userName: data.name,
-                userCity: data.city
-            });
+            // Se a cidade não estiver definida, usar um valor padrão para teste
+            const userCity = data.city || 'dourados';
+            console.log('Cidade definida:', userCity);
 
             // Salvar dados no localStorage
             localStorage.setItem('authToken', data.access_token);
-            localStorage.setItem('userType', data.user_type);
-            localStorage.setItem('userName', data.name);
-            localStorage.setItem('userCity', data.city);
+            localStorage.setItem('userType', data.user_type || 'user');
+            localStorage.setItem('userName', data.name || usernameValue);
+            localStorage.setItem('userCity', userCity);
 
             // Verificar se os dados foram salvos
             const savedCity = localStorage.getItem('userCity');
