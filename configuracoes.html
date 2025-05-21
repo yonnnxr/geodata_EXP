@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoData - Configurações</title>
+    <link rel="stylesheet" href="css/pagina_inicial.css" />
+    <link rel="stylesheet" href="css/configuracoes.css" />
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar">
+        <div class="logo">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>GeoData</span>
+        </div>
+        <div class="user-info">
+          <div class="user-details">
+            <span id="userName">Carregando...</span>
+            <span class="city-info">
+              <i class="fas fa-city"></i>
+              <span id="cityName">Carregando...</span>
+            </span>
+          </div>
+          <button id="logoutBtn" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Sair
+          </button>
+        </div>
+      </nav>
+
+      <main class="main-content">
+        <div class="welcome-section">
+          <h1>Configurações</h1>
+          <p>Personalize sua experiência no GeoData</p>
+        </div>
+
+        <div class="settings-container">
+          <div class="settings-section">
+            <h2>Configurações do Mapa</h2>
+            <div class="settings-form">
+              <div class="form-group">
+                <label for="defaultZoom">Zoom Padrão</label>
+                <input type="number" id="defaultZoom" min="1" max="19" value="12">
+              </div>
+              <div class="form-group">
+                <label for="clusterRadius">Raio de Agrupamento</label>
+                <input type="number" id="clusterRadius" min="50" max="500" value="200">
+              </div>
+              <div class="form-group">
+                <label for="pointSize">Tamanho dos Pontos</label>
+                <input type="range" id="pointSize" min="1" max="10" value="5">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h2>Preferências de Visualização</h2>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="showLabels" checked>
+                  Mostrar Rótulos no Mapa
+                </label>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="autoRefresh" checked>
+                  Atualização Automática
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="refreshInterval">Intervalo de Atualização (minutos)</label>
+                <input type="number" id="refreshInterval" min="1" max="60" value="5">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h2>Cores e Aparência</h2>
+            <div class="settings-form">
+              <div class="form-group">
+                <label for="networkColor">Cor da Rede</label>
+                <input type="color" id="networkColor" value="#2196F3">
+              </div>
+              <div class="form-group">
+                <label for="economyColor">Cor das Economias</label>
+                <input type="color" id="economyColor" value="#FF5252">
+              </div>
+              <div class="form-group">
+                <label for="occurrenceColor">Cor das Ocorrências</label>
+                <input type="color" id="occurrenceColor" value="#FFC107">
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h2>Notificações</h2>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="emailNotifications" checked>
+                  Receber Notificações por E-mail
+                </label>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="desktopNotifications">
+                  Notificações no Desktop
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="back-button" onclick="window.location.href='pagina_inicial.html'">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+          </button>
+          <button class="save-button" id="saveBtn">
+            <i class="fas fa-save"></i>
+            Salvar Alterações
+          </button>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>&copy; 2024 GeoData. Todos os direitos reservados.</p>
+      </footer>
+    </div>
+
+    <script src="js/utils/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/configuracoes.js"></script>
+  </body>
+</html> 

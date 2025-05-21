@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoData - Estatísticas</title>
+    <link rel="stylesheet" href="css/pagina_inicial.css" />
+    <link rel="stylesheet" href="css/estatisticas.css" />
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar">
+        <div class="logo">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>GeoData</span>
+        </div>
+        <div class="user-info">
+          <div class="user-details">
+            <span id="userName">Carregando...</span>
+            <span class="city-info">
+              <i class="fas fa-city"></i>
+              <span id="cityName">Carregando...</span>
+            </span>
+          </div>
+          <button id="logoutBtn" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Sair
+          </button>
+        </div>
+      </nav>
+
+      <main class="main-content">
+        <div class="welcome-section">
+          <h1>Estatísticas Detalhadas</h1>
+          <p>Análise completa dos dados da rede</p>
+        </div>
+
+        <div class="statistics-container">
+          <div class="stats-section">
+            <h2>Redes de Distribuição</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>Por Material</h3>
+                <div id="materialChart" class="chart-container"></div>
+              </div>
+              <div class="stat-card">
+                <h3>Por Diâmetro</h3>
+                <div id="diameterChart" class="chart-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-section">
+            <h2>Economias</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>Por Status</h3>
+                <div id="statusChart" class="chart-container"></div>
+              </div>
+              <div class="stat-card">
+                <h3>Por Consumo</h3>
+                <div id="consumptionChart" class="chart-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-section">
+            <h2>Ocorrências</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>Por Tipo</h3>
+                <div id="occurrenceTypeChart" class="chart-container"></div>
+              </div>
+              <div class="stat-card">
+                <h3>Por Status</h3>
+                <div id="occurrenceStatusChart" class="chart-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="back-button" onclick="window.location.href='pagina_inicial.html'">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+          </button>
+          <button class="export-button" id="exportBtn">
+            <i class="fas fa-file-export"></i>
+            Exportar Dados
+          </button>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>&copy; 2024 GeoData. Todos os direitos reservados.</p>
+      </footer>
+    </div>
+
+    <script src="js/utils/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/estatisticas.js"></script>
+  </body>
+</html> 
