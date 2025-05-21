@@ -18,6 +18,19 @@
     
     <!-- Configurações -->
     <script src="js/config.js"></script>
+
+    <!-- Google Maps API -->
+    <script>
+        window.initMap = function() {
+            // A função initMap precisa existir globalmente antes do carregamento da API
+            console.log('Google Maps API carregada com sucesso');
+            // Dispara um evento customizado para notificar que o Google Maps está pronto
+            window.dispatchEvent(new Event('googleMapsLoaded'));
+        };
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry">
+    </script>
     
     <!-- Estilos da aplicação -->
     <style>

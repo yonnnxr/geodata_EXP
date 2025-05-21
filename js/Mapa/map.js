@@ -17,11 +17,21 @@ let currentEconomiaPage = 1; // Página atual apenas para economias
 let isLoadingMore = false;
 let hasMoreEconomias = true; // Controle apenas para economias
 let isMapInitialized = false;
+let isGoogleMapsReady = false;
 
 // Variáveis globais para pesquisa
 window.searchResults = [];
 window.selectedFeature = null;
 window.highlightedLayer = null;
+
+// Aguarda o carregamento do Google Maps
+window.addEventListener('googleMapsLoaded', () => {
+    console.log('Google Maps carregado e pronto para uso');
+    isGoogleMapsReady = true;
+    if (isMapInitialized) {
+        initializeGoogleMapsFeatures();
+    }
+});
 
 console.log('Configurações iniciais:', {
     BATCH_SIZE,
@@ -104,12 +114,28 @@ function checkDependencies() {
         return false;
     }
     
-    if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
-        console.error('Google Maps não está disponível');
+    if (!isGoogleMapsReady) {
+        console.log('Aguardando carregamento do Google Maps...');
         return false;
     }
 
     return true;
+}
+
+// Função para inicializar recursos do Google Maps
+function initializeGoogleMapsFeatures() {
+    if (!isGoogleMapsReady) {
+        console.log('Google Maps ainda não está pronto');
+        return;
+    }
+    
+    try {
+        // Inicializa serviços do Google Maps aqui
+        window.streetViewService = new google.maps.StreetViewService();
+        console.log('Serviços do Google Maps inicializados com sucesso');
+    } catch (error) {
+        console.error('Erro ao inicializar serviços do Google Maps:', error);
+    }
 }
 
 // Função para processar features
