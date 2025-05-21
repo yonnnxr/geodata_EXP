@@ -7,11 +7,11 @@
     <link rel="icon" type="image/png" href="img/favicon-32x32.png">
     
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <!-- MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -450,27 +450,44 @@
 
     <!-- Scripts -->
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- MarkerCluster JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     
     <!-- Aplicação -->
     <script src="js/config.js"></script>
     <script src="js/Mapa/map.js"></script>
     <script src="js/Mapa/map-streetview.js"></script>
 
+    <!-- Google Maps API -->
+    <script>
+        // Função de callback do Google Maps
+        function googleMapsCallback() {
+            console.log('Google Maps carregado');
+            window.dispatchEvent(new Event('googleMapsLoaded'));
+        }
+    </script>
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=googleMapsCallback&libraries=geometry">
+    </script>
+
     <!-- Inicialização -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('DOM carregado, iniciando aplicação...');
-            if (typeof initMap === 'function') {
-                initMap().catch(error => {
-                    console.error('Erro ao inicializar mapa:', error);
-                    alert('Erro ao carregar o mapa. Por favor, recarregue a página.');
-                });
-            } else {
-                console.error('Função initMap não encontrada');
+            try {
+                // Aguarda o carregamento do Leaflet e MarkerCluster
+                if (!L.markerClusterGroup) {
+                    console.error('MarkerCluster não carregado');
+                    throw new Error('MarkerCluster não carregado');
+                }
+
+                // Inicializa o mapa
+                await initializeMap();
+                console.log('Mapa inicializado com sucesso');
+            } catch (error) {
+                console.error('Erro ao inicializar aplicação:', error);
                 alert('Erro ao carregar o mapa. Por favor, recarregue a página.');
             }
         });

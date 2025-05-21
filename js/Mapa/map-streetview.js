@@ -51,15 +51,15 @@ async function initStreetView() {
 }
 
 // Aguarda o carregamento do mapa e do Google Maps
-window.addEventListener('mapInitialized', async () => {
-    try {
-        if (!isGoogleMapsLoaded()) {
-            await window.loadGoogleMaps();
-        }
-        await initStreetView();
-    } catch (error) {
-        console.error('Erro ao inicializar Street View:', error);
-        showMessage('Erro ao carregar Street View. Recarregue a página.', 5000);
+window.addEventListener('mapInitialized', () => {
+    console.log('Evento mapInitialized recebido');
+    initStreetView();
+});
+
+window.addEventListener('googleMapsLoaded', () => {
+    console.log('Evento googleMapsLoaded recebido');
+    if (window.map) {
+        initStreetView();
     }
 });
 

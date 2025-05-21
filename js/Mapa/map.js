@@ -96,17 +96,73 @@ function isMobileDevice() {
     return (window.innerWidth <= 768) || ('ontouchstart' in window);
 }
 
+// Função para verificar se as dependências estão carregadas
+function checkDependencies() {
+    if (!L || !L.markerClusterGroup) {
+        throw new Error('Leaflet ou MarkerCluster não carregados');
+    }
+    return true;
+}
+
+// Função para inicializar clusters
+function initializeClusters() {
+    console.log('Iniciando inicialização dos clusters');
+    const isMobile = isMobileDevice();
+
+    try {
+        checkDependencies();
+
+        Object.keys(window.layers).forEach(layerType => {
+            console.log(`Inicializando cluster para ${layerType}`);
+            try {
+                const cluster = L.markerClusterGroup({
+                    chunkedLoading: true,
+                    chunkInterval: 100,
+                    chunkDelay: 50,
+                    maxClusterRadius: isMobile ? 40 : 50,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: !isMobile,
+                    zoomToBoundsOnClick: true,
+                    removeOutsideVisibleBounds: true,
+                    disableClusteringAtZoom: isMobile ? 19 : 18,
+                    animate: !isMobile
+                });
+
+                window.markerClusters[layerType] = cluster;
+                if (window.map) {
+                    window.map.addLayer(cluster);
+                    console.log(`Cluster ${layerType} adicionado ao mapa`);
+                }
+            } catch (error) {
+                console.error(`Erro ao inicializar cluster ${layerType}:`, error);
+                throw error;
+            }
+        });
+
+        console.log('Clusters inicializados com sucesso');
+    } catch (error) {
+        console.error('Erro na inicialização dos clusters:', error);
+        throw error;
+    }
+}
+
 // Função para inicializar o mapa
 async function initializeMap() {
-    if (window.map) {
-        console.log('Mapa já inicializado');
-        return true;
-    }
-
-    console.log('Iniciando mapa...');
-    const isMobile = isMobileDevice();
+    console.log('Iniciando inicialização do mapa');
     
     try {
+        // Verifica se o mapa já existe
+        if (window.map) {
+            console.log('Mapa já inicializado');
+            return true;
+        }
+
+        // Verifica dependências
+        checkDependencies();
+
+        const isMobile = isMobileDevice();
+        
+        // Cria o mapa
         window.map = L.map('map', {
             zoomControl: !isMobile,
             tap: true,
@@ -115,17 +171,24 @@ async function initializeMap() {
             minZoom: 4
         }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
 
-        console.log('Mapa inicializado');
+        console.log('Mapa base criado');
 
+        // Adiciona camada base
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19,
             maxNativeZoom: 18
         }).addTo(window.map);
 
-        initializeClusters();
+        console.log('Camada base adicionada');
+
+        // Inicializa clusters
+        await initializeClusters();
+
+        // Adiciona eventos
         window.map.on('moveend', onMapMoveEnd);
 
+        // Carrega dados iniciais
         await loadMapData();
         console.log('Carregamento inicial concluído');
 
@@ -352,27 +415,6 @@ function clearLayers() {
         'file-1': null,
         'file-2': null
     };
-}
-
-// Função para inicializar clusters
-function initializeClusters() {
-    const isMobile = isMobileDevice();
-    Object.keys(window.layers).forEach(layerType => {
-        console.log(`Inicializando cluster para ${layerType}`);
-        window.markerClusters[layerType] = L.markerClusterGroup({
-            chunkedLoading: true,
-            chunkInterval: 100,
-            chunkDelay: 50,
-            maxClusterRadius: isMobile ? 40 : 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: !isMobile,
-            zoomToBoundsOnClick: true,
-            removeOutsideVisibleBounds: true,
-            disableClusteringAtZoom: isMobile ? 19 : 18,
-            animate: !isMobile
-        });
-        window.map.addLayer(window.markerClusters[layerType]);
-    });
 }
 
 // Função para carregar dados do mapa com paginação
