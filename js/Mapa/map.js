@@ -168,14 +168,14 @@ async function processFeatures(features, layerType, metadata) {
     }
 }
 
-// Função para inicializar o mapa
-async function initializeMap() {
+// Função para inicializar o mapa Leaflet
+async function initializeLeafletMap() {
     if (isMapInitialized) {
         console.log('Mapa já inicializado');
         return true;
     }
 
-    console.log('Iniciando inicialização do mapa');
+    console.log('Iniciando inicialização do mapa Leaflet');
     
     try {
         if (!checkDependencies()) {
@@ -183,6 +183,9 @@ async function initializeMap() {
         }
 
         const isMobile = window.innerWidth <= 768;
+        
+        // Esconde mensagem de carregamento
+        document.getElementById('loadingMessage').style.display = 'none';
         
         // Cria o mapa
         window.map = L.map('map', {
@@ -211,7 +214,12 @@ async function initializeMap() {
         await loadMapData();
         
         isMapInitialized = true;
-        console.log('Mapa inicializado com sucesso');
+        console.log('Mapa Leaflet inicializado com sucesso');
+        
+        // Inicializa recursos do Google Maps após o mapa Leaflet estar pronto
+        if (isGoogleMapsReady) {
+            initializeGoogleMapsFeatures();
+        }
         
         return true;
     } catch (error) {
