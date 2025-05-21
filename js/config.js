@@ -1,5 +1,5 @@
 // Configurações da API
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
 // Configurações de autenticação
 const AUTH_CONFIG = {
