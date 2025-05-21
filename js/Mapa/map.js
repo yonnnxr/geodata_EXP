@@ -713,9 +713,15 @@ function onMapMoveEnd() {
     }
 }
 
-// Inicializa o mapa quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    initMap();
-    // Adiciona evento para carregar mais dados quando o mapa é movido
-    window.map.on('moveend', onMapMoveEnd);
-});
+// Inicializa o mapa quando a API do Google Maps estiver carregada
+window.initMap = async function() {
+    try {
+        await initMap();
+        // Adiciona evento para carregar mais dados quando o mapa é movido
+        if (window.map) {
+            window.map.on('moveend', onMapMoveEnd);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar o mapa:', error);
+    }
+};

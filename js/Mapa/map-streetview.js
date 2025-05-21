@@ -21,32 +21,25 @@ function isGoogleMapsLoaded() {
     return typeof google !== 'undefined' && google.maps;
 }
 
-// Função para carregar o Google Maps de forma assíncrona
-function loadGoogleMaps() {
-    return new Promise((resolve, reject) => {
+// Inicializa o Street View quando o Google Maps estiver carregado
+const oldInitMap = window.initMap || function() {};
+window.initMap = async function() {
+    try {
+        // Chama a função original de inicialização do mapa
+        await oldInitMap();
+        
+        // Inicializa o Street View
         if (isGoogleMapsLoaded()) {
-            resolve();
-            return;
+            streetViewService = new google.maps.StreetViewService();
+            isStreetViewInitialized = true;
+            initStreetViewControl();
+            setupStreetViewMapClick();
+            console.log('Street View inicializado com sucesso');
         }
-
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&libraries=geometry`;
-        script.async = true;
-        script.defer = true;
-
-        script.onload = () => {
-            console.log('Google Maps carregado com sucesso');
-            resolve();
-        };
-
-        script.onerror = () => {
-            console.error('Erro ao carregar Google Maps');
-            reject(new Error('Falha ao carregar Google Maps'));
-        };
-
-        document.head.appendChild(script);
-    });
-}
+    } catch (error) {
+        console.error('Erro na configuração do Street View:', error);
+    }
+};
 
 function initStreetViewControl() {
     if (!window.map || typeof window.map.addControl !== 'function' || streetViewControl) {
@@ -74,21 +67,6 @@ function initStreetViewControl() {
         console.log('Controle do Street View inicializado com sucesso');
     } catch (error) {
         console.error('Erro ao inicializar controle do Street View:', error);
-    }
-}
-
-async function initStreetView() {
-    try {
-        if (!isStreetViewInitialized) {
-            await loadGoogleMaps();
-            if (isGoogleMapsLoaded()) {
-                streetViewService = new google.maps.StreetViewService();
-                isStreetViewInitialized = true;
-                console.log('Street View inicializado com sucesso');
-            }
-        }
-    } catch (error) {
-        console.error('Erro ao inicializar Street View:', error);
     }
 }
 
@@ -148,20 +126,6 @@ function setupStreetViewMapClick() {
     }
 }
 
-// Inicialização quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM carregado, configurando Street View...');
-    try {
-        await loadGoogleMaps();
-        await initStreetView();
-        initStreetViewControl();
-        setupStreetViewMapClick();
-        console.log('Street View configurado com sucesso');
-    } catch (error) {
-        console.error('Erro na configuração do Street View:', error);
-    }
-});
-
 document.getElementById('close-streetview').onclick = () => {
     streetviewPanel.style.display = 'none';
     iframe.src = '';
@@ -218,8 +182,4 @@ function showError(message) {
         errorDiv.style.opacity = '0';
         setTimeout(() => errorDiv.remove(), 300);
     }, 3000);
-}
-
-function initMap() {
-    initStreetView();
 }

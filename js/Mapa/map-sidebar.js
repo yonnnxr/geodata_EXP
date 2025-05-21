@@ -48,13 +48,94 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', adjustSidebar);
     adjustSidebar();
 
-    document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
-        if (window.map && window.redesLayer) {
+    const toggleRedes = document.getElementById('toggleRedes');
+    const toggleEconomias = document.getElementById('toggleEconomias');
+    const toggleOcorrencias = document.getElementById('toggleOcorrencias');
+
+    const filterConsumo = document.getElementById('filterConsumo');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterTipoOcorrencia = document.getElementById('filterTipoOcorrencia');
+    const filterPrioridade = document.getElementById('filterPrioridade');
+
+    toggleRedes?.addEventListener('change', function(e) {
+        if (window.markerClusters?.['file']) {
             if (e.target.checked) {
-                window.map.addLayer(window.redesLayer);
+                window.map.addLayer(window.markerClusters['file']);
             } else {
-                window.map.removeLayer(window.redesLayer);
+                window.map.removeLayer(window.markerClusters['file']);
             }
+        }
+    });
+
+    toggleEconomias?.addEventListener('change', function(e) {
+        if (window.markerClusters?.['file-1']) {
+            if (e.target.checked) {
+                window.map.addLayer(window.markerClusters['file-1']);
+            } else {
+                window.map.removeLayer(window.markerClusters['file-1']);
+            }
+        }
+    });
+
+    toggleOcorrencias?.addEventListener('change', function(e) {
+        if (window.markerClusters?.['file-2']) {
+            if (e.target.checked) {
+                window.map.addLayer(window.markerClusters['file-2']);
+            } else {
+                window.map.removeLayer(window.markerClusters['file-2']);
+            }
+        }
+    });
+
+    function applyFilters() {
+        const consumoValue = filterConsumo.value;
+        const statusValue = filterStatus.value;
+        const tipoOcorrenciaValue = filterTipoOcorrencia.value;
+        const prioridadeValue = filterPrioridade.value;
+
+        if (window.markerClusters?.['file-1']) {
+            window.markerClusters['file-1'].eachLayer(layer => {
+                let visible = true;
+                const props = layer.feature.properties;
+
+                if (consumoValue) {
+                    const consumo = parseFloat(props.consumo_medio || 0);
+                    if (consumoValue === '0' && consumo !== 0) visible = false;
+                    else if (consumoValue === '1-10' && (consumo < 1 || consumo > 10)) visible = false;
+                    else if (consumoValue === '11-20' && (consumo < 11 || consumo > 20)) visible = false;
+                    else if (consumoValue === '>20' && consumo <= 20) visible = false;
+                }
+
+                if (statusValue && props.status !== statusValue) visible = false;
+
+                layer.setStyle({ opacity: visible ? 1 : 0, fillOpacity: visible ? 0.6 : 0 });
+                layer.options.interactive = visible;
+            });
+        }
+
+        if (window.markerClusters?.['file-2']) {
+            window.markerClusters['file-2'].eachLayer(layer => {
+                let visible = true;
+                const props = layer.feature.properties;
+
+                if (tipoOcorrenciaValue && props.tipo_ocorrencia !== tipoOcorrenciaValue) visible = false;
+                if (prioridadeValue && props.prioridade !== prioridadeValue) visible = false;
+
+                layer.setStyle({ opacity: visible ? 1 : 0, fillOpacity: visible ? 0.6 : 0 });
+                layer.options.interactive = visible;
+            });
+        }
+    }
+
+    filterConsumo?.addEventListener('change', applyFilters);
+    filterStatus?.addEventListener('change', applyFilters);
+    filterTipoOcorrencia?.addEventListener('change', applyFilters);
+    filterPrioridade?.addEventListener('change', applyFilters);
+
+    const searchInput = document.getElementById('searchMatricula');
+    searchInput?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchMatricula();
         }
     });
 });
