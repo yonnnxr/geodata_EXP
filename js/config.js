@@ -1,5 +1,5 @@
 // Configurações da API
-const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 
 // Função para fazer requisições com retry
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
@@ -58,7 +58,7 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
 // Função para renovar o token
 async function refreshToken() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/refresh-token`, {
+        const response = await fetch(`${window.API_BASE_URL}/api/refresh-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
