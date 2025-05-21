@@ -19,8 +19,8 @@ window.selectedFeature = null;
 window.highlightedLayer = null;
 
 // Constantes
-const BATCH_SIZE = 20000;
-const ECONOMIA_PAGE_SIZE = 50000;
+const BATCH_SIZE = 50000;
+const ECONOMIA_PAGE_SIZE = 100000;
 
 // Variáveis de controle
 let featuresCache = new Map();
@@ -91,16 +91,20 @@ async function initializeLeafletMap() {
             'file': L.layerGroup(),
             'file-1': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 80,
+                maxClusterRadius: 120,
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                disableClusteringAtZoom: 18,
+                disableClusteringAtZoom: 17,
                 animate: false,
                 maxZoom: 19,
                 singleMarkerMode: false,
-                chunkInterval: 50,
-                chunkDelay: 10
+                chunkInterval: 25,
+                chunkDelay: 5,
+                removeOutsideVisibleBounds: true,
+                zoomToBoundsOnClick: true,
+                spiderfyDistanceMultiplier: 2,
+                spiderfyOnMaxZoom: false
             }),
             'file-2': L.markerClusterGroup({
                 chunkedLoading: true,
@@ -1107,8 +1111,10 @@ function onMapMoveEnd() {
     if (!dadosCarregados || isLoadingMore || !hasMoreEconomias) return;
     
     const zoom = window.map.getZoom();
-    // Só carrega mais dados se o zoom for suficiente para visualizar detalhes
-    if (zoom >= 14) {
+    const bounds = window.map.getBounds();
+    
+    // Só carrega mais dados se o zoom for suficiente e houver área visível significativa
+    if (zoom >= 14 && bounds.getNorth() - bounds.getSouth() < 0.1) {
         isLoadingMore = true;
         loadMapData(currentEconomiaPage + 1);
     }
@@ -1155,8 +1161,11 @@ async function processFeatures(features, layerType, metadata) {
 
     try {
         // Tamanho do lote otimizado para economias
-        const batchSize = layerType === 'file-1' ? 500 : 200;
+        const batchSize = layerType === 'file-1' ? 2000 : 200;
         const totalBatches = Math.ceil(features.length / batchSize);
+        
+        // Criar array para armazenar todas as layers antes de adicionar
+        const allLayers = [];
         
         for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
             const start = batchIndex * batchSize;
@@ -1164,9 +1173,6 @@ async function processFeatures(features, layerType, metadata) {
             const batch = features.slice(start, end);
             
             console.log(`Processando lote ${batchIndex + 1}/${totalBatches} com ${batch.length} features`);
-            
-            // Cria um grupo temporário para o lote
-            const tempGroup = L.layerGroup();
             
             batch.forEach(feature => {
                 try {
@@ -1181,8 +1187,12 @@ async function processFeatures(features, layerType, metadata) {
                             weight: 1,
                             opacity: 1,
                             fillOpacity: 0.7,
-                            fillColor: config.style.color
+                            fillColor: config.style.color,
+                            bubblingMouseEvents: false
                         });
+                        
+                        // Armazena propriedades diretamente na layer para acesso mais rápido
+                        layer.properties = feature.properties;
                     } else {
                         // Para outros tipos (linhas, polígonos), usa GeoJSON normal
                         layer = L.geoJSON(feature, {
@@ -1193,27 +1203,30 @@ async function processFeatures(features, layerType, metadata) {
                     // Adiciona o popup apenas quando necessário (ao clicar)
                     if (feature.properties) {
                         layer.on('click', function() {
-                            this.bindPopup(createFeaturePopup(feature, { file_type: layerType })).openPopup();
+                            if (!this._popup) {
+                                this.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
+                            }
+                            this.openPopup();
                         });
                     }
                     
-                    tempGroup.addLayer(layer);
+                    allLayers.push(layer);
                 } catch (error) {
                     console.error(`Erro ao processar feature:`, error);
                 }
             });
             
-            // Adiciona o grupo temporário ao grupo principal
-            window.layerGroups[layerType].addLayer(tempGroup);
-            
             // Força a liberação de memória
             if (window.gc) window.gc();
             
-            // Pausa reduzida entre os lotes
+            // Pausa mínima entre os lotes
             if (batchIndex < totalBatches - 1) {
-                await new Promise(resolve => setTimeout(resolve, 50)); // Reduzido de 200ms para 50ms
+                await new Promise(resolve => setTimeout(resolve, 10));
             }
         }
+
+        // Adiciona todas as layers de uma vez
+        window.layerGroups[layerType].addLayers(allLayers);
 
         // Adiciona o grupo ao mapa se ainda não estiver adicionado
         if (!window.map.hasLayer(window.layerGroups[layerType])) {
