@@ -19,7 +19,7 @@
   </head>
   <body>
     <nav class="map-controls">
-      <button id="menu-toggle" class="menu-toggle">
+      <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu">
         <i class="fas fa-bars"></i>
       </button>
       <a href="pagina_inicial.html" id="back-button" class="back-button">
@@ -81,7 +81,7 @@
     </div>
 
     <div id="sidebar" class="sidebar">
-      <button id="close-btn" class="close-btn">×</button>
+      <button id="close-btn" class="close-btn" aria-label="Fechar menu">×</button>
       <h2>Controle de Camadas</h2>
       
       <!-- Busca de Matrícula -->
@@ -177,11 +177,16 @@
     <div id="map"></div>
     <div id="loadingMessage" class="loading-message">
       <i class="fas fa-spinner fa-spin"></i>
-      Carregando dados...
+      <span>Carregando...</span>
     </div>
     <div id="mapStats" class="map-stats"></div>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils/auth.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="js/Mapa/map.js"></script>
+    <script src="js/Mapa/map-sidebar.js"></script>
     <script src="js/init.js"></script>
   </body>
 </html>

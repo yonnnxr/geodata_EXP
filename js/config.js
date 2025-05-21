@@ -24,6 +24,37 @@ const API_TIMEOUT = 30000; // 30 segundos
 const API_RETRY_ATTEMPTS = 3;
 const API_RETRY_DELAY = 1000; // 1 segundo
 
+// Configurações de estilo das camadas
+const LAYER_CONFIGS = {
+    'file': {
+        style: {
+            color: '#2196F3',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        description: 'Rede de Distribuição'
+    },
+    'file-1': {
+        style: {
+            color: '#FF5252',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        description: 'Economias Zero'
+    },
+    'file-2': {
+        style: {
+            color: '#FFC107',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        description: 'Ocorrências'
+    }
+};
+
 // Exportar configurações
 window.API_BASE_URL = API_BASE_URL;
 window.AUTH_CONFIG = AUTH_CONFIG;
@@ -31,6 +62,7 @@ window.GOOGLE_MAPS_CONFIG = GOOGLE_MAPS_CONFIG;
 window.API_TIMEOUT = API_TIMEOUT;
 window.API_RETRY_ATTEMPTS = API_RETRY_ATTEMPTS;
 window.API_RETRY_DELAY = API_RETRY_DELAY;
+window.LAYER_CONFIGS = LAYER_CONFIGS;
 
 console.log('Configurações carregadas com sucesso');
 

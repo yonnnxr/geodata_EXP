@@ -1,8 +1,25 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Inicializando sidebar...');
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
     const closeBtn = document.getElementById('close-btn');
     const userCity = localStorage.getItem('userCity');
+
+    console.log('Elementos encontrados:', {
+        sidebar: !!sidebar,
+        menuToggle: !!menuToggle,
+        closeBtn: !!closeBtn,
+        userCity
+    });
+
+    if (!sidebar || !menuToggle || !closeBtn) {
+        console.error('Elementos necessários não encontrados:', {
+            sidebar: !sidebar ? 'não encontrado' : 'ok',
+            menuToggle: !menuToggle ? 'não encontrado' : 'ok',
+            closeBtn: !closeBtn ? 'não encontrado' : 'ok'
+        });
+        return;
+    }
 
     if (userCity) {
         const cidadeFormatada = userCity
@@ -13,17 +30,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openSidebar() {
+        console.log('Abrindo sidebar...');
         sidebar.classList.add('active');
         menuToggle.style.display = 'none';
+        console.log('Sidebar classes:', sidebar.classList.toString());
     }
 
     function closeSidebar() {
+        console.log('Fechando sidebar...');
         sidebar.classList.remove('active');
         menuToggle.style.display = 'block';
+        console.log('Sidebar classes:', sidebar.classList.toString());
     }
 
-    menuToggle.addEventListener('click', openSidebar);
-    closeBtn.addEventListener('click', closeSidebar);
+    console.log('Adicionando event listeners...');
+    menuToggle.addEventListener('click', (e) => {
+        console.log('Botão menu clicado');
+        e.preventDefault();
+        openSidebar();
+    });
+    
+    closeBtn.addEventListener('click', (e) => {
+        console.log('Botão fechar clicado');
+        e.preventDefault();
+        closeSidebar();
+    });
 
     document.addEventListener('click', (e) => {
         if (!sidebar.contains(e.target) && 

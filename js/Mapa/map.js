@@ -379,8 +379,23 @@ async function loadMapData(page = 1) {
         const layersData = await layersResponse.json();
         console.log('Camadas disponíveis:', layersData);
 
+        let hasAnyData = false;
+        let errors = [];
+
         for (const layer of layersData.layers) {
-            await loadLayerData(layer, page, userCity, token);
+            try {
+                const layerData = await loadLayerData(layer, page, userCity, token);
+                if (layerData && layerData.success) {
+                    hasAnyData = true;
+                }
+            } catch (error) {
+                console.error(`Erro ao carregar camada ${layer.type}:`, error);
+                errors.push(`${layer.type}: ${error.message}`);
+            }
+        }
+
+        if (!hasAnyData) {
+            throw new Error(`Não foram encontrados dados para a cidade ${userCity}. Por favor, contate o administrador.`);
         }
 
         if (page === 1) {
@@ -392,6 +407,11 @@ async function loadMapData(page = 1) {
         toggleLoadMoreIndicator(false);
         isLoadingMore = false;
 
+        // Se houver erros em algumas camadas mas outras funcionaram
+        if (errors.length > 0 && hasAnyData) {
+            showWarning(`Alguns dados não puderam ser carregados:\n${errors.join('\n')}`);
+        }
+
         console.log('Carregamento concluído com sucesso');
 
     } catch (error) {
@@ -400,6 +420,17 @@ async function loadMapData(page = 1) {
         loadingMessage.style.display = 'none';
         toggleLoadMoreIndicator(false);
         isLoadingMore = false;
+
+        // Adiciona um botão para tentar novamente
+        const mapElement = document.getElementById('map');
+        const retryButton = document.createElement('button');
+        retryButton.className = 'retry-button-large';
+        retryButton.innerHTML = '<i class="fas fa-sync-alt"></i> Tentar Novamente';
+        retryButton.onclick = () => {
+            retryButton.remove();
+            loadMapData(page);
+        };
+        mapElement.appendChild(retryButton);
     }
 }
 
@@ -407,55 +438,50 @@ async function loadMapData(page = 1) {
 async function loadLayerData(layer, page, userCity, token) {
     try {
         const isEconomia = layer.type === 'file-1';
-        console.log(`Processando camada ${layer.type}, isEconomia: ${isEconomia}, página: ${page}`);
+        console.log(`Iniciando carregamento da camada ${layer.type} para ${userCity}`);
 
-        if (!isEconomia || page === 1) {
-            const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`;
-            const response = await window.fetchWithRetry(url, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+        const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}${isEconomia ? `&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}` : ''}`;
+        console.log(`Fazendo requisição para: ${url}`);
 
-            if (!response.ok) {
-                throw new Error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
+        const response = await window.fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
+        });
 
-            const data = await response.json();
-            console.log(`Dados recebidos para ${layer.type}:`, {
-                featuresCount: data?.features?.length || 0
-            });
-
-            if (data?.features?.length > 0) {
-                await processFeatures(data.features, layer.type, data.metadata);
-                updateLayerControl(layer.type, data.metadata.description);
+        if (!response.ok) {
+            console.error(`Resposta não ok (${response.status}) para camada ${layer.type}`);
+            if (response.status === 404) {
+                console.warn(`Dados não encontrados para camada ${layer.type}`);
+                return { success: false, error: 'Dados não encontrados' };
             }
-        } else if (isEconomia) {
-            const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`;
-            const response = await window.fetchWithRetry(url, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            throw new Error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
+        }
 
-            if (!response.ok) {
-                throw new Error(`Erro ao carregar página ${page} das economias: ${response.status}`);
-            }
+        const data = await response.json();
+        console.log(`Dados recebidos para ${layer.type}:`, {
+            featuresCount: data?.features?.length || 0,
+            metadata: data?.metadata
+        });
 
-            const data = await response.json();
-            if (data?.features?.length > 0) {
-                await processFeatures(data.features, layer.type, data.metadata);
+        if (data?.features?.length > 0) {
+            await processFeatures(data.features, layer.type, data.metadata);
+            updateLayerControl(layer.type, data.metadata.description);
+            
+            if (isEconomia) {
                 hasMoreEconomias = data.metadata?.has_more || false;
                 currentEconomiaPage = page;
-            } else {
-                hasMoreEconomias = false;
             }
+            
+            return { success: true };
+        } else {
+            console.warn(`Nenhum dado encontrado para camada ${layer.type}`);
+            return { success: false, error: 'Nenhum dado encontrado' };
         }
     } catch (error) {
         console.error(`Erro ao processar camada ${layer.type}:`, error);
-        showError(`Erro ao carregar camada ${layer.type}: ${error.message}`);
+        throw error;
     }
 }
 
@@ -757,5 +783,75 @@ function onMapMoveEnd() {
     if (zoom >= 14) {
         isLoadingMore = true;
         loadMapData(currentEconomiaPage + 1);
+    }
+}
+
+// Função para mostrar avisos (warnings)
+function showWarning(message) {
+    const warningContainer = document.createElement('div');
+    warningContainer.className = 'warning-message';
+    warningContainer.innerHTML = `
+        <div class="warning-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="warning-text">
+                <p>Atenção</p>
+                <p class="warning-details">${message}</p>
+            </div>
+            <button class="close-button" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('map').appendChild(warningContainer);
+
+    // Auto-remove após 10 segundos
+    setTimeout(() => {
+        if (warningContainer.parentElement) {
+            warningContainer.remove();
+        }
+    }, 10000);
+}
+
+async function processFeatures(features, layerType, metadata) {
+    console.log(`Processando ${features.length} features do tipo ${layerType}`);
+    
+    const config = LAYER_CONFIGS[layerType] || {
+        style: {
+            color: '#2196F3',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+        }
+    };
+
+    try {
+        for (let i = 0; i < features.length; i += BATCH_SIZE) {
+            const batch = features.slice(i, i + BATCH_SIZE);
+            console.log(`Processando lote ${i/BATCH_SIZE + 1} com ${batch.length} features`);
+            
+            batch.forEach(feature => {
+                try {
+                    const layer = L.geoJSON(feature, {
+                        style: () => getFeatureStyle(feature, layerType),
+                        onEachFeature: (feature, layer) => {
+                            if (feature.properties) {
+                                layer.bindPopup(createPopupContent(feature.properties));
+                            }
+                        }
+                    });
+                    
+                    window.layerGroups[layerType].addLayer(layer);
+                } catch (error) {
+                    console.error(`Erro ao processar feature:`, error);
+                }
+            });
+        }
+
+        console.log(`Adicionando grupo de camadas ${layerType} ao mapa`);
+        window.map.addLayer(window.layerGroups[layerType]);
+        
+    } catch (error) {
+        console.error(`Erro ao processar features do tipo ${layerType}:`, error);
+        throw error;
     }
 }
