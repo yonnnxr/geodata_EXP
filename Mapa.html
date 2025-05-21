@@ -21,29 +21,31 @@
 
     <!-- Inicialização do Google Maps -->
     <script>
-        // Definindo a função initMap no escopo global antes de qualquer coisa
-        function initMap() {
-            console.log('Google Maps API carregada com sucesso');
-            // Dispara um evento customizado para notificar que o Google Maps está pronto
-            if (typeof window.dispatchEvent === 'function') {
-                window.dispatchEvent(new Event('googleMapsLoaded'));
+        (function() {
+            // Função para carregar o Google Maps
+            function loadGoogleMaps() {
+                const script = document.createElement('script');
+                script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&libraries=geometry&loading=async';
+                script.async = true;
+                
+                script.onload = function() {
+                    // Quando o script carregar, inicializamos o Google Maps
+                    google.maps.importLibrary('maps').then(() => {
+                        console.log('Google Maps API carregada com sucesso');
+                        window.dispatchEvent(new Event('googleMapsLoaded'));
+                    });
+                };
+
+                document.head.appendChild(script);
             }
-        }
-    </script>
 
-    <!-- Carregamento assíncrono do Google Maps -->
-    <script>
-        // Função para carregar o Google Maps de forma programática
-        function loadGoogleMaps() {
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry`;
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-        }
-
-        // Carrega o Google Maps após um pequeno delay para garantir que initMap está definida
-        setTimeout(loadGoogleMaps, 100);
+            // Carregamos o Google Maps quando o DOM estiver pronto
+            if (document.readyState !== 'loading') {
+                loadGoogleMaps();
+            } else {
+                document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+            }
+        })();
     </script>
     
     <!-- Estilos da aplicação -->

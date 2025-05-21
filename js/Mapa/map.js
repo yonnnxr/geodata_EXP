@@ -114,7 +114,7 @@ function checkDependencies() {
         return false;
     }
     
-    if (!isGoogleMapsReady) {
+    if (!isGoogleMapsReady || typeof google === 'undefined' || typeof google.maps === 'undefined') {
         console.log('Aguardando carregamento do Google Maps...');
         return false;
     }
@@ -123,8 +123,8 @@ function checkDependencies() {
 }
 
 // Função para inicializar recursos do Google Maps
-function initializeGoogleMapsFeatures() {
-    if (!isGoogleMapsReady) {
+async function initializeGoogleMapsFeatures() {
+    if (!isGoogleMapsReady || typeof google === 'undefined' || typeof google.maps === 'undefined') {
         console.log('Google Maps ainda não está pronto');
         return;
     }
