@@ -97,51 +97,56 @@ function isMobileDevice() {
     return (window.innerWidth <= 768) || ('ontouchstart' in window);
 }
 
-// Função para inicializar o mapa com configurações responsivas
-async function initMap() {
-    console.log('Iniciando mapa...');
-    const isMobile = isMobileDevice();
-    
-    try {
-        window.map = L.map('map', {
-            zoomControl: !isMobile,
-            tap: true,
-            bounceAtZoomLimits: false,
-            maxZoom: 19,
-            minZoom: 4
-        }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+// Função para inicializar o mapa
+async function initializeMap() {
+    if (!window.map) {
+        console.log('Iniciando mapa...');
+        const isMobile = isMobileDevice();
+        
+        try {
+            window.map = L.map('map', {
+                zoomControl: !isMobile,
+                tap: true,
+                bounceAtZoomLimits: false,
+                maxZoom: 19,
+                minZoom: 4
+            }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
 
-        console.log('Mapa inicializado');
+            console.log('Mapa inicializado');
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19,
-            maxNativeZoom: 18
-        }).addTo(window.map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19,
+                maxNativeZoom: 18
+            }).addTo(window.map);
 
-        // Inicializa clusters para cada camada
-        Object.keys(window.layers).forEach(layerType => {
-            console.log(`Inicializando cluster para ${layerType}`);
-            window.markerClusters[layerType] = L.markerClusterGroup({
-                chunkedLoading: true,
-                chunkInterval: 100,
-                chunkDelay: 50,
-                maxClusterRadius: isMobile ? 40 : 50,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: !isMobile,
-                zoomToBoundsOnClick: true,
-                removeOutsideVisibleBounds: true,
-                disableClusteringAtZoom: isMobile ? 19 : 18
+            // Inicializa clusters para cada camada
+            Object.keys(window.layers).forEach(layerType => {
+                console.log(`Inicializando cluster para ${layerType}`);
+                window.markerClusters[layerType] = L.markerClusterGroup({
+                    chunkedLoading: true,
+                    chunkInterval: 100,
+                    chunkDelay: 50,
+                    maxClusterRadius: isMobile ? 40 : 50,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: !isMobile,
+                    zoomToBoundsOnClick: true,
+                    removeOutsideVisibleBounds: true,
+                    disableClusteringAtZoom: isMobile ? 19 : 18
+                });
+                window.map.addLayer(window.markerClusters[layerType]);
             });
-            window.map.addLayer(window.markerClusters[layerType]);
-        });
 
-        await loadMapData();
-        console.log('Carregamento inicial concluído');
+            // Adiciona evento para carregar mais dados quando o mapa é movido
+            window.map.on('moveend', onMapMoveEnd);
 
-    } catch (error) {
-        console.error('Erro ao inicializar mapa:', error);
-        showError('Erro ao inicializar o mapa: ' + error.message);
+            await loadMapData();
+            console.log('Carregamento inicial concluído');
+
+        } catch (error) {
+            console.error('Erro ao inicializar mapa:', error);
+            showError('Erro ao inicializar o mapa: ' + error.message);
+        }
     }
 }
 
@@ -716,12 +721,23 @@ function onMapMoveEnd() {
 // Inicializa o mapa quando a API do Google Maps estiver carregada
 window.initMap = async function() {
     try {
-        await initMap();
-        // Adiciona evento para carregar mais dados quando o mapa é movido
-        if (window.map) {
-            window.map.on('moveend', onMapMoveEnd);
+        await initializeMap();
+        if (typeof google !== 'undefined' && google.maps) {
+            // Inicializa componentes que dependem do Google Maps
+            if (typeof initStreetView === 'function') {
+                await initStreetView();
+            }
         }
     } catch (error) {
         console.error('Erro ao inicializar o mapa:', error);
     }
 };
+
+// Garante que o mapa seja inicializado mesmo se o Google Maps falhar
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initializeMap();
+    } catch (error) {
+        console.error('Erro ao inicializar o mapa:', error);
+    }
+});

@@ -1,5 +1,18 @@
-// Configurações globais da aplicação
-window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+// Configurações da API
+const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+
+// Configurações de autenticação
+const AUTH_CONFIG = {
+    headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    },
+    credentials: 'include'
+};
+
+// Exportar configurações
+window.API_BASE_URL = API_BASE_URL;
+window.AUTH_CONFIG = AUTH_CONFIG;
 
 // Configurações de timeout para requisições
 window.API_TIMEOUT = 30000; // 30 segundos
