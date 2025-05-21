@@ -1,8 +1,144 @@
 // Configurações da API
-if (typeof window.API_BASE_URL === 'undefined') {
-    const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
-    window.API_BASE_URL = API_BASE_URL;
+const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+
+// Função para fazer requisições com retry
+window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
+    let lastError;
+    
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // Token expirado, tenta renovar
+                    const refreshed = await refreshToken();
+                    if (refreshed) {
+                        // Atualiza o token na requisição e tenta novamente
+                        if (options.headers) {
+                            options.headers['Authorization'] = `Bearer ${localStorage.getItem('authToken')}`;
+                        }
+                        continue;
+                    } else {
+                        // Falha ao renovar token, redireciona para login
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response;
+            
+        } catch (error) {
+            console.warn(`Tentativa ${i + 1} falhou:`, error);
+            lastError = error;
+            
+            if (error.name === 'AbortError') {
+                console.warn('Requisição abortada por timeout');
+            }
+            
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+        }
+    }
+    
+    throw lastError;
 }
+
+// Função para renovar o token
+async function refreshToken() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/refresh-token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                refreshToken: localStorage.getItem('refreshToken')
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('authToken', data.token);
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Erro ao renovar token:', error);
+        return false;
+    }
+}
+
+// Configurações das camadas
+const LAYER_CONFIGS = {
+    'file': {
+        title: 'Rede de Distribuição',
+        description: 'Rede de Distribuição de Água',
+        style: {
+            color: '#2196F3',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        fields: [
+            { key: 'tipo', label: 'Tipo' },
+            { key: 'mat', label: 'Material' },
+            { key: 'dia', label: 'Diâmetro' },
+            { key: 'ext', label: 'Extensão' }
+        ]
+    },
+    'file-1': {
+        title: 'Economia',
+        description: 'Economias',
+        style: {
+            color: '#FF5252',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        fields: [
+            { key: 'matricula', label: 'Matrícula' },
+            { key: 'status', label: 'Status' },
+            { key: 'consumo_medio', label: 'Consumo Médio' }
+        ],
+        formatAddress: (props) => {
+            const parts = [];
+            if (props.logradouro) parts.push(props.logradouro);
+            if (props.numero) parts.push(props.numero);
+            if (props.bairro) parts.push(props.bairro);
+            if (props.complemento) parts.push(props.complemento);
+            return parts.join(', ');
+        }
+    },
+    'file-2': {
+        title: 'Ocorrência',
+        description: 'Ocorrências',
+        style: {
+            color: '#FFC107',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.6
+        },
+        fields: [
+            { key: 'tipo_ocorrencia', label: 'Tipo' },
+            { key: 'data_ocorrencia', label: 'Data' },
+            { key: 'prioridade', label: 'Prioridade' },
+            { key: 'status', label: 'Status' }
+        ]
+    }
+};
 
 // Configurações de autenticação
 if (typeof window.AUTH_CONFIG === 'undefined') {
@@ -45,132 +181,7 @@ if (typeof window.API_RETRY_DELAY === 'undefined') {
 
 // Configurações de estilo das camadas
 if (typeof window.LAYER_CONFIGS === 'undefined') {
-    const LAYER_CONFIGS = {
-        'file': {
-            style: {
-                color: '#2196F3',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.6
-            },
-            description: 'Rede de Distribuição',
-            title: 'Rede de Distribuição',
-            fields: [
-                { key: 'tipo', label: 'Tipo' },
-                { key: 'mat', label: 'Material' },
-                { key: 'dia', label: 'Diâmetro (mm)' },
-                { key: 'ext', label: 'Extensão (m)' }
-            ]
-        },
-        'file-1': {
-            style: {
-                color: '#FF5252',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.6
-            },
-            description: 'Economias Zero',
-            title: 'Economia',
-            fields: [
-                { key: 'matricula', label: 'Matrícula' },
-                { key: 'status', label: 'Status' },
-                { key: 'consumo_medio', label: 'Consumo Médio (m³)' },
-                { key: 'logradouro', label: 'Logradouro' },
-                { key: 'numero', label: 'Número' },
-                { key: 'bairro', label: 'Bairro' },
-                { key: 'complemento', label: 'Complemento' }
-            ],
-            formatAddress: (props) => {
-                const parts = [];
-                if (props.logradouro) parts.push(props.logradouro);
-                if (props.numero) parts.push(props.numero);
-                if (props.complemento) parts.push(props.complemento);
-                if (props.bairro) parts.push(props.bairro);
-                return parts.join(', ');
-            }
-        },
-        'file-2': {
-            style: {
-                color: '#FFC107',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.6
-            },
-            description: 'Ocorrências',
-            title: 'Ocorrência',
-            fields: [
-                { key: 'tipo_ocorrencia', label: 'Tipo' },
-                { key: 'data_ocorrencia', label: 'Data' },
-                { key: 'descricao', label: 'Descrição' },
-                { key: 'solucao', label: 'Solução' },
-                { key: 'prioridade', label: 'Prioridade' }
-            ]
-        }
-    };
     window.LAYER_CONFIGS = LAYER_CONFIGS;
 }
 
 console.log('Configurações carregadas com sucesso');
-
-// Função para fazer requisições com retry
-if (typeof window.fetchWithRetry === 'undefined') {
-    window.fetchWithRetry = async function(url, options = {}) {
-        let lastError = null;
-        
-        for (let attempt = 1; attempt <= window.API_RETRY_ATTEMPTS; attempt++) {
-            try {
-                const controller = new AbortController();
-                
-                // Promise que será rejeitada após o timeout
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => {
-                        controller.abort();
-                        reject(new Error(`Timeout após ${window.API_TIMEOUT}ms`));
-                    }, window.API_TIMEOUT);
-                });
-                
-                // Promise da requisição fetch
-                const fetchPromise = fetch(url, {
-                    ...options,
-                    signal: controller.signal,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        ...(localStorage.getItem('authToken') ? { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } : {}),
-                        ...(options.headers || {})
-                    },
-                    mode: 'cors'
-                });
-                
-                // Usa Promise.race para competir entre o fetch e o timeout
-                const response = await Promise.race([
-                    fetchPromise,
-                    timeoutPromise
-                ]);
-                
-                if (!response.ok) {
-                    if (response.status === 401 || response.status === 422) {
-                        localStorage.removeItem('authToken');
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                return response;
-                
-            } catch (error) {
-                console.error(`Tentativa ${attempt} falhou:`, error);
-                lastError = error;
-                
-                if (attempt < window.API_RETRY_ATTEMPTS) {
-                    // Espera um tempo antes da próxima tentativa
-                    await new Promise(resolve => setTimeout(resolve, window.API_RETRY_DELAY));
-                }
-            }
-        }
-        
-        // Se chegou aqui, todas as tentativas falharam
-        throw lastError || new Error('Todas as tentativas falharam');
-    };
-}
