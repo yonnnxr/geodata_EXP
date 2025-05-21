@@ -20,7 +20,7 @@ window.highlightedLayer = null;
 
 // Constantes
 const BATCH_SIZE = 100000;
-const ECONOMIA_PAGE_SIZE = 200000;
+const ECONOMIA_PAGE_SIZE = 500000;
 
 // Variáveis de controle
 let featuresCache = new Map();
@@ -147,24 +147,21 @@ async function initializeLeafletMap() {
             'file': L.layerGroup(),
             'file-1': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 120,
-                spiderfyOnMaxZoom: true,
+                maxClusterRadius: 150,
+                spiderfyOnMaxZoom: false,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                disableClusteringAtZoom: 17,
+                disableClusteringAtZoom: 16,
                 animate: false,
                 maxZoom: 19,
                 singleMarkerMode: false,
-                chunkInterval: 25,
-                chunkDelay: 5,
-                removeOutsideVisibleBounds: true,
-                zoomToBoundsOnClick: true,
-                spiderfyDistanceMultiplier: 2,
-                spiderfyOnMaxZoom: false
+                chunkInterval: 100,
+                chunkDelay: 1,
+                removeOutsideVisibleBounds: true
             }),
             'file-2': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 50,
+                maxClusterRadius: 80,
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
@@ -1289,7 +1286,7 @@ async function processFeatures(features, layerType, metadata) {
 
     try {
         // Tamanho do lote otimizado para economias
-        const batchSize = layerType === 'file-1' ? 2000 : 200;
+        const batchSize = layerType === 'file-1' ? 10000 : 200;
         const totalBatches = Math.ceil(features.length / batchSize);
         
         // Criar array para armazenar todas as layers antes de adicionar
@@ -1310,27 +1307,29 @@ async function processFeatures(features, layerType, metadata) {
                     if (feature.geometry.type === 'Point') {
                         const coords = feature.geometry.coordinates;
                         layer = L.circleMarker([coords[1], coords[0]], {
-                            radius: 3,
+                            radius: 2,
                             color: config.style.color,
                             weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.7,
+                            opacity: 0.8,
+                            fillOpacity: 0.6,
                             fillColor: config.style.color
                         });
                         
-                        // Armazena a feature completa na layer
                         layer.feature = feature;
                     } else {
-                        // Para outros tipos (linhas, polígonos), usa GeoJSON normal
                         layer = L.geoJSON(feature, {
                             style: () => getFeatureStyle(feature, layerType)
                         });
                     }
 
-                    // Adiciona o popup imediatamente
+                    // Adiciona o popup apenas quando necessário (ao clicar)
                     if (feature.properties) {
-                        const popupContent = createFeaturePopup(feature, { file_type: layerType });
-                        layer.bindPopup(popupContent);
+                        layer.on('click', function() {
+                            if (!this._popup) {
+                                this.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
+                            }
+                            this.openPopup();
+                        });
                     }
                     
                     allLayers.push(layer);
@@ -1344,7 +1343,7 @@ async function processFeatures(features, layerType, metadata) {
             
             // Pausa mínima entre os lotes
             if (batchIndex < totalBatches - 1) {
-                await new Promise(resolve => setTimeout(resolve, 10));
+                await new Promise(resolve => setTimeout(resolve, 1));
             }
         }
 
@@ -1352,16 +1351,13 @@ async function processFeatures(features, layerType, metadata) {
         const layerGroup = window.layerGroups[layerType];
         if (layerGroup) {
             if (layerType === 'file') {
-                // Para rede de água (file) usa addLayer individual
                 allLayers.forEach(layer => {
                     layerGroup.addLayer(layer);
                 });
             } else {
-                // Para economias e ocorrências usa addLayers
                 layerGroup.addLayers(allLayers);
             }
 
-            // Adiciona o grupo ao mapa se ainda não estiver
             if (!window.map.hasLayer(layerGroup)) {
                 window.map.addLayer(layerGroup);
             }
