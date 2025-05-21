@@ -21,15 +21,19 @@ function isGoogleMapsLoaded() {
     return typeof google !== 'undefined' && google.maps;
 }
 
+// Armazena a função original do initMap
+const mapInitMap = window.initMap;
+
 // Inicializa o Street View quando o Google Maps estiver carregado
-const oldInitMap = window.initMap || function() {};
 window.initMap = async function() {
     try {
-        // Chama a função original de inicialização do mapa
-        await oldInitMap();
+        // Se existe uma função original do mapa, chama ela primeiro
+        if (mapInitMap && mapInitMap !== window.initMap) {
+            await mapInitMap();
+        }
         
         // Inicializa o Street View
-        if (isGoogleMapsLoaded()) {
+        if (isGoogleMapsLoaded() && window.map) {
             streetViewService = new google.maps.StreetViewService();
             isStreetViewInitialized = true;
             initStreetViewControl();

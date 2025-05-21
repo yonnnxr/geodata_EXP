@@ -143,12 +143,18 @@ async function initializeMap() {
             await loadMapData();
             console.log('Carregamento inicial concluído');
 
+            return true;
         } catch (error) {
             console.error('Erro ao inicializar mapa:', error);
             showError('Erro ao inicializar o mapa: ' + error.message);
+            return false;
         }
     }
+    return true;
 }
+
+// Armazena a função original do Google Maps callback
+const originalInitMap = window.initMap;
 
 // Função para formatar datas
 function formatDate(value) {
@@ -721,12 +727,13 @@ function onMapMoveEnd() {
 // Inicializa o mapa quando a API do Google Maps estiver carregada
 window.initMap = async function() {
     try {
-        await initializeMap();
-        if (typeof google !== 'undefined' && google.maps) {
-            // Inicializa componentes que dependem do Google Maps
-            if (typeof initStreetView === 'function') {
-                await initStreetView();
-            }
+        // Inicializa o mapa base primeiro
+        const mapInitialized = await initializeMap();
+        
+        // Se o mapa foi inicializado com sucesso e existe uma função original do initMap
+        if (mapInitialized && originalInitMap && originalInitMap !== window.initMap) {
+            // Chama a função original do initMap (do street view)
+            await originalInitMap();
         }
     } catch (error) {
         console.error('Erro ao inicializar o mapa:', error);
