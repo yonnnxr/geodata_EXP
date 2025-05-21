@@ -64,6 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
 
         try {
+            if (!window.API_BASE_URL) {
+                throw new Error('URL da API não configurada');
+            }
+
+            console.log('Tentando login na URL:', `${window.API_BASE_URL}/api/login`);
+            
             const response = await window.fetchWithRetry(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: {

@@ -1,5 +1,6 @@
 // Configurações da API
 window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+console.log('API_BASE_URL definida:', window.API_BASE_URL);
 
 // Função para fazer requisições com retry
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
