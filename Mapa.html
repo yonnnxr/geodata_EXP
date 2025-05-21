@@ -16,6 +16,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
+    <!-- Configurações -->
+    <script src="js/config.js"></script>
+    
     <!-- Estilos da aplicação -->
     <style>
         #map {
@@ -425,16 +428,14 @@
         window.APP = {
             dependencies: {
                 leaflet: false,
-                markerCluster: false,
-                googleMaps: false
+                markerCluster: false
             },
             init: function() {
                 return new Promise((resolve, reject) => {
                     // Verifica se todas as dependências foram carregadas
                     const checkDependencies = () => {
                         if (window.APP.dependencies.leaflet && 
-                            window.APP.dependencies.markerCluster && 
-                            window.APP.dependencies.googleMaps) {
+                            window.APP.dependencies.markerCluster) {
                             resolve();
                         }
                     };
@@ -451,26 +452,14 @@
                         markerClusterScript.onload = () => {
                             window.APP.dependencies.markerCluster = true;
                             checkDependencies();
+                            initMap();
                         };
                         document.head.appendChild(markerClusterScript);
                     };
                     document.head.appendChild(leafletScript);
-
-                    // Carrega Google Maps
-                    const googleMapsScript = document.createElement('script');
-                    googleMapsScript.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initGoogleMaps';
-                    document.head.appendChild(googleMapsScript);
                 });
             }
         };
-
-        // Callback do Google Maps
-        function initGoogleMaps() {
-            window.APP.dependencies.googleMaps = true;
-            if (window.APP.dependencies.leaflet && window.APP.dependencies.markerCluster) {
-                initMap();
-            }
-        }
 
         // Função de inicialização do mapa
         async function initMap() {
@@ -494,6 +483,9 @@
                 
                 // Adiciona cluster group ao mapa
                 map.addLayer(markers);
+
+                // Carrega dados do mapa
+                await loadMapData();
 
             } catch (error) {
                 console.error('Erro ao inicializar o mapa:', error);
@@ -547,7 +539,8 @@
         Carregando mais dados...
     </div>
 
-    <!-- Sistema de inicialização -->
-    <script src="js/init.js"></script>
+    <!-- Scripts da aplicação -->
+    <script src="js/Mapa/map.js"></script>
+    <script src="js/Mapa/map-streetview.js"></script>
 </body>
 </html> 
