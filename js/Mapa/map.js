@@ -188,16 +188,27 @@ function formatLabel(key, value) {
     return value || 'N/A';
 }
 
-// Função para criar popup com informações da feature (otimizada para mobile)
+// Função para verificar se é dispositivo móvel
+function isMobileDevice() {
+    return window.innerWidth <= 768 || 
+           navigator.maxTouchPoints > 0 || 
+           navigator.msMaxTouchPoints > 0 ||
+           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Função para criar popup com informações da feature
 function createFeaturePopup(feature, metadata) {
     const props = feature.properties;
     const layerType = metadata?.file_type || 'file';
     const config = LAYER_CONFIGS[layerType];
-    const isMobile = isMobileDevice();
     
+    if (!config) {
+        console.error(`Configuração não encontrada para o tipo: ${layerType}`);
+        return '<div class="feature-popup">Informações não disponíveis</div>';
+    }
+
     let content = '<div class="feature-popup">';
-    
-    content += `<h4 class="popup-title ${layerType}">${config.title}</h4>`;
+    content += `<h4 class="popup-title ${layerType}">${config.title || 'Informações'}</h4>`;
     
     if (localStorage.getItem('userCity') === 'global') {
         content += `<p class="locality"><strong>Localidade:</strong> ${props.locality || 'Desconhecida'}</p>`;
@@ -210,24 +221,25 @@ function createFeaturePopup(feature, metadata) {
         }
     }
     
-    config.fields.forEach(field => {
-        if (layerType === 'file-1' && ['logradouro', 'numero', 'bairro', 'complemento'].includes(field.key)) {
-            return;
-        }
+    if (config.fields) {
+        config.fields.forEach(field => {
+            if (layerType === 'file-1' && ['logradouro', 'numero', 'bairro', 'complemento'].includes(field.key)) {
+                return;
+            }
 
-        const value = props[field.key];
-        if (value !== undefined && value !== null && value !== '') {
-            const formattedValue = field.format ? field.format(value) : value;
-            content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
-        }
-    });
+            const value = props[field.key];
+            if (value !== undefined && value !== null && value !== '') {
+                const formattedValue = formatValue(field.key, value);
+                content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+            }
+        });
+    }
 
     // Adiciona botões de ação para mobile
-    if (isMobile && layerType === 'file-1') {
-        // Obtém as coordenadas do feature
+    if (isMobileDevice() && layerType === 'file-1') {
         const coordinates = feature.geometry.coordinates;
-        const lat = coordinates[1]; // Latitude é o segundo elemento
-        const lng = coordinates[0]; // Longitude é o primeiro elemento
+        const lat = coordinates[1];
+        const lng = coordinates[0];
         
         content += `
             <div class="popup-actions">
@@ -240,6 +252,22 @@ function createFeaturePopup(feature, metadata) {
     
     content += '</div>';
     return content;
+}
+
+// Função para formatar valores específicos
+function formatValue(key, value) {
+    switch (key) {
+        case 'ext':
+            return `${formatNumber(value)} m`;
+        case 'dia':
+            return `${formatNumber(value, 0)} mm`;
+        case 'consumo_medio':
+            return `${formatNumber(value)} m³`;
+        case 'data_ocorrencia':
+            return value ? formatDate(value) : 'N/A';
+        default:
+            return value || 'N/A';
+    }
 }
 
 // Função para estilizar as features
