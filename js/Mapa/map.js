@@ -99,13 +99,16 @@ function isMobileDevice() {
 
 // Função para verificar dependências
 function checkDependencies() {
-    // Verifica Leaflet
+    if (!window.APP.areDependenciesLoaded()) {
+        console.error('Nem todas as dependências foram carregadas');
+        return false;
+    }
+    
     if (typeof L === 'undefined') {
         console.error('Leaflet não está disponível');
         return false;
     }
     
-    // Verifica Google Maps
     if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
         console.error('Google Maps não está disponível');
         return false;
@@ -158,7 +161,7 @@ async function initializeMap() {
             throw new Error('Dependências necessárias não estão disponíveis');
         }
 
-        const isMobile = isMobileDevice();
+        const isMobile = window.innerWidth <= 768;
         
         // Cria o mapa
         window.map = L.map('map', {
@@ -188,6 +191,10 @@ async function initializeMap() {
         
         isMapInitialized = true;
         console.log('Mapa inicializado com sucesso');
+        
+        // Dispara evento de mapa pronto
+        const mapReadyEvent = new CustomEvent('mapReady');
+        window.dispatchEvent(mapReadyEvent);
         
         return true;
     } catch (error) {

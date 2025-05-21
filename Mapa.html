@@ -415,50 +415,6 @@
             }
         }
     </style>
-
-    <!-- Script de inicialização -->
-    <script>
-        // Objeto para controle de carregamento
-        window.mapInit = {
-            loaded: {
-                leaflet: false,
-                googleMaps: false
-            },
-            callbacks: [],
-            
-            // Registra callback para quando tudo estiver carregado
-            onReady: function(callback) {
-                if (this.isReady()) {
-                    callback();
-                } else {
-                    this.callbacks.push(callback);
-                }
-            },
-            
-            // Verifica se tudo está carregado
-            isReady: function() {
-                return this.loaded.leaflet && this.loaded.googleMaps;
-            },
-            
-            // Marca um componente como carregado
-            setLoaded: function(component) {
-                console.log(`Componente carregado: ${component}`);
-                this.loaded[component] = true;
-                
-                if (this.isReady()) {
-                    console.log('Todos os componentes carregados');
-                    this.callbacks.forEach(callback => callback());
-                    this.callbacks = [];
-                }
-            }
-        };
-
-        // Callback do Google Maps
-        function googleMapsCallback() {
-            console.log('Google Maps carregado');
-            window.mapInit.setLoaded('googleMaps');
-        }
-    </script>
 </head>
 <body>
     <div id="map"></div>
@@ -486,40 +442,105 @@
         Carregando mais dados...
     </div>
 
-    <!-- Carregamento sequencial dos scripts -->
+    <!-- Sistema de inicialização -->
     <script>
-        function loadScript(url, callback) {
-            const script = document.createElement('script');
-            script.src = url;
-            script.onload = callback;
-            document.body.appendChild(script);
-        }
-
-        // Carrega os scripts em sequência
-        loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', function() {
-            console.log('Leaflet carregado');
-            window.mapInit.setLoaded('leaflet');
+        // Gerenciador de dependências
+        window.APP = {
+            dependencies: {
+                leaflet: false,
+                googleMaps: false,
+                config: false,
+                mapJs: false,
+                streetView: false
+            },
             
-            // Carrega os scripts da aplicação
-            loadScript('js/config.js', function() {
-                loadScript('js/Mapa/map.js', function() {
-                    loadScript('js/Mapa/map-streetview.js', function() {
-                        // Inicia a aplicação quando tudo estiver carregado
-                        window.mapInit.onReady(function() {
-                            if (typeof initializeMap === 'function') {
-                                console.log('Iniciando aplicação...');
-                                initializeMap();
-                            }
-                        });
-                    });
+            // Verifica se todas as dependências foram carregadas
+            areDependenciesLoaded() {
+                return Object.values(this.dependencies).every(dep => dep === true);
+            },
+            
+            // Marca uma dependência como carregada
+            setDependencyLoaded(name) {
+                this.dependencies[name] = true;
+                console.log(`Dependência carregada: ${name}`);
+                
+                if (this.areDependenciesLoaded()) {
+                    console.log('Todas as dependências carregadas, iniciando aplicação...');
+                    this.initializeApplication();
+                }
+            },
+            
+            // Inicializa a aplicação quando tudo estiver pronto
+            async initializeApplication() {
+                try {
+                    if (typeof initializeMap === 'function') {
+                        console.log('Iniciando mapa...');
+                        await initializeMap();
+                        console.log('Mapa iniciado com sucesso');
+                    } else {
+                        throw new Error('Função initializeMap não encontrada');
+                    }
+                } catch (error) {
+                    console.error('Erro ao inicializar aplicação:', error);
+                    document.getElementById('loadingMessage').innerHTML = `
+                        <div class="error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Erro ao carregar a aplicação: ${error.message}
+                        </div>
+                    `;
+                }
+            },
+            
+            // Carrega um script e retorna uma Promise
+            loadScript(url, dependencyName) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = url;
+                    script.async = true;
+                    
+                    script.onload = () => {
+                        this.setDependencyLoaded(dependencyName);
+                        resolve();
+                    };
+                    
+                    script.onerror = () => {
+                        reject(new Error(`Erro ao carregar script: ${url}`));
+                    };
+                    
+                    document.body.appendChild(script);
                 });
-            });
-        });
-    </script>
+            }
+        };
 
-    <!-- Google Maps API (carregado de forma assíncrona) -->
-    <script async defer 
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=googleMapsCallback&libraries=geometry">
+        // Callback do Google Maps
+        window.initMap = function() {
+            window.APP.setDependencyLoaded('googleMaps');
+        };
+
+        // Inicia o carregamento quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Carrega scripts em paralelo
+                await Promise.all([
+                    window.APP.loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'leaflet'),
+                    window.APP.loadScript('js/config.js', 'config'),
+                    window.APP.loadScript('js/Mapa/map.js', 'mapJs'),
+                    window.APP.loadScript('js/Mapa/map-streetview.js', 'streetView'),
+                    window.APP.loadScript(
+                        'https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry',
+                        'googleMaps'
+                    )
+                ]);
+            } catch (error) {
+                console.error('Erro ao carregar scripts:', error);
+                document.getElementById('loadingMessage').innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Erro ao carregar scripts: ${error.message}
+                    </div>
+                `;
+            }
+        });
     </script>
 </body>
 </html> 

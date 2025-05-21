@@ -26,9 +26,17 @@ const API_RETRY_DELAY = 1000; // 1 segundo
 // Exportar configurações
 window.API_BASE_URL = API_BASE_URL;
 window.AUTH_CONFIG = AUTH_CONFIG;
+window.GOOGLE_MAPS_CONFIG = GOOGLE_MAPS_CONFIG;
 window.API_TIMEOUT = API_TIMEOUT;
 window.API_RETRY_ATTEMPTS = API_RETRY_ATTEMPTS;
 window.API_RETRY_DELAY = API_RETRY_DELAY;
+
+// Notifica que as configurações foram carregadas
+if (window.APP) {
+    window.APP.setDependencyLoaded('config');
+} else {
+    console.error('Sistema de gerenciamento de dependências não encontrado');
+}
 
 // Função para carregar o Google Maps
 window.loadGoogleMaps = function() {
