@@ -9,6 +9,10 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
@@ -415,6 +419,107 @@
             }
         }
     </style>
+
+    <script>
+        // Sistema de controle de dependências
+        window.APP = {
+            dependencies: {
+                leaflet: false,
+                markerCluster: false,
+                googleMaps: false
+            },
+            init: function() {
+                return new Promise((resolve, reject) => {
+                    // Verifica se todas as dependências foram carregadas
+                    const checkDependencies = () => {
+                        if (window.APP.dependencies.leaflet && 
+                            window.APP.dependencies.markerCluster && 
+                            window.APP.dependencies.googleMaps) {
+                            resolve();
+                        }
+                    };
+
+                    // Carrega Leaflet
+                    const leafletScript = document.createElement('script');
+                    leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                    leafletScript.onload = () => {
+                        window.APP.dependencies.leaflet = true;
+                        
+                        // Carrega MarkerCluster após Leaflet
+                        const markerClusterScript = document.createElement('script');
+                        markerClusterScript.src = 'https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js';
+                        markerClusterScript.onload = () => {
+                            window.APP.dependencies.markerCluster = true;
+                            checkDependencies();
+                        };
+                        document.head.appendChild(markerClusterScript);
+                    };
+                    document.head.appendChild(leafletScript);
+
+                    // Carrega Google Maps
+                    const googleMapsScript = document.createElement('script');
+                    googleMapsScript.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initGoogleMaps';
+                    document.head.appendChild(googleMapsScript);
+                });
+            }
+        };
+
+        // Callback do Google Maps
+        function initGoogleMaps() {
+            window.APP.dependencies.googleMaps = true;
+            if (window.APP.dependencies.leaflet && window.APP.dependencies.markerCluster) {
+                initMap();
+            }
+        }
+
+        // Função de inicialização do mapa
+        async function initMap() {
+            try {
+                // Esconde mensagem de carregamento
+                document.getElementById('loadingMessage').style.display = 'none';
+                
+                // Inicializa o mapa
+                const map = L.map('map').setView([-23.550520, -46.633308], 13);
+                
+                // Adiciona tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Inicializa cluster group
+                const markers = L.markerClusterGroup();
+                
+                // Aqui você pode adicionar seus marcadores ao cluster group
+                // markers.addLayer(L.marker([lat, lng]));
+                
+                // Adiciona cluster group ao mapa
+                map.addLayer(markers);
+
+            } catch (error) {
+                console.error('Erro ao inicializar o mapa:', error);
+                showError('Erro ao carregar o mapa. Por favor, recarregue a página.');
+            }
+        }
+
+        // Função para mostrar erros
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            document.body.appendChild(errorDiv);
+            
+            // Remove a mensagem após 5 segundos
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Inicia o carregamento quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            window.APP.init().catch(error => {
+                console.error('Erro na inicialização:', error);
+                showError('Erro ao carregar as dependências. Por favor, recarregue a página.');
+            });
+        });
+    </script>
 </head>
 <body>
     <div id="map"></div>
