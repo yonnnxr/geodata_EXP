@@ -19,15 +19,31 @@
     <!-- Configurações -->
     <script src="js/config.js"></script>
 
-    <!-- Google Maps API -->
+    <!-- Inicialização do Google Maps -->
     <script>
-        window.initMap = function() {
+        // Definindo a função initMap no escopo global antes de qualquer coisa
+        function initMap() {
             console.log('Google Maps API carregada com sucesso');
-            window.dispatchEvent(new Event('googleMapsLoaded'));
-        };
+            // Dispara um evento customizado para notificar que o Google Maps está pronto
+            if (typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new Event('googleMapsLoaded'));
+            }
+        }
     </script>
-    <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry">
+
+    <!-- Carregamento assíncrono do Google Maps -->
+    <script>
+        // Função para carregar o Google Maps de forma programática
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        // Carrega o Google Maps após um pequeno delay para garantir que initMap está definida
+        setTimeout(loadGoogleMaps, 100);
     </script>
     
     <!-- Estilos da aplicação -->
@@ -455,6 +471,7 @@
 
                     // Aguarda o Google Maps carregar
                     window.addEventListener('googleMapsLoaded', () => {
+                        console.log('Evento googleMapsLoaded recebido');
                         window.APP.dependencies.googleMaps = true;
                         checkDependencies();
                     });
