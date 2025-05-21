@@ -19,8 +19,8 @@ window.selectedFeature = null;
 window.highlightedLayer = null;
 
 // Constantes
-const BATCH_SIZE = 1000;
-const ECONOMIA_PAGE_SIZE = 10000;
+const BATCH_SIZE = 20000;
+const ECONOMIA_PAGE_SIZE = 50000;
 
 // Variáveis de controle
 let featuresCache = new Map();
@@ -91,14 +91,16 @@ async function initializeLeafletMap() {
             'file': L.layerGroup(),
             'file-1': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 50,
+                maxClusterRadius: 80,
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                disableClusteringAtZoom: 19,
+                disableClusteringAtZoom: 18,
                 animate: false,
                 maxZoom: 19,
-                singleMarkerMode: false
+                singleMarkerMode: false,
+                chunkInterval: 50,
+                chunkDelay: 10
             }),
             'file-2': L.markerClusterGroup({
                 chunkedLoading: true,
@@ -1152,8 +1154,8 @@ async function processFeatures(features, layerType, metadata) {
     };
 
     try {
-        // Tamanho do lote ainda menor para economias
-        const batchSize = layerType === 'file-1' ? 100 : 500;
+        // Tamanho do lote otimizado para economias
+        const batchSize = layerType === 'file-1' ? 500 : 200;
         const totalBatches = Math.ceil(features.length / batchSize);
         
         for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -1174,11 +1176,11 @@ async function processFeatures(features, layerType, metadata) {
                     if (feature.geometry.type === 'Point') {
                         const coords = feature.geometry.coordinates;
                         layer = L.circleMarker([coords[1], coords[0]], {
-                            radius: 1,
+                            radius: 3,
                             color: config.style.color,
-                            weight: 0.25,
-                            opacity: 0.8,
-                            fillOpacity: 0.6,
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.7,
                             fillColor: config.style.color
                         });
                     } else {
@@ -1188,9 +1190,11 @@ async function processFeatures(features, layerType, metadata) {
                         });
                     }
 
-                    // Adiciona o popup
+                    // Adiciona o popup apenas quando necessário (ao clicar)
                     if (feature.properties) {
-                        layer.bindPopup(() => createFeaturePopup(feature, { file_type: layerType }));
+                        layer.on('click', function() {
+                            this.bindPopup(createFeaturePopup(feature, { file_type: layerType })).openPopup();
+                        });
                     }
                     
                     tempGroup.addLayer(layer);
@@ -1205,9 +1209,9 @@ async function processFeatures(features, layerType, metadata) {
             // Força a liberação de memória
             if (window.gc) window.gc();
             
-            // Pausa maior entre os lotes
+            // Pausa reduzida entre os lotes
             if (batchIndex < totalBatches - 1) {
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 50)); // Reduzido de 200ms para 50ms
             }
         }
 
