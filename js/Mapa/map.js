@@ -14,9 +14,6 @@ window.layerGroups = {
 
 window.dadosCarregados = false;
 window.isMapInitialized = false;
-window.searchResults = [];
-window.selectedFeature = null;
-window.highlightedLayer = null;
 
 // Constantes
 const BATCH_SIZE = 200000;
@@ -1114,124 +1111,6 @@ function zoomToFeature(lat, lng) {
     }
 }
 
-// Função para pesquisar matrícula
-async function searchMatricula() {
-    const searchInput = document.getElementById('searchMatricula');
-    const searchValue = searchInput.value.trim();
-    const resultsContainer = document.getElementById('searchResults');
-    const isMobile = isMobileDevice();
-    
-    if (!searchValue) {
-        resultsContainer.innerHTML = '';
-        return;
-    }
-
-    clearHighlight();
-    resultsContainer.innerHTML = '';
-    window.searchResults = [];
-
-    Object.entries(window.layers).forEach(([layerType, layer]) => {
-        if (layerType === 'file-1' && layer) {
-            layer.eachLayer(function(featureLayer) {
-                const feature = featureLayer.feature;
-                const matricula = feature.properties.matricula;
-                
-                if (matricula && matricula.toString().includes(searchValue)) {
-                    window.searchResults.push({
-                        feature: feature,
-                        layer: featureLayer,
-                        matricula: matricula,
-                        endereco: LAYER_CONFIGS['file-1'].formatAddress(feature.properties)
-                    });
-                }
-            });
-        }
-    });
-
-    if (window.searchResults.length > 0) {
-        window.searchResults.forEach((result, index) => {
-            const div = document.createElement('div');
-            div.className = 'search-result-item';
-            div.innerHTML = `
-                <strong>${result.matricula}</strong><br>
-                <small>${result.endereco}</small>
-            `;
-            
-            // Ajusta o comportamento do clique para mobile
-            if (isMobile) {
-                div.addEventListener('touchstart', () => {
-                    div.style.backgroundColor = '#e3f2fd';
-                });
-            }
-            
-            div.onclick = () => selectSearchResult(index);
-            resultsContainer.appendChild(div);
-        });
-    } else {
-        resultsContainer.innerHTML = '<div class="search-result-item">Nenhum resultado encontrado</div>';
-    }
-
-    // Em mobile, fecha o teclado após a pesquisa
-    if (isMobile) {
-        searchInput.blur();
-    }
-}
-
-// Função para selecionar um resultado da pesquisa
-function selectSearchResult(index) {
-    const result = window.searchResults[index];
-    if (!result) return;
-
-    // Limpa seleção anterior
-    clearHighlight();
-    
-    // Atualiza seleção visual na lista
-    document.querySelectorAll('.search-result-item').forEach((item, i) => {
-        item.classList.toggle('selected', i === index);
-    });
-
-    // Destaca a feature no mapa
-    const layer = result.layer;
-    window.highlightedLayer = layer;
-    
-    // Aplica estilo de destaque
-    if (layer.setStyle) {
-        const originalStyle = layer.options;
-        layer.setStyle({
-            color: '#ff0000',
-            weight: 4,
-            opacity: 1,
-            className: 'highlight-feature'
-        });
-        layer.originalStyle = originalStyle;
-    }
-
-    // Centraliza o mapa na feature
-    const bounds = layer.getBounds ? layer.getBounds() : layer.getLatLng();
-    window.map.fitBounds(bounds, { padding: [50, 50] });
-
-    // Abre o popup
-    layer.openPopup();
-}
-
-// Função para limpar destaque
-function clearHighlight() {
-    if (window.highlightedLayer) {
-        if (window.highlightedLayer.setStyle && window.highlightedLayer.originalStyle) {
-            window.highlightedLayer.setStyle(window.highlightedLayer.originalStyle);
-            window.highlightedLayer.originalStyle = null;
-        }
-        window.highlightedLayer = null;
-    }
-}
-
-// Adiciona evento de tecla Enter no campo de pesquisa
-document.getElementById('searchMatricula')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        searchMatricula();
-    }
-});
-
 // Função para carregar mais dados quando o usuário move o mapa
 function onMapMoveEnd() {
     if (!dadosCarregados || isLoadingMore || !hasMoreEconomias) return;
@@ -1365,5 +1244,16 @@ async function processFeatures(features, layerType, metadata) {
     } catch (error) {
         console.error(`Erro ao processar features do tipo ${layerType}:`, error);
         throw error;
+    }
+}
+
+// Remove as funções de busca
+function clearHighlight() {
+    if (window.highlightedLayer) {
+        if (window.highlightedLayer.setStyle && window.highlightedLayer.originalStyle) {
+            window.highlightedLayer.setStyle(window.highlightedLayer.originalStyle);
+            window.highlightedLayer.originalStyle = null;
+        }
+        window.highlightedLayer = null;
     }
 }
