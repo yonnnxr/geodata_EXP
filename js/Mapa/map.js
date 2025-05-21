@@ -52,6 +52,59 @@ function checkAuthentication() {
     return true;
 }
 
+// Função para configurar os controles das camadas
+function setupLayerControls() {
+    console.log('Configurando controles das camadas...');
+
+    // Controle da Rede de Água
+    const toggleRedes = document.getElementById('toggleRedes');
+    if (toggleRedes) {
+        toggleRedes.addEventListener('change', function() {
+            console.log('Toggle Redes:', this.checked);
+            const layer = window.layerGroups['file'];
+            if (layer) {
+                if (this.checked) {
+                    window.map.addLayer(layer);
+                } else {
+                    window.map.removeLayer(layer);
+                }
+            }
+        });
+    }
+
+    // Controle das Economias
+    const toggleEconomias = document.getElementById('toggleEconomias');
+    if (toggleEconomias) {
+        toggleEconomias.addEventListener('change', function() {
+            console.log('Toggle Economias:', this.checked);
+            const layer = window.layerGroups['file-1'];
+            if (layer) {
+                if (this.checked) {
+                    window.map.addLayer(layer);
+                } else {
+                    window.map.removeLayer(layer);
+                }
+            }
+        });
+    }
+
+    // Controle das Ocorrências
+    const toggleOcorrencias = document.getElementById('toggleOcorrencias');
+    if (toggleOcorrencias) {
+        toggleOcorrencias.addEventListener('change', function() {
+            console.log('Toggle Ocorrências:', this.checked);
+            const layer = window.layerGroups['file-2'];
+            if (layer) {
+                if (this.checked) {
+                    window.map.addLayer(layer);
+                } else {
+                    window.map.removeLayer(layer);
+                }
+            }
+        });
+    }
+}
+
 // Aguarda o carregamento do DOM
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM carregado, iniciando verificações...');
@@ -67,7 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     console.log('Iniciando mapa...');
-    initializeLeafletMap();
+    initializeLeafletMap().then(() => {
+        // Configura os controles das camadas após o mapa estar inicializado
+        setupLayerControls();
+    });
 });
 
 // Função para inicializar o mapa Leaflet
@@ -118,40 +174,6 @@ async function initializeLeafletMap() {
                 singleMarkerMode: false
             })
         };
-        
-        // Configura os event listeners dos checkboxes
-        document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
-            const layerGroup = window.layerGroups['file'];
-            if (layerGroup) {
-                if (e.target.checked) {
-                    window.map.addLayer(layerGroup);
-                } else {
-                    window.map.removeLayer(layerGroup);
-                }
-            }
-        });
-
-        document.getElementById('toggleEconomias')?.addEventListener('change', function(e) {
-            const layerGroup = window.layerGroups['file-1'];
-            if (layerGroup) {
-                if (e.target.checked) {
-                    window.map.addLayer(layerGroup);
-                } else {
-                    window.map.removeLayer(layerGroup);
-                }
-            }
-        });
-
-        document.getElementById('toggleOcorrencias')?.addEventListener('change', function(e) {
-            const layerGroup = window.layerGroups['file-2'];
-            if (layerGroup) {
-                if (e.target.checked) {
-                    window.map.addLayer(layerGroup);
-                } else {
-                    window.map.removeLayer(layerGroup);
-                }
-            }
-        });
         
         // Esconde mensagem de carregamento se existir
         const loadingMessage = document.getElementById('loadingMessage');
@@ -307,35 +329,90 @@ function createFeaturePopup(feature, metadata) {
     }
 
     let content = '<div class="feature-popup">';
-    content += `<h4 class="popup-title ${layerType}">${config.title || 'Informações'}</h4>`;
-    
-    if (localStorage.getItem('userCity') === 'global') {
-        content += `<p class="locality"><strong>Localidade:</strong> ${props.locality || 'Desconhecida'}</p>`;
-    }
 
-    if (layerType === 'file-1' && config.formatAddress) {
-        const address = config.formatAddress(props);
-        if (address) {
-            content += `<p class="address"><strong>Endereço:</strong> ${address}</p>`;
+    // Se for economia ou ocorrência, verifica se há outra feature no mesmo local
+    if (layerType === 'file-1' || layerType === 'file-2') {
+        const coords = feature.geometry.coordinates;
+        const otherType = layerType === 'file-1' ? 'file-2' : 'file-1';
+        const otherLayer = window.layerGroups[otherType];
+        let foundFeature = null;
+
+        if (otherLayer) {
+            otherLayer.eachLayer((layer) => {
+                if (layer.feature) {
+                    const otherCoords = layer.feature.geometry.coordinates;
+                    if (coords[0] === otherCoords[0] && coords[1] === otherCoords[1]) {
+                        foundFeature = layer.feature;
+                    }
+                }
+            });
         }
-    }
-    
-    if (config.fields) {
-        config.fields.forEach(field => {
-            if (layerType === 'file-1' && ['logradouro', 'numero', 'bairro', 'complemento'].includes(field.key)) {
-                return;
+
+        // Adiciona informações da economia
+        if (layerType === 'file-1' || (foundFeature && otherType === 'file-1')) {
+            const economiaFeature = layerType === 'file-1' ? feature : foundFeature;
+            content += `<div class="popup-section economia">
+                <h4 class="popup-title file-1">Informações da Economia</h4>`;
+            
+            if (localStorage.getItem('userCity') === 'global') {
+                content += `<p class="locality"><strong>Localidade:</strong> ${economiaFeature.properties.locality || 'Desconhecida'}</p>`;
             }
 
-            const value = props[field.key];
-            if (value !== undefined && value !== null && value !== '') {
-                const formattedValue = formatValue(field.key, value);
-                content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+            if (LAYER_CONFIGS['file-1'].formatAddress) {
+                const address = LAYER_CONFIGS['file-1'].formatAddress(economiaFeature.properties);
+                if (address) {
+                    content += `<p class="address"><strong>Endereço:</strong> ${address}</p>`;
+                }
             }
-        });
+
+            LAYER_CONFIGS['file-1'].fields?.forEach(field => {
+                if (!['logradouro', 'numero', 'bairro', 'complemento'].includes(field.key)) {
+                    const value = economiaFeature.properties[field.key];
+                    if (value !== undefined && value !== null && value !== '') {
+                        const formattedValue = formatValue(field.key, value);
+                        content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+                    }
+                }
+            });
+            content += '</div>';
+        }
+
+        // Adiciona informações da ocorrência
+        if (layerType === 'file-2' || (foundFeature && otherType === 'file-2')) {
+            const ocorrenciaFeature = layerType === 'file-2' ? feature : foundFeature;
+            content += `<div class="popup-section ocorrencia">
+                <h4 class="popup-title file-2">Informações da Ocorrência</h4>`;
+
+            LAYER_CONFIGS['file-2'].fields?.forEach(field => {
+                const value = ocorrenciaFeature.properties[field.key];
+                if (value !== undefined && value !== null && value !== '') {
+                    const formattedValue = formatValue(field.key, value);
+                    content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+                }
+            });
+            content += '</div>';
+        }
+    } else {
+        // Para rede de água, mantém o popup original
+        content += `<h4 class="popup-title ${layerType}">${config.title || 'Informações'}</h4>`;
+        
+        if (localStorage.getItem('userCity') === 'global') {
+            content += `<p class="locality"><strong>Localidade:</strong> ${props.locality || 'Desconhecida'}</p>`;
+        }
+
+        if (config.fields) {
+            config.fields.forEach(field => {
+                const value = props[field.key];
+                if (value !== undefined && value !== null && value !== '') {
+                    const formattedValue = formatValue(field.key, value);
+                    content += `<p class="field ${field.key}"><strong>${field.label}:</strong> ${formattedValue}</p>`;
+                }
+            });
+        }
     }
 
     // Adiciona botões de ação para mobile
-    if (isMobileDevice() && layerType === 'file-1') {
+    if (isMobileDevice() && (layerType === 'file-1' || layerType === 'file-2')) {
         const coordinates = feature.geometry.coordinates;
         const lat = coordinates[1];
         const lng = coordinates[0];
@@ -350,6 +427,31 @@ function createFeaturePopup(feature, metadata) {
     }
     
     content += '</div>';
+
+    // Adiciona estilos específicos para popups com múltiplas seções
+    const style = document.createElement('style');
+    style.textContent = `
+        .popup-section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .popup-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .popup-section.economia .popup-title {
+            color: #FF5252;
+            border-color: #FF5252;
+        }
+        .popup-section.ocorrencia .popup-title {
+            color: #FFC107;
+            border-color: #FFC107;
+        }
+    `;
+    document.head.appendChild(style);
+
     return content;
 }
 
@@ -1246,20 +1348,23 @@ async function processFeatures(features, layerType, metadata) {
             }
         }
 
-        // Adiciona todas as layers de uma vez
-        if (layerType === 'file') {
-            // Para rede de água (file) usa addLayer individual pois é layerGroup
-            allLayers.forEach(layer => {
-                window.layerGroups[layerType].addLayer(layer);
-            });
-        } else {
-            // Para economias e ocorrências (file-1 e file-2) usa addLayers pois são markerClusterGroup
-            window.layerGroups[layerType].addLayers(allLayers);
-        }
+        // Adiciona as layers de acordo com o tipo
+        const layerGroup = window.layerGroups[layerType];
+        if (layerGroup) {
+            if (layerType === 'file') {
+                // Para rede de água (file) usa addLayer individual
+                allLayers.forEach(layer => {
+                    layerGroup.addLayer(layer);
+                });
+            } else {
+                // Para economias e ocorrências usa addLayers
+                layerGroup.addLayers(allLayers);
+            }
 
-        // Adiciona o grupo ao mapa se ainda não estiver adicionado
-        if (!window.map.hasLayer(window.layerGroups[layerType])) {
-            window.map.addLayer(window.layerGroups[layerType]);
+            // Adiciona o grupo ao mapa se ainda não estiver
+            if (!window.map.hasLayer(layerGroup)) {
+                window.map.addLayer(layerGroup);
+            }
         }
         
     } catch (error) {
