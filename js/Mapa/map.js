@@ -119,6 +119,40 @@ async function initializeLeafletMap() {
             })
         };
         
+        // Configura os event listeners dos checkboxes
+        document.getElementById('toggleRedes')?.addEventListener('change', function(e) {
+            const layerGroup = window.layerGroups['file'];
+            if (layerGroup) {
+                if (e.target.checked) {
+                    window.map.addLayer(layerGroup);
+                } else {
+                    window.map.removeLayer(layerGroup);
+                }
+            }
+        });
+
+        document.getElementById('toggleEconomias')?.addEventListener('change', function(e) {
+            const layerGroup = window.layerGroups['file-1'];
+            if (layerGroup) {
+                if (e.target.checked) {
+                    window.map.addLayer(layerGroup);
+                } else {
+                    window.map.removeLayer(layerGroup);
+                }
+            }
+        });
+
+        document.getElementById('toggleOcorrencias')?.addEventListener('change', function(e) {
+            const layerGroup = window.layerGroups['file-2'];
+            if (layerGroup) {
+                if (e.target.checked) {
+                    window.map.addLayer(layerGroup);
+                } else {
+                    window.map.removeLayer(layerGroup);
+                }
+            }
+        });
+        
         // Esconde mensagem de carregamento se existir
         const loadingMessage = document.getElementById('loadingMessage');
         if (loadingMessage) {
@@ -1213,7 +1247,15 @@ async function processFeatures(features, layerType, metadata) {
         }
 
         // Adiciona todas as layers de uma vez
-        window.layerGroups[layerType].addLayers(allLayers);
+        if (layerType === 'file') {
+            // Para rede de água (file) usa addLayer individual pois é layerGroup
+            allLayers.forEach(layer => {
+                window.layerGroups[layerType].addLayer(layer);
+            });
+        } else {
+            // Para economias e ocorrências (file-1 e file-2) usa addLayers pois são markerClusterGroup
+            window.layerGroups[layerType].addLayers(allLayers);
+        }
 
         // Adiciona o grupo ao mapa se ainda não estiver adicionado
         if (!window.map.hasLayer(window.layerGroups[layerType])) {
