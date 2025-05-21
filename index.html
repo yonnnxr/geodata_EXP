@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Dados</title>
+    <title>GeoData EXP</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJESURBVFhH7ZbPaxNBFMffJrtJE5PWpBXBg6AePHjxIh78C/wDRBAEL/4FghfBkyB48uBJEEE8ePAiCN4EQQ968SAJLU2y2WST3eyuM7tvdtN0TZN1k+zBD3zY2dl5M9+Zne+8HcYYzBNi3k7FQgBjzHXdR4yxjWKxuAqrHPl8HprNpj+OxWJQLBSgVqsN+v3+c8/z3o5Go0svCj8KwPf9l4VC4YthGGun0yk0m00/Ho9DNptFEFiv1wPHcaDT6YDrulCtVmGxULhhWdZHjuNuYhwEwQcUhXEQwPM8H0W2Wi3I5XJgmiZks1lYXl6GdrsNw+EQGo0G9Pt9aDQasJDNbpbL5W84RhEoBmNkABE+QAG2bUOlUoFUKgWJRAIWFhag1+tBp9uFw8NDGA6GsLS0BNWVlU0UgGMUcRqAYmQKMNWu60IqlYR4PA7JZNI/EQpot9swHA1heXkZVldWfAE4RhFnBfD/BKBzjOu6YJqmvwPxeBwMw4B0Og2DwQCSqRSsr63B2toabGxs+MdxjCJwB84KGLsBaJomCILgm2EYkMlkYGdnB7a3t2F9fR0kSQJZlkGSxTMDztsB13V8AYVCAbLZDExdB57nQRAEP0OKokAkEoFwOAyhUAhCoRDwPA+CIAC2PM+DJEkQiUQgEokCz/O+P8dxfh+O40AURYhGo/6Yxs8KOHcHzgXP/xOAy+k0QNd1MAzDv3yGYfi7k0gk/F3CvqZpEwHUhzE1/f0nAXNlrgJ+A43GwR2D+cH1AAAAAElFTkSuQmCC">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -16,11 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     
     <style>
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
-        
+        #map { height: 100vh; width: 100%; }
         #loadingMessage {
             position: fixed;
             top: 50%;
@@ -33,7 +30,6 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: none;
         }
-        
         #searchContainer {
             position: fixed;
             top: 10px;
@@ -44,7 +40,6 @@
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        
         #layerControl {
             position: fixed;
             top: 10px;
@@ -69,14 +64,15 @@
     
     <div id="layerControl"></div>
     
-    <!-- Leaflet JS -->
+    <!-- Scripts Base -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- MarkerCluster JS -->
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     
-    <!-- Seus scripts -->
+    <!-- Scripts da Aplicação -->
+    <script src="js/utils/auth.js"></script>
     <script src="js/config.js"></script>
     <script src="js/Mapa/map.js"></script>
+    <script src="js/Mapa/map-sidebar.js"></script>
+    <script src="js/init.js"></script>
 </body>
 </html>

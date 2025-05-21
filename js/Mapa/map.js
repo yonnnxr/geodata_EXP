@@ -11,6 +11,11 @@ if (typeof window.layers === 'undefined') {
     };
 }
 
+// Variável de controle de inicialização
+if (typeof window.isMapInitialized === 'undefined') {
+    window.isMapInitialized = false;
+}
+
 if (typeof window.layerGroups === 'undefined') {
     window.layerGroups = {
         'file': L.layerGroup(),
@@ -52,7 +57,6 @@ let featuresCache = new Map();
 let currentEconomiaPage = 1; // Página atual apenas para economias
 let isLoadingMore = false;
 let hasMoreEconomias = true; // Controle apenas para economias
-let isMapInitialized = false;
 
 // Variáveis globais para pesquisa
 if (typeof window.searchResults === 'undefined') {
@@ -111,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Função para inicializar o mapa Leaflet
 async function initializeLeafletMap() {
-    if (isMapInitialized) {
+    if (window.isMapInitialized) {
         console.log('Mapa já inicializado');
         return true;
     }
@@ -156,7 +160,7 @@ async function initializeLeafletMap() {
 
         console.log('Tile layer adicionado, mapa base criado com sucesso');
         
-        isMapInitialized = true;
+        window.isMapInitialized = true;
 
         // Inicializa os controles e eventos do mapa
         window.map.on('moveend', onMapMoveEnd);
