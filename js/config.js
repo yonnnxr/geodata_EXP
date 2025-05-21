@@ -6,60 +6,55 @@ console.log('API_BASE_URL definida:', window.API_BASE_URL);
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
     let lastError;
     
-    // Configuração do proxy CORS
-    const proxyUrl = 'https://proxy.cors.sh/';
-    const apiUrl = url.replace(window.API_BASE_URL, proxyUrl + window.API_BASE_URL);
-    
-    // Headers padrão
-    const defaultOptions = {
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'x-cors-api-key': 'temp_f0f67f7fc019e7f77f9b3496ef16dd00',
-            'Origin': 'https://geodatabr.app.br'
-        },
-        ...options,
-        headers: {
-            ...options.headers,
-        }
+    // Função para criar URL do proxy
+    const getProxyUrl = (targetUrl) => {
+        // Usando allorigins como proxy CORS
+        return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
     };
-    
+
     for (let i = 0; i < maxRetries; i++) {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
-            console.log('Tentando requisição para:', apiUrl);
-            
-            const response = await fetch(apiUrl, {
-                ...defaultOptions,
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    // Token expirado, tenta renovar
-                    const refreshed = await refreshToken();
-                    if (refreshed) {
-                        // Atualiza o token na requisição e tenta novamente
-                        if (options.headers) {
-                            options.headers['Authorization'] = `Bearer ${localStorage.getItem('authToken')}`;
-                        }
-                        continue;
-                    } else {
-                        // Falha ao renovar token, redireciona para login
-                        window.location.href = 'login.html';
-                        return;
-                    }
+            // Se for POST, usa o proxy do allorigins
+            if (options.method === 'POST') {
+                const proxyUrl = getProxyUrl(url);
+                console.log('Tentando requisição POST via proxy:', proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET', // allorigins só aceita GET
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                return new Response(data.contents, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } else {
+                // Para GET, usa fetch direto com modo no-cors
+                console.log('Tentando requisição GET:', url);
+                const response = await fetch(url, {
+                    ...options,
+                    mode: 'no-cors',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                return response;
             }
-            
-            return response;
-            
         } catch (error) {
             console.warn(`Tentativa ${i + 1} falhou:`, error);
             lastError = error;
