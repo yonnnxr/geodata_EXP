@@ -10,7 +10,6 @@ window.markerClusters = {
     'file-2': null
 };
 let dadosCarregados = false;
-const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 const BATCH_SIZE = 1000; // Para processamento em lotes geral
 const ECONOMIA_PAGE_SIZE = 10000; // Tamanho da página específico para economias
 let featuresCache = new Map();
@@ -836,8 +835,9 @@ function onMapMoveEnd() {
 // Variável para controlar a inicialização
 let isMapInitialized = false;
 
-// Inicializa o mapa quando a API do Google Maps estiver carregada
+// Função global de inicialização do mapa
 window.initMap = async function() {
+    console.log('Iniciando função initMap');
     try {
         if (isMapInitialized) {
             console.log('Mapa já inicializado');
@@ -850,6 +850,9 @@ window.initMap = async function() {
         if (mapInitialized) {
             isMapInitialized = true;
             console.log('Mapa inicializado com sucesso');
+            
+            // Dispara evento personalizado para notificar que o mapa está pronto
+            window.dispatchEvent(new CustomEvent('mapInitialized'));
         }
     } catch (error) {
         console.error('Erro ao inicializar o mapa:', error);
@@ -857,12 +860,11 @@ window.initMap = async function() {
     }
 };
 
-// Garante que o mapa seja inicializado mesmo se o Google Maps falhar
+// Garante que o mapa seja inicializado quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
     if (!isMapInitialized) {
         try {
-            await initializeMap();
-            isMapInitialized = true;
+            await window.initMap();
         } catch (error) {
             console.error('Erro ao inicializar o mapa:', error);
             showError('Falha ao inicializar o mapa: ' + error.message);
