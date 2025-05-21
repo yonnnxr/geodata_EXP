@@ -1,8 +1,3 @@
-// Função que será chamada pelo callback do Google Maps
-window.initMap = function() {
-    console.log('Google Maps API carregada com sucesso');
-};
-
 // Função para carregar scripts de forma sequencial
 function loadScriptsSequentially(scripts) {
     return scripts.reduce((promise, script) => {
@@ -33,29 +28,33 @@ function loadScriptsSequentially(scripts) {
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar scripts em ordem específica
     loadScriptsSequentially([
-        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
         'js/config.js',
+        'js/utils/auth.js',
+        'https://unpkg.com/leaflet@1.9.3/dist/leaflet.js',
         'js/Mapa/map.js',
-        'js/Mapa/map-streetview.js',
-        'https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry'
+        'js/Mapa/map-sidebar.js'
     ]).then(() => {
         console.log('Todos os scripts foram carregados');
         // Inicializar o mapa
-        if (typeof initializeMap === 'function') {
+        if (typeof initializeLeafletMap === 'function') {
             console.log('Iniciando o mapa...');
-            initializeMap().catch(error => {
+            initializeLeafletMap().catch(error => {
                 console.error('Erro ao inicializar o mapa:', error);
             });
         } else {
-            console.error('Função initializeMap não encontrada');
+            console.error('Função initializeLeafletMap não encontrada');
         }
     }).catch(error => {
         console.error('Erro ao carregar scripts:', error);
-        document.getElementById('loadingMessage').innerHTML = `
-            <div class="error">
-                <i class="fas fa-exclamation-circle"></i>
-                Erro ao carregar scripts: ${error.message}
-            </div>
-        `;
+        const loadingMessage = document.getElementById('loadingMessage');
+        if (loadingMessage) {
+            loadingMessage.innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Erro ao carregar scripts: ${error.message}
+                </div>
+            `;
+            loadingMessage.style.display = 'block';
+        }
     });
 }); 

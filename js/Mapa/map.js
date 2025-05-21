@@ -23,9 +23,42 @@ window.searchResults = [];
 window.selectedFeature = null;
 window.highlightedLayer = null;
 
+// Função para verificar se o Leaflet está carregado
+function isLeafletLoaded() {
+    return typeof L !== 'undefined';
+}
+
+// Função para verificar autenticação
+function checkAuthentication() {
+    const token = localStorage.getItem('authToken');
+    const userCity = localStorage.getItem('userCity');
+    
+    if (!token || !userCity) {
+        console.error('Token ou cidade não encontrados');
+        showError('Sessão expirada ou inválida. Por favor, faça login novamente.');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
+        return false;
+    }
+    return true;
+}
+
 // Aguarda o carregamento do DOM
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM carregado, iniciando mapa...');
+    console.log('DOM carregado, iniciando verificações...');
+    
+    if (!isLeafletLoaded()) {
+        console.error('Leaflet não está carregado');
+        showError('Erro ao carregar biblioteca de mapas. Por favor, recarregue a página.');
+        return;
+    }
+    
+    if (!checkAuthentication()) {
+        return;
+    }
+
+    console.log('Iniciando mapa...');
     initializeLeafletMap();
 });
 
@@ -52,6 +85,8 @@ async function initializeLeafletMap() {
         if (!mapElement) {
             throw new Error('Elemento do mapa não encontrado');
         }
+
+        console.log('Elemento do mapa encontrado, criando instância...');
         
         // Cria o mapa
         window.map = L.map('map', {
@@ -60,19 +95,26 @@ async function initializeLeafletMap() {
             bounceAtZoomLimits: false,
             maxZoom: 19,
             minZoom: 4
-        }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+        });
+
+        console.log('Instância do mapa criada, adicionando tile layer...');
 
         // Adiciona o tile layer do OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(window.map);
 
-        console.log('Mapa base criado com sucesso');
+        // Define a visualização inicial
+        window.map.setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+
+        console.log('Tile layer adicionado, mapa base criado com sucesso');
         
         isMapInitialized = true;
 
         // Inicializa os controles e eventos do mapa
         window.map.on('moveend', onMapMoveEnd);
+        
+        console.log('Carregando dados iniciais...');
         
         // Carrega os dados iniciais
         await loadMapData();
