@@ -19,8 +19,8 @@ window.selectedFeature = null;
 window.highlightedLayer = null;
 
 // Constantes
-const BATCH_SIZE = 100000;
-const ECONOMIA_PAGE_SIZE = 500000;
+const BATCH_SIZE = 200000;
+const ECONOMIA_PAGE_SIZE = 1000000;
 
 // Variáveis de controle
 let featuresCache = new Map();
@@ -147,21 +147,22 @@ async function initializeLeafletMap() {
             'file': L.layerGroup(),
             'file-1': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 150,
+                maxClusterRadius: 200,
                 spiderfyOnMaxZoom: false,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                disableClusteringAtZoom: 16,
+                disableClusteringAtZoom: 15,
                 animate: false,
                 maxZoom: 19,
                 singleMarkerMode: false,
-                chunkInterval: 100,
-                chunkDelay: 1,
-                removeOutsideVisibleBounds: true
+                chunkInterval: 200,
+                chunkDelay: 0,
+                removeOutsideVisibleBounds: true,
+                maxClusters: 1000
             }),
             'file-2': L.markerClusterGroup({
                 chunkedLoading: true,
-                maxClusterRadius: 80,
+                maxClusterRadius: 100,
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
@@ -1285,50 +1286,47 @@ async function processFeatures(features, layerType, metadata) {
     };
 
     try {
-        // Tamanho do lote otimizado para economias
-        const batchSize = layerType === 'file-1' ? 10000 : 200;
+        // Tamanho do lote ainda maior para economias
+        const batchSize = layerType === 'file-1' ? 50000 : 200;
         const totalBatches = Math.ceil(features.length / batchSize);
         
         // Criar array para armazenar todas as layers antes de adicionar
         const allLayers = [];
+        
+        // Otimização: Criar função de layer uma vez fora do loop
+        const createCircleMarker = (coords, color) => L.circleMarker([coords[1], coords[0]], {
+            radius: 1.5, // Reduzido ainda mais
+            color: color,
+            weight: 1,
+            opacity: 0.6,
+            fillOpacity: 0.4,
+            fillColor: color
+        });
         
         for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
             const start = batchIndex * batchSize;
             const end = Math.min(start + batchSize, features.length);
             const batch = features.slice(start, end);
             
-            console.log(`Processando lote ${batchIndex + 1}/${totalBatches} com ${batch.length} features`);
-            
+            // Processamento em lote sem pausas
             batch.forEach(feature => {
                 try {
                     let layer;
                     
-                    // Se for um ponto (economia ou ocorrência), usa círculo
                     if (feature.geometry.type === 'Point') {
-                        const coords = feature.geometry.coordinates;
-                        layer = L.circleMarker([coords[1], coords[0]], {
-                            radius: 2,
-                            color: config.style.color,
-                            weight: 1,
-                            opacity: 0.8,
-                            fillOpacity: 0.6,
-                            fillColor: config.style.color
-                        });
-                        
+                        layer = createCircleMarker(feature.geometry.coordinates, config.style.color);
                         layer.feature = feature;
-                    } else {
-                        layer = L.geoJSON(feature, {
-                            style: () => getFeatureStyle(feature, layerType)
-                        });
-                    }
-
-                    // Adiciona o popup apenas quando necessário (ao clicar)
-                    if (feature.properties) {
+                        
+                        // Lazy loading de popup
                         layer.on('click', function() {
                             if (!this._popup) {
                                 this.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
                             }
                             this.openPopup();
+                        });
+                    } else {
+                        layer = L.geoJSON(feature, {
+                            style: () => getFeatureStyle(feature, layerType)
                         });
                     }
                     
@@ -1338,12 +1336,9 @@ async function processFeatures(features, layerType, metadata) {
                 }
             });
             
-            // Força a liberação de memória
-            if (window.gc) window.gc();
-            
-            // Pausa mínima entre os lotes
-            if (batchIndex < totalBatches - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1));
+            // Força liberação de memória a cada 5 lotes
+            if (batchIndex % 5 === 0 && window.gc) {
+                window.gc();
             }
         }
 
@@ -1351,10 +1346,14 @@ async function processFeatures(features, layerType, metadata) {
         const layerGroup = window.layerGroups[layerType];
         if (layerGroup) {
             if (layerType === 'file') {
-                allLayers.forEach(layer => {
-                    layerGroup.addLayer(layer);
-                });
+                // Adiciona em lotes para rede de água
+                const addBatchSize = 1000;
+                for (let i = 0; i < allLayers.length; i += addBatchSize) {
+                    const batch = allLayers.slice(i, i + addBatchSize);
+                    batch.forEach(layer => layerGroup.addLayer(layer));
+                }
             } else {
+                // Adiciona todos de uma vez para economias e ocorrências
                 layerGroup.addLayers(allLayers);
             }
 
