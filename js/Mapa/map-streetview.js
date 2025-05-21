@@ -50,23 +50,17 @@ async function initStreetView() {
     }
 }
 
-// Aguarda o carregamento do mapa base e do Google Maps
-document.addEventListener('DOMContentLoaded', () => {
-    const checkDependencies = setInterval(() => {
-        if (window.map && isGoogleMapsLoaded()) {
-            clearInterval(checkDependencies);
-            initStreetView();
+// Aguarda o carregamento do mapa e do Google Maps
+window.addEventListener('mapInitialized', async () => {
+    try {
+        if (!isGoogleMapsLoaded()) {
+            await window.loadGoogleMaps();
         }
-    }, 1000);
-
-    // Timeout após 30 segundos
-    setTimeout(() => {
-        clearInterval(checkDependencies);
-        if (!isStreetViewInitialized) {
-            console.error('Timeout ao aguardar dependências do Street View');
-            showMessage('Erro ao carregar Street View. Recarregue a página.', 5000);
-        }
-    }, 30000);
+        await initStreetView();
+    } catch (error) {
+        console.error('Erro ao inicializar Street View:', error);
+        showMessage('Erro ao carregar Street View. Recarregue a página.', 5000);
+    }
 });
 
 function initStreetViewControl() {
