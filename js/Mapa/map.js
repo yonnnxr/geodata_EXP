@@ -24,6 +24,12 @@ window.searchResults = [];
 window.selectedFeature = null;
 window.highlightedLayer = null;
 
+// Aguarda o carregamento do DOM
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM carregado, iniciando mapa...');
+    initializeLeafletMap();
+});
+
 // Aguarda o carregamento do Google Maps
 window.addEventListener('googleMapsLoaded', () => {
     console.log('Google Maps carregado e pronto para uso');
@@ -178,10 +184,6 @@ async function initializeLeafletMap() {
     console.log('Iniciando inicialização do mapa Leaflet');
     
     try {
-        if (!checkDependencies()) {
-            throw new Error('Dependências necessárias não estão disponíveis');
-        }
-
         const isMobile = window.innerWidth <= 768;
         
         // Esconde mensagem de carregamento
@@ -196,35 +198,25 @@ async function initializeLeafletMap() {
             minZoom: 4
         }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
 
-        console.log('Mapa base criado');
-
-        // Adiciona camada base
+        // Adiciona o tile layer do OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19,
-            maxNativeZoom: 18
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(window.map);
 
-        console.log('Camada base adicionada');
-
-        // Adiciona eventos
-        window.map.on('moveend', onMapMoveEnd);
-
-        // Carrega dados iniciais
-        await loadMapData();
+        console.log('Mapa base criado');
         
         isMapInitialized = true;
-        console.log('Mapa Leaflet inicializado com sucesso');
+
+        // Inicializa os controles e eventos do mapa
+        window.map.on('moveend', onMapMoveEnd);
         
-        // Inicializa recursos do Google Maps após o mapa Leaflet estar pronto
-        if (isGoogleMapsReady) {
-            initializeGoogleMapsFeatures();
-        }
-        
+        // Carrega os dados iniciais
+        await loadMapData();
+
         return true;
     } catch (error) {
-        console.error('Erro ao inicializar mapa:', error);
-        showError('Erro ao inicializar o mapa: ' + error.message);
+        console.error('Erro ao inicializar o mapa:', error);
+        showError('Erro ao inicializar o mapa. Por favor, recarregue a página.');
         return false;
     }
 }
