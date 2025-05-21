@@ -14,8 +14,28 @@ if (typeof window.layers === 'undefined') {
 if (typeof window.layerGroups === 'undefined') {
     window.layerGroups = {
         'file': L.layerGroup(),
-        'file-1': L.layerGroup(),
-        'file-2': L.layerGroup()
+        'file-1': L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 19,
+            animate: false,
+            maxZoom: 19,
+            singleMarkerMode: false
+        }),
+        'file-2': L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 19,
+            animate: false,
+            maxZoom: 19,
+            singleMarkerMode: false
+        })
     };
 }
 
@@ -322,6 +342,47 @@ style.textContent = `
         font-family: Arial, sans-serif;
     }
     
+    /* Estilos para os clusters */
+    .marker-cluster-small {
+        background-color: rgba(181, 226, 140, 0.6);
+    }
+    .marker-cluster-small div {
+        background-color: rgba(110, 204, 57, 0.6);
+    }
+    .marker-cluster-medium {
+        background-color: rgba(241, 211, 87, 0.6);
+    }
+    .marker-cluster-medium div {
+        background-color: rgba(240, 194, 12, 0.6);
+    }
+    .marker-cluster-large {
+        background-color: rgba(253, 156, 115, 0.6);
+    }
+    .marker-cluster-large div {
+        background-color: rgba(241, 128, 23, 0.6);
+    }
+    .marker-cluster {
+        background-clip: padding-box;
+        border-radius: 20px;
+    }
+    .marker-cluster div {
+        width: 30px;
+        height: 30px;
+        margin-left: 5px;
+        margin-top: 5px;
+        text-align: center;
+        border-radius: 15px;
+        font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        color: #fff;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .marker-cluster span {
+        line-height: 30px;
+    }
+    
     .popup-title {
         margin: 0 0 10px 0;
         padding-bottom: 5px;
@@ -492,8 +553,28 @@ function clearLayers() {
     
     window.layerGroups = {
         'file': L.layerGroup(),
-        'file-1': L.layerGroup(),
-        'file-2': L.layerGroup()
+        'file-1': L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 19,
+            animate: false,
+            maxZoom: 19,
+            singleMarkerMode: false
+        }),
+        'file-2': L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 19,
+            animate: false,
+            maxZoom: 19,
+            singleMarkerMode: false
+        })
     };
     
     window.layers = {
@@ -1101,11 +1182,11 @@ async function processFeatures(features, layerType, metadata) {
                     if (feature.geometry.type === 'Point') {
                         const coords = feature.geometry.coordinates;
                         layer = L.circleMarker([coords[1], coords[0]], {
-                            radius: 4,
+                            radius: 1,
                             color: config.style.color,
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8,
+                            weight: 0.25,
+                            opacity: 0.8,
+                            fillOpacity: 0.6,
                             fillColor: config.style.color
                         });
                     } else {
