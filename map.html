@@ -14,6 +14,17 @@
     <link rel="shortcut icon" href="img/favicon.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Inicialização do Google Maps -->
+    <script>
+        window.initMap = function() {
+            console.log('Google Maps API carregada com sucesso');
+            if (window.google && window.google.maps) {
+                window.streetViewService = new google.maps.StreetViewService();
+                window.dispatchEvent(new Event('googleMapsLoaded'));
+            }
+        };
+    </script>
   </head>
   <body>
     <nav class="map-controls">
