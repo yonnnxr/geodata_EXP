@@ -19,8 +19,8 @@ window.selectedFeature = null;
 window.highlightedLayer = null;
 
 // Constantes
-const BATCH_SIZE = 50000;
-const ECONOMIA_PAGE_SIZE = 100000;
+const BATCH_SIZE = 100000;
+const ECONOMIA_PAGE_SIZE = 200000;
 
 // Variáveis de controle
 let featuresCache = new Map();
