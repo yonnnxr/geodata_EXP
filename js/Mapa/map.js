@@ -45,6 +45,11 @@ if (typeof window.highlightedLayer === 'undefined') {
     window.highlightedLayer = null;
 }
 
+// Variáveis de controle de carregamento
+let isLoadingFeatures = false;
+let loadingQueue = [];
+let currentLoadingTask = null;
+
 // Função para verificar se o Leaflet está carregado
 function isLeafletLoaded() {
     return typeof L !== 'undefined';
@@ -492,6 +497,28 @@ function clearLayers() {
     };
 }
 
+// Função para processar a fila de carregamento
+async function processLoadingQueue() {
+    if (isLoadingFeatures || loadingQueue.length === 0) return;
+    
+    isLoadingFeatures = true;
+    currentLoadingTask = loadingQueue.shift();
+    
+    try {
+        await currentLoadingTask();
+    } catch (error) {
+        console.error('Erro ao processar fila de carregamento:', error);
+    } finally {
+        isLoadingFeatures = false;
+        currentLoadingTask = null;
+        
+        // Continua processando a fila se houver mais itens
+        if (loadingQueue.length > 0) {
+            setTimeout(processLoadingQueue, 100);
+        }
+    }
+}
+
 // Função para carregar dados do mapa com paginação
 async function loadMapData(page = 1) {
     console.log(`Iniciando carregamento de dados - Página ${page}`);
@@ -511,10 +538,15 @@ async function loadMapData(page = 1) {
             <div class="loading-content">
                 <div class="spinner"></div>
                 <p>Carregando dados do mapa...</p>
-                <small>Isso pode levar alguns segundos</small>
+                <small>Isso pode levar alguns minutos</small>
             </div>
         `;
         clearLayers();
+        
+        // Limpa a fila de carregamento
+        loadingQueue = [];
+        isLoadingFeatures = false;
+        currentLoadingTask = null;
     } else {
         toggleLoadMoreIndicator(true);
     }
@@ -542,21 +574,23 @@ async function loadMapData(page = 1) {
         if (page === 1) {
             const lightLayers = layersData.layers.filter(layer => layer.type !== 'file-1');
             for (const layer of lightLayers) {
-                try {
-                    if (loadingMessage) {
-                        loadingMessage.querySelector('p').textContent = `Carregando ${LAYER_CONFIGS[layer.type]?.description || layer.type}...`;
+                loadingQueue.push(async () => {
+                    try {
+                        if (loadingMessage) {
+                            loadingMessage.querySelector('p').textContent = `Carregando ${LAYER_CONFIGS[layer.type]?.description || layer.type}...`;
+                        }
+                        
+                        const layerData = await loadLayerData(layer, 1, userCity, token);
+                        if (layerData && layerData.success) {
+                            hasAnyData = true;
+                            showStatus(`${LAYER_CONFIGS[layer.type]?.description || layer.type} carregado com sucesso`, 'success');
+                        }
+                    } catch (error) {
+                        console.error(`Erro ao carregar camada ${layer.type}:`, error);
+                        errors.push(`${layer.type}: ${error.message}`);
+                        showWarning(`Erro ao carregar ${LAYER_CONFIGS[layer.type]?.description || layer.type}`);
                     }
-                    
-                    const layerData = await loadLayerData(layer, 1, userCity, token);
-                    if (layerData && layerData.success) {
-                        hasAnyData = true;
-                        showStatus(`${LAYER_CONFIGS[layer.type]?.description || layer.type} carregado com sucesso`, 'success');
-                    }
-                } catch (error) {
-                    console.error(`Erro ao carregar camada ${layer.type}:`, error);
-                    errors.push(`${layer.type}: ${error.message}`);
-                    showWarning(`Erro ao carregar ${LAYER_CONFIGS[layer.type]?.description || layer.type}`);
-                }
+                });
             }
         }
 
@@ -564,13 +598,14 @@ async function loadMapData(page = 1) {
         const economiaLayer = layersData.layers.find(layer => layer.type === 'file-1');
         if (economiaLayer) {
             if (page === 1) {
-                // Na primeira página, inicia o carregamento das economias em background
-                if (loadingMessage) {
-                    loadingMessage.querySelector('p').textContent = 'Iniciando carregamento de economias...';
-                }
-                
-                setTimeout(async () => {
+                // Na primeira página, adiciona o carregamento de economias à fila
+                loadingQueue.push(async () => {
                     try {
+                        if (loadingMessage) {
+                            loadingMessage.querySelector('p').textContent = 'Carregando economias...';
+                            loadingMessage.querySelector('small').textContent = 'Esta operação pode levar alguns minutos';
+                        }
+                        
                         await loadLayerData(economiaLayer, page, userCity, token);
                         console.log('Carregamento inicial de economias concluído');
                         showStatus('Carregamento inicial de economias concluído', 'success');
@@ -579,22 +614,25 @@ async function loadMapData(page = 1) {
                         errors.push(`Economias: ${error.message}`);
                         showWarning('Erro ao carregar economias. O mapa pode estar incompleto.');
                     }
-                }, 2000); // Delay maior para garantir que as outras camadas já foram renderizadas
+                });
             } else {
                 // Para páginas subsequentes, carrega apenas economias
-                try {
-                    await loadLayerData(economiaLayer, page, userCity, token);
-                    showStatus(`Mais ${ECONOMIA_PAGE_SIZE} economias carregadas`, 'success');
-                } catch (error) {
-                    console.error('Erro ao carregar mais economias:', error);
-                    errors.push(`Economias (página ${page}): ${error.message}`);
-                    showWarning('Erro ao carregar mais economias');
-                }
+                loadingQueue.push(async () => {
+                    try {
+                        await loadLayerData(economiaLayer, page, userCity, token);
+                        showStatus(`Mais ${ECONOMIA_PAGE_SIZE} economias carregadas`, 'success');
+                    } catch (error) {
+                        console.error('Erro ao carregar mais economias:', error);
+                        errors.push(`Economias (página ${page}): ${error.message}`);
+                        showWarning('Erro ao carregar mais economias');
+                    }
+                });
             }
         }
 
-        if (!hasAnyData && page === 1) {
-            throw new Error(`Não foram encontrados dados para a cidade ${userCity}. Por favor, contate o administrador.`);
+        // Inicia o processamento da fila
+        if (!isLoadingFeatures) {
+            processLoadingQueue();
         }
 
         if (page === 1) {
@@ -604,7 +642,13 @@ async function loadMapData(page = 1) {
         window.dadosCarregados = true;
         
         if (loadingMessage && page === 1) {
-            loadingMessage.style.display = 'none';
+            // Mantém a mensagem de carregamento até que todas as tarefas sejam concluídas
+            const checkQueue = setInterval(() => {
+                if (loadingQueue.length === 0 && !isLoadingFeatures) {
+                    loadingMessage.style.display = 'none';
+                    clearInterval(checkQueue);
+                }
+            }, 1000);
         }
         
         toggleLoadMoreIndicator(false);
@@ -614,8 +658,6 @@ async function loadMapData(page = 1) {
         if (errors.length > 0 && hasAnyData) {
             showWarning(`Alguns dados não puderam ser carregados:\n${errors.join('\n')}`);
         }
-
-        console.log('Carregamento concluído com sucesso');
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -1017,6 +1059,7 @@ function showWarning(message) {
     }, 10000);
 }
 
+// Função para processar features com melhor gerenciamento de memória
 async function processFeatures(features, layerType, metadata) {
     console.log(`Processando ${features.length} features do tipo ${layerType}`);
     
@@ -1030,18 +1073,19 @@ async function processFeatures(features, layerType, metadata) {
     };
 
     try {
-        // Cria um grupo temporário para adicionar todas as features de uma vez
-        const tempGroup = L.layerGroup();
+        // Tamanho do lote ainda menor para economias
+        const batchSize = layerType === 'file-1' ? 100 : 500;
+        const totalBatches = Math.ceil(features.length / batchSize);
         
-        // Processa as features em lotes menores para evitar travamento
-        const batchSize = layerType === 'file-1' ? 500 : 1000;
-        
-        for (let i = 0; i < features.length; i += batchSize) {
-            const batch = features.slice(i, i + batchSize);
-            console.log(`Processando lote ${Math.floor(i/batchSize) + 1} com ${batch.length} features`);
+        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            const start = batchIndex * batchSize;
+            const end = Math.min(start + batchSize, features.length);
+            const batch = features.slice(start, end);
             
-            // Cria um array para armazenar as layers do lote
-            const batchLayers = [];
+            console.log(`Processando lote ${batchIndex + 1}/${totalBatches} com ${batch.length} features`);
+            
+            // Cria um grupo temporário para o lote
+            const tempGroup = L.layerGroup();
             
             batch.forEach(feature => {
                 try {
@@ -1055,26 +1099,24 @@ async function processFeatures(features, layerType, metadata) {
                         }
                     });
                     
-                    batchLayers.push(layer);
+                    tempGroup.addLayer(layer);
                 } catch (error) {
                     console.error(`Erro ao processar feature:`, error);
                 }
             });
             
-            // Adiciona todas as layers do lote ao grupo temporário
-            batchLayers.forEach(layer => tempGroup.addLayer(layer));
+            // Adiciona o grupo temporário ao grupo principal
+            window.layerGroups[layerType].addLayer(tempGroup);
             
-            // Pequena pausa entre os lotes para permitir que a UI responda
-            if (i + batchSize < features.length) {
-                await new Promise(resolve => setTimeout(resolve, 50));
+            // Força a liberação de memória
+            if (window.gc) window.gc();
+            
+            // Pausa maior entre os lotes
+            if (batchIndex < totalBatches - 1) {
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
         }
 
-        console.log(`Adicionando grupo de camadas ${layerType} ao mapa`);
-        
-        // Adiciona o grupo temporário ao grupo principal
-        window.layerGroups[layerType].addLayer(tempGroup);
-        
         // Adiciona o grupo ao mapa se ainda não estiver adicionado
         if (!window.map.hasLayer(window.layerGroups[layerType])) {
             window.map.addLayer(window.layerGroups[layerType]);
