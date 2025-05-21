@@ -28,7 +28,7 @@ if (typeof window.GOOGLE_MAPS_CONFIG === 'undefined') {
 
 // Configurações de timeout para requisições
 if (typeof window.API_TIMEOUT === 'undefined') {
-    const API_TIMEOUT = 30000; // 30 segundos
+    const API_TIMEOUT = 60000; // 60 segundos
     window.API_TIMEOUT = API_TIMEOUT;
 }
 
@@ -39,7 +39,7 @@ if (typeof window.API_RETRY_ATTEMPTS === 'undefined') {
 }
 
 if (typeof window.API_RETRY_DELAY === 'undefined') {
-    const API_RETRY_DELAY = 1000; // 1 segundo
+    const API_RETRY_DELAY = 2000; // 2 segundos
     window.API_RETRY_DELAY = API_RETRY_DELAY;
 }
 
@@ -118,10 +118,10 @@ if (typeof window.fetchWithRetry === 'undefined') {
         let attempts = 0;
         
         while (attempts < window.API_RETRY_ATTEMPTS) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), window.API_TIMEOUT);
+            
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), window.API_TIMEOUT);
-                
                 const token = localStorage.getItem('authToken');
                 const headers = {
                     'Content-Type': 'application/json',
@@ -152,14 +152,25 @@ if (typeof window.fetchWithRetry === 'undefined') {
                 return response;
                 
             } catch (error) {
-                attempts++;
-                console.error(`Tentativa ${attempts} falhou:`, error);
+                clearTimeout(timeoutId); // Limpa o timeout mesmo em caso de erro
                 
-                if (attempts === window.API_RETRY_ATTEMPTS) {
-                    throw error;
+                // Se o erro não for de timeout/abort, incrementa as tentativas
+                if (error.name !== 'AbortError') {
+                    attempts++;
+                    console.error(`Tentativa ${attempts} falhou:`, error);
+                    
+                    if (attempts === window.API_RETRY_ATTEMPTS) {
+                        throw error;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, window.API_RETRY_DELAY * attempts));
+                } else {
+                    // Se for erro de timeout, incrementa e tenta novamente imediatamente
+                    attempts++;
+                    if (attempts === window.API_RETRY_ATTEMPTS) {
+                        throw new Error('Tempo limite excedido após várias tentativas');
+                    }
                 }
-                
-                await new Promise(resolve => setTimeout(resolve, window.API_RETRY_DELAY * attempts));
             }
         }
     };
