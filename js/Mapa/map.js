@@ -331,8 +331,14 @@ style.textContent = `
     }
     
     .popup-title.file { color: #3388ff; border-color: #3388ff; }
-    .popup-title.file-1 { color: #ff3333; border-color: #ff3333; }
-    .popup-title.file-2 { color: #33ff33; border-color: #33ff33; }
+    .popup-title.file-1 { 
+        color: #ff3333; 
+        border-color: #ff3333;
+    }
+    .popup-title.file-2 { 
+        color: #33ff33; 
+        border-color: #33ff33;
+    }
     
     .feature-popup p {
         margin: 5px 0;
@@ -1089,15 +1095,30 @@ async function processFeatures(features, layerType, metadata) {
             
             batch.forEach(feature => {
                 try {
-                    const layer = L.geoJSON(feature, {
-                        style: () => getFeatureStyle(feature, layerType),
-                        onEachFeature: (feature, layer) => {
-                            if (feature.properties) {
-                                // Adia a criação do popup até que seja necessário
-                                layer.bindPopup(() => createFeaturePopup(feature, { file_type: layerType }));
-                            }
-                        }
-                    });
+                    let layer;
+                    
+                    // Se for um ponto (economia ou ocorrência), usa círculo
+                    if (feature.geometry.type === 'Point') {
+                        const coords = feature.geometry.coordinates;
+                        layer = L.circleMarker([coords[1], coords[0]], {
+                            radius: 4,
+                            color: config.style.color,
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8,
+                            fillColor: config.style.color
+                        });
+                    } else {
+                        // Para outros tipos (linhas, polígonos), usa GeoJSON normal
+                        layer = L.geoJSON(feature, {
+                            style: () => getFeatureStyle(feature, layerType)
+                        });
+                    }
+
+                    // Adiciona o popup
+                    if (feature.properties) {
+                        layer.bindPopup(() => createFeaturePopup(feature, { file_type: layerType }));
+                    }
                     
                     tempGroup.addLayer(layer);
                 } catch (error) {
