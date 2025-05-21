@@ -1,10 +1,25 @@
 // Configurações da API
-window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+window.API_BASE_URL = CORS_PROXY + 'https://api-geodata-exp.onrender.com';
 console.log('API_BASE_URL definida:', window.API_BASE_URL);
 
 // Função para fazer requisições com retry
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
     let lastError;
+    
+    // Adiciona headers necessários
+    const defaultOptions = {
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        ...options,
+        headers: {
+            ...options.headers,
+        }
+    };
     
     for (let i = 0; i < maxRetries; i++) {
         try {
@@ -12,7 +27,7 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
             const response = await fetch(url, {
-                ...options,
+                ...defaultOptions,
                 signal: controller.signal
             });
             
