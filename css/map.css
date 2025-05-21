@@ -16,24 +16,21 @@
     font-family: 'Poppins', sans-serif;
 }
 
-body {
-    height: 100vh;
-    overflow: hidden;
-}
-
-
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 #map {
-    height: 100vh;
-    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
     z-index: 1;
 }
-
 
 .leaflet-control-container {
     z-index: 1000;
@@ -42,7 +39,6 @@ html, body {
 .leaflet-control {
     clear: both;
 }
-
 
 .leaflet-control-zoom {
     border: none !important;
@@ -330,7 +326,6 @@ html, body {
     }
 }
 
-
 .cidade-select {
     width: 100%;
     padding: 8px 12px;
@@ -373,7 +368,6 @@ html, body {
     display: none;
     z-index: 1100;
 }
-
 
 #streetview-panel {
     position: absolute;

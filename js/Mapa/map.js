@@ -17,7 +17,6 @@ let currentEconomiaPage = 1; // Página atual apenas para economias
 let isLoadingMore = false;
 let hasMoreEconomias = true; // Controle apenas para economias
 let isMapInitialized = false;
-let isGoogleMapsReady = false;
 
 // Variáveis globais para pesquisa
 window.searchResults = [];
@@ -29,150 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM carregado, iniciando mapa...');
     initializeLeafletMap();
 });
-
-// Aguarda o carregamento do Google Maps
-window.addEventListener('googleMapsLoaded', () => {
-    console.log('Google Maps carregado e pronto para uso');
-    isGoogleMapsReady = true;
-    if (isMapInitialized) {
-        initializeGoogleMapsFeatures();
-    }
-});
-
-console.log('Configurações iniciais:', {
-    BATCH_SIZE,
-    ECONOMIA_PAGE_SIZE,
-    API_BASE_URL
-});
-
-// Configurações de estilo por tipo de camada
-const LAYER_CONFIGS = {
-    'file': {
-        title: 'Rede de Distribuição',
-        style: {
-            color: '#3388ff',
-            weight: 2,
-            opacity: 0.7
-        },
-        fields: [
-            { key: 'tipo', label: 'Tipo de Rede' },
-            { key: 'mat', label: 'Material' },
-            { key: 'dia', label: 'Diâmetro', format: (v) => `${formatNumber(v, 0)} mm` },
-            { key: 'ext', label: 'Extensão', format: (v) => `${formatNumber(v, 2)} m` },
-            { key: 'status', label: 'Status' }
-        ]
-    },
-    'file-1': {
-        title: 'Economia Zero',
-        style: {
-            color: '#ff3333',
-            weight: 2,
-            opacity: 0.7
-        },
-        fields: [
-            { key: 'matricula', label: 'Matrícula' },
-            { key: 'logradouro', label: 'Logradouro' },
-            { key: 'numero', label: 'Número' },
-            { key: 'bairro', label: 'Bairro' },
-            { key: 'complemento', label: 'Complemento' },
-            { key: 'economias', label: 'Economias', format: (v) => formatNumber(v, 0) },
-            { key: 'consumo_medio', label: 'Consumo Médio', format: (v) => `${formatNumber(v)} m³` },
-            { key: 'ultima_leitura', label: 'Última Leitura', format: (v) => formatDate(v) },
-            { key: 'status', label: 'Status' },
-        ],
-        // Função especial para formatar o endereço completo
-        formatAddress: (props) => {
-            const parts = [];
-            if (props.logradouro) parts.push(props.logradouro);
-            if (props.numero) parts.push(`Nº ${props.numero}`);
-            if (props.complemento) parts.push(props.complemento);
-            if (props.bairro) parts.push(`- ${props.bairro}`);
-            return parts.join(' ');
-        }
-    },
-    'file-2': {
-        title: 'Ocorrências',
-        style: {
-            color: '#33ff33',
-            weight: 2,
-            opacity: 0.7
-        },
-        fields: [
-            { key: 'tipo_ocorrencia', label: 'Tipo de Ocorrência' },
-            { key: 'data_ocorrencia', label: 'Data', format: (v) => formatDate(v) },
-            { key: 'descricao', label: 'Descrição' },
-            { key: 'solucao', label: 'Solução' },
-            { key: 'prioridade', label: 'Prioridade' },
-            { key: 'status', label: 'Status' }
-        ]
-    }
-};
-
-// Função para detectar dispositivo móvel
-function isMobileDevice() {
-    return (window.innerWidth <= 768) || ('ontouchstart' in window);
-}
-
-// Função para verificar dependências
-function checkDependencies() {
-    if (typeof L === 'undefined') {
-        console.error('Leaflet não está disponível');
-        return false;
-    }
-    
-    if (!isGoogleMapsReady || typeof google === 'undefined' || typeof google.maps === 'undefined') {
-        console.log('Aguardando carregamento do Google Maps...');
-        return false;
-    }
-
-    return true;
-}
-
-// Função para inicializar recursos do Google Maps
-async function initializeGoogleMapsFeatures() {
-    if (!isGoogleMapsReady || typeof google === 'undefined' || typeof google.maps === 'undefined') {
-        console.log('Google Maps ainda não está pronto');
-        return;
-    }
-    
-    try {
-        // Inicializa serviços do Google Maps aqui
-        window.streetViewService = new google.maps.StreetViewService();
-        console.log('Serviços do Google Maps inicializados com sucesso');
-    } catch (error) {
-        console.error('Erro ao inicializar serviços do Google Maps:', error);
-    }
-}
-
-// Função para processar features
-async function processFeatures(features, layerType, metadata) {
-    const layerGroup = window.layerGroups[layerType];
-    const total = features.length;
-    let processed = 0;
-
-    while (processed < total) {
-        const batch = features.slice(processed, processed + BATCH_SIZE);
-        
-        batch.forEach(feature => {
-            const layer = L.geoJSON(feature, {
-                style: () => getFeatureStyle(feature, layerType),
-                onEachFeature: (feature, layer) => {
-                    layer.bindPopup(createFeaturePopup(feature, metadata));
-                }
-            });
-            
-            layerGroup.addLayer(layer);
-        });
-
-        processed += batch.length;
-        await new Promise(resolve => setTimeout(resolve, 0));
-    }
-
-    if (!window.layers[layerType]) {
-        window.layers[layerType] = layerGroup;
-        window.map.addLayer(layerGroup);
-    }
-}
 
 // Função para inicializar o mapa Leaflet
 async function initializeLeafletMap() {
@@ -186,8 +41,17 @@ async function initializeLeafletMap() {
     try {
         const isMobile = window.innerWidth <= 768;
         
-        // Esconde mensagem de carregamento
-        document.getElementById('loadingMessage').style.display = 'none';
+        // Esconde mensagem de carregamento se existir
+        const loadingMessage = document.getElementById('loadingMessage');
+        if (loadingMessage) {
+            loadingMessage.style.display = 'none';
+        }
+        
+        // Verifica se o elemento do mapa existe
+        const mapElement = document.getElementById('map');
+        if (!mapElement) {
+            throw new Error('Elemento do mapa não encontrado');
+        }
         
         // Cria o mapa
         window.map = L.map('map', {
@@ -203,7 +67,7 @@ async function initializeLeafletMap() {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(window.map);
 
-        console.log('Mapa base criado');
+        console.log('Mapa base criado com sucesso');
         
         isMapInitialized = true;
 
@@ -216,7 +80,7 @@ async function initializeLeafletMap() {
         return true;
     } catch (error) {
         console.error('Erro ao inicializar o mapa:', error);
-        showError('Erro ao inicializar o mapa. Por favor, recarregue a página.');
+        showError('Erro ao inicializar o mapa: ' + error.message);
         return false;
     }
 }

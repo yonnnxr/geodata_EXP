@@ -14,17 +14,6 @@
     <link rel="shortcut icon" href="img/favicon.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Inicialização do Google Maps -->
-    <script>
-        window.initMap = function() {
-            console.log('Google Maps API carregada com sucesso');
-            if (window.google && window.google.maps) {
-                window.streetViewService = new google.maps.StreetViewService();
-                window.dispatchEvent(new Event('googleMapsLoaded'));
-            }
-        };
-    </script>
   </head>
   <body>
     <nav class="map-controls">
@@ -196,11 +185,5 @@
     <script src="js/utils/auth.js"></script>
     <script src="js/Mapa/map.js"></script>
     <script src="js/Mapa/map-sidebar.js"></script>
-    <script src="js/Mapa/map-streetview.js"></script>
-    <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry"
-      async
-      defer
-    ></script>
   </body>
 </html>
