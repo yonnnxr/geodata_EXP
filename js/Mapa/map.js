@@ -204,6 +204,17 @@ async function initializeMap() {
     }
 }
 
+// Event Listeners
+window.addEventListener('mapReady', async () => {
+    console.log('Evento mapReady recebido, iniciando mapa...');
+    try {
+        await initializeMap();
+    } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+        showError('Falha ao inicializar o mapa: ' + error.message);
+    }
+});
+
 // Função para formatar datas
 function formatDate(value) {
     if (!value) return 'N/A';
