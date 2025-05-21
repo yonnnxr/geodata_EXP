@@ -47,7 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadScriptsSequentially([
         'js/config.js',
         'js/utils/auth.js',
-        'https://unpkg.com/leaflet@1.9.3/dist/leaflet.js'
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+        'https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js'
     ]).then(() => {
         console.log('Scripts base carregados');
         // Carregar scripts da aplicação após os scripts base
