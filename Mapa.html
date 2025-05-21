@@ -444,6 +444,14 @@
 
     <!-- Sistema de inicialização -->
     <script>
+        // Define o callback do Google Maps antes de qualquer coisa
+        window.initMap = function() {
+            console.log('Google Maps carregado');
+            if (window.APP) {
+                window.APP.setDependencyLoaded('googleMaps');
+            }
+        };
+
         // Gerenciador de dependências
         window.APP = {
             dependencies: {
@@ -510,11 +518,6 @@
                     document.body.appendChild(script);
                 });
             }
-        };
-
-        // Callback do Google Maps
-        window.initMap = function() {
-            window.APP.setDependencyLoaded('googleMaps');
         };
 
         // Inicia o carregamento quando o DOM estiver pronto

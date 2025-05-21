@@ -204,20 +204,6 @@ async function initializeMap() {
     }
 }
 
-// Event Listeners
-window.mapInit.onReady(async () => {
-    console.log('Mapa pronto para inicializar...');
-    try {
-        await initializeMap();
-    } catch (error) {
-        console.error('Erro ao inicializar mapa:', error);
-        showError('Falha ao inicializar o mapa: ' + error.message);
-    }
-});
-
-// Armazena a função original do Google Maps callback
-const originalInitMap = window.initMap;
-
 // Função para formatar datas
 function formatDate(value) {
     if (!value) return 'N/A';
