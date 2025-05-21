@@ -1,27 +1,37 @@
-// Função para carregar scripts de forma sequencial
-function loadScriptsSequentially(scripts) {
-    return scripts.reduce((promise, script) => {
-        return promise.then(() => {
-            return new Promise((resolve, reject) => {
-                console.log(`Carregando script: ${script}`);
+// Função para carregar scripts em sequência
+async function loadScriptsSequentially(scripts) {
+    const loadedScripts = new Set();
+    
+    for (const script of scripts) {
+        if (loadedScripts.has(script)) {
+            console.log(`Script já carregado: ${script}`);
+            continue;
+        }
+        
+        console.log(`Carregando script: ${script}`);
+        try {
+            await new Promise((resolve, reject) => {
                 const scriptElement = document.createElement('script');
                 scriptElement.src = script;
-                scriptElement.async = false; // Carregamento sequencial
+                scriptElement.async = false;
                 
                 scriptElement.onload = () => {
                     console.log(`Script carregado: ${script}`);
+                    loadedScripts.add(script);
                     resolve();
                 };
                 
                 scriptElement.onerror = () => {
-                    console.error(`Erro ao carregar script: ${script}`);
-                    reject(new Error(`Falha ao carregar ${script}`));
+                    reject(new Error(`Erro ao carregar script: ${script}`));
                 };
                 
-                document.body.appendChild(scriptElement);
+                document.head.appendChild(scriptElement);
             });
-        });
-    }, Promise.resolve());
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
+    }
 }
 
 // Iniciar quando o DOM estiver pronto
@@ -30,10 +40,15 @@ document.addEventListener('DOMContentLoaded', function() {
     loadScriptsSequentially([
         'js/config.js',
         'js/utils/auth.js',
-        'https://unpkg.com/leaflet@1.9.3/dist/leaflet.js',
-        'js/Mapa/map.js',
-        'js/Mapa/map-sidebar.js'
+        'https://unpkg.com/leaflet@1.9.3/dist/leaflet.js'
     ]).then(() => {
+        console.log('Scripts base carregados');
+        // Carregar scripts da aplicação após os scripts base
+        return loadScriptsSequentially([
+            'js/Mapa/map.js',
+            'js/Mapa/map-sidebar.js'
+        ]);
+    }).then(() => {
         console.log('Todos os scripts foram carregados');
         // Inicializar o mapa
         if (typeof initializeLeafletMap === 'function') {

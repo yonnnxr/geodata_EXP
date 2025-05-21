@@ -33,7 +33,14 @@ const LAYER_CONFIGS = {
             opacity: 1,
             fillOpacity: 0.6
         },
-        description: 'Rede de Distribuição'
+        description: 'Rede de Distribuição',
+        title: 'Rede de Distribuição',
+        fields: [
+            { key: 'tipo', label: 'Tipo' },
+            { key: 'mat', label: 'Material' },
+            { key: 'dia', label: 'Diâmetro (mm)' },
+            { key: 'ext', label: 'Extensão (m)' }
+        ]
     },
     'file-1': {
         style: {
@@ -42,7 +49,25 @@ const LAYER_CONFIGS = {
             opacity: 1,
             fillOpacity: 0.6
         },
-        description: 'Economias Zero'
+        description: 'Economias Zero',
+        title: 'Economia',
+        fields: [
+            { key: 'matricula', label: 'Matrícula' },
+            { key: 'status', label: 'Status' },
+            { key: 'consumo_medio', label: 'Consumo Médio (m³)' },
+            { key: 'logradouro', label: 'Logradouro' },
+            { key: 'numero', label: 'Número' },
+            { key: 'bairro', label: 'Bairro' },
+            { key: 'complemento', label: 'Complemento' }
+        ],
+        formatAddress: (props) => {
+            const parts = [];
+            if (props.logradouro) parts.push(props.logradouro);
+            if (props.numero) parts.push(props.numero);
+            if (props.complemento) parts.push(props.complemento);
+            if (props.bairro) parts.push(props.bairro);
+            return parts.join(', ');
+        }
     },
     'file-2': {
         style: {
@@ -51,7 +76,15 @@ const LAYER_CONFIGS = {
             opacity: 1,
             fillOpacity: 0.6
         },
-        description: 'Ocorrências'
+        description: 'Ocorrências',
+        title: 'Ocorrência',
+        fields: [
+            { key: 'tipo_ocorrencia', label: 'Tipo' },
+            { key: 'data_ocorrencia', label: 'Data' },
+            { key: 'descricao', label: 'Descrição' },
+            { key: 'solucao', label: 'Solução' },
+            { key: 'prioridade', label: 'Prioridade' }
+        ]
     }
 };
 

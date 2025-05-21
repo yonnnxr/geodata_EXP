@@ -835,7 +835,7 @@ async function processFeatures(features, layerType, metadata) {
                         style: () => getFeatureStyle(feature, layerType),
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
-                                layer.bindPopup(createPopupContent(feature.properties));
+                                layer.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
                             }
                         }
                     });
