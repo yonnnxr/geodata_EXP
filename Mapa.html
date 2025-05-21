@@ -9,10 +9,6 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <!-- MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
@@ -426,7 +422,6 @@
         window.mapInit = {
             loaded: {
                 leaflet: false,
-                markerCluster: false,
                 googleMaps: false
             },
             callbacks: [],
@@ -442,9 +437,7 @@
             
             // Verifica se tudo está carregado
             isReady: function() {
-                return this.loaded.leaflet && 
-                       this.loaded.markerCluster && 
-                       this.loaded.googleMaps;
+                return this.loaded.leaflet && this.loaded.googleMaps;
             },
             
             // Marca um componente como carregado
@@ -507,21 +500,16 @@
             console.log('Leaflet carregado');
             window.mapInit.setLoaded('leaflet');
             
-            loadScript('https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js', function() {
-                console.log('MarkerCluster carregado');
-                window.mapInit.setLoaded('markerCluster');
-                
-                // Carrega os scripts da aplicação
-                loadScript('js/config.js', function() {
-                    loadScript('js/Mapa/map.js', function() {
-                        loadScript('js/Mapa/map-streetview.js', function() {
-                            // Inicia a aplicação quando tudo estiver carregado
-                            window.mapInit.onReady(function() {
-                                if (typeof initializeMap === 'function') {
-                                    console.log('Iniciando aplicação...');
-                                    initializeMap();
-                                }
-                            });
+            // Carrega os scripts da aplicação
+            loadScript('js/config.js', function() {
+                loadScript('js/Mapa/map.js', function() {
+                    loadScript('js/Mapa/map-streetview.js', function() {
+                        // Inicia a aplicação quando tudo estiver carregado
+                        window.mapInit.onReady(function() {
+                            if (typeof initializeMap === 'function') {
+                                console.log('Iniciando aplicação...');
+                                initializeMap();
+                            }
                         });
                     });
                 });

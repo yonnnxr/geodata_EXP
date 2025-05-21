@@ -4,10 +4,10 @@ window.layers = {
     'file-1': null,    // Economias Zero
     'file-2': null     // Ocorrências
 };
-window.markerClusters = {
-    'file': null,
-    'file-1': null,
-    'file-2': null
+window.layerGroups = {
+    'file': L.layerGroup(),
+    'file-1': L.layerGroup(),
+    'file-2': L.layerGroup()
 };
 let dadosCarregados = false;
 const BATCH_SIZE = 1000; // Para processamento em lotes geral
@@ -105,12 +105,6 @@ function checkDependencies() {
         return false;
     }
     
-    // Verifica MarkerCluster
-    if (typeof L.markerClusterGroup === 'undefined') {
-        console.error('MarkerCluster não está disponível');
-        return false;
-    }
-
     // Verifica Google Maps
     if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
         console.error('Google Maps não está disponível');
@@ -120,44 +114,33 @@ function checkDependencies() {
     return true;
 }
 
-// Função para inicializar clusters
-function initializeClusters() {
-    console.log('Iniciando inicialização dos clusters');
-    const isMobile = isMobileDevice();
+// Função para processar features
+async function processFeatures(features, layerType, metadata) {
+    const layerGroup = window.layerGroups[layerType];
+    const total = features.length;
+    let processed = 0;
 
-    try {
-        if (!L.markerClusterGroup) {
-            throw new Error('MarkerCluster não está disponível');
-        }
-
-        Object.keys(window.layers).forEach(layerType => {
-            console.log(`Inicializando cluster para ${layerType}`);
-            const cluster = L.markerClusterGroup({
-                chunkedLoading: true,
-                chunkInterval: 100,
-                chunkDelay: 50,
-                maxClusterRadius: isMobile ? 40 : 50,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: !isMobile,
-                zoomToBoundsOnClick: true,
-                removeOutsideVisibleBounds: true,
-                disableClusteringAtZoom: isMobile ? 19 : 18,
-                animate: !isMobile
+    while (processed < total) {
+        const batch = features.slice(processed, processed + BATCH_SIZE);
+        
+        batch.forEach(feature => {
+            const layer = L.geoJSON(feature, {
+                style: () => getFeatureStyle(feature, layerType),
+                onEachFeature: (feature, layer) => {
+                    layer.bindPopup(createFeaturePopup(feature, metadata));
+                }
             });
-
-            window.markerClusters[layerType] = cluster;
-            if (window.map) {
-                window.map.addLayer(cluster);
-                console.log(`Cluster ${layerType} adicionado ao mapa`);
-            }
+            
+            layerGroup.addLayer(layer);
         });
 
-        console.log('Clusters inicializados com sucesso');
-        return true;
-    } catch (error) {
-        console.error('Erro na inicialização dos clusters:', error);
-        showError('Erro ao inicializar clusters: ' + error.message);
-        return false;
+        processed += batch.length;
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    if (!window.layers[layerType]) {
+        window.layers[layerType] = layerGroup;
+        window.map.addLayer(layerGroup);
     }
 }
 
@@ -197,11 +180,6 @@ async function initializeMap() {
 
         console.log('Camada base adicionada');
 
-        // Inicializa clusters
-        if (!initializeClusters()) {
-            throw new Error('Falha ao inicializar clusters');
-        }
-
         // Adiciona eventos
         window.map.on('moveend', onMapMoveEnd);
 
@@ -220,12 +198,12 @@ async function initializeMap() {
 }
 
 // Event Listeners
-window.addEventListener('appReady', async () => {
-    console.log('Evento appReady recebido, iniciando mapa...');
+window.mapInit.onReady(async () => {
+    console.log('Mapa pronto para inicializar...');
     try {
         await initializeMap();
     } catch (error) {
-        console.error('Erro ao inicializar mapa após appReady:', error);
+        console.error('Erro ao inicializar mapa:', error);
         showError('Falha ao inicializar o mapa: ' + error.message);
     }
 });
@@ -427,19 +405,21 @@ function toggleLoadMoreIndicator(show) {
     }
 }
 
-// Função para limpar camadas existentes
+// Função para limpar camadas
 function clearLayers() {
-    Object.values(window.markerClusters).forEach(cluster => {
-        if (cluster) {
-            cluster.clearLayers();
-            window.map.removeLayer(cluster);
+    Object.values(window.layerGroups).forEach(group => {
+        if (group) {
+            group.clearLayers();
+            window.map.removeLayer(group);
         }
     });
-    window.markerClusters = {
-        'file': null,
-        'file-1': null,
-        'file-2': null
+    
+    window.layerGroups = {
+        'file': L.layerGroup(),
+        'file-1': L.layerGroup(),
+        'file-2': L.layerGroup()
     };
+    
     window.layers = {
         'file': null,
         'file-1': null,
@@ -463,7 +443,6 @@ async function loadMapData(page = 1) {
     if (page === 1) {
         loadingMessage.style.display = 'flex';
         clearLayers();
-        initializeClusters();
     } else {
         toggleLoadMoreIndicator(true);
     }
@@ -564,32 +543,6 @@ async function loadLayerData(layer, page, userCity, token) {
     }
 }
 
-async function processFeatures(features, layerType, metadata) {
-    const cluster = window.markerClusters[layerType];
-    const total = features.length;
-    let processed = 0;
-
-    while (processed < total) {
-        const batch = features.slice(processed, processed + BATCH_SIZE);
-        const layers = batch.map(feature => {
-            const layer = L.geoJSON(feature, {
-                style: () => getFeatureStyle(feature, layerType),
-                onEachFeature: (feature, layer) => {
-                    layer.bindPopup(createFeaturePopup(feature, metadata));
-                }
-            });
-            return layer;
-        });
-
-        cluster.addLayers(layers);
-        processed += batch.length;
-
-        await new Promise(resolve => setTimeout(resolve, 0));
-    }
-
-    window.layers[layerType] = cluster;
-}
-
 function updateLayerControl(layerType, description) {
     const layerControl = document.getElementById('layerControl');
     if (!layerControl) return;
@@ -614,12 +567,12 @@ function updateLayerControl(layerType, description) {
     layerControl.appendChild(div);
 
     checkbox.addEventListener('change', (e) => {
-        const cluster = window.markerClusters[layerType];
-        if (cluster) {
+        const layerGroup = window.layerGroups[layerType];
+        if (layerGroup) {
             if (e.target.checked) {
-                window.map.addLayer(cluster);
+                window.map.addLayer(layerGroup);
             } else {
-                window.map.removeLayer(cluster);
+                window.map.removeLayer(layerGroup);
             }
         }
     });
@@ -627,9 +580,12 @@ function updateLayerControl(layerType, description) {
 
 function fitMapToBounds() {
     const bounds = [];
-    Object.values(window.markerClusters).forEach(cluster => {
-        if (cluster && cluster.getBounds().isValid()) {
-            bounds.push(cluster.getBounds());
+    Object.values(window.layerGroups).forEach(group => {
+        if (group && group.getLayers().length > 0) {
+            const layer = group.getLayers()[0];
+            if (layer.getBounds().isValid()) {
+                bounds.push(layer.getBounds());
+            }
         }
     });
 
