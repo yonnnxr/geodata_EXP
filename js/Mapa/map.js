@@ -1,82 +1,39 @@
 // Variáveis globais do mapa
-if (typeof window.map === 'undefined') {
-    window.map = null;
-}
+window.map = null;
+window.layers = {
+    'file': null,      // Rede de Distribuição
+    'file-1': null,    // Economias Zero
+    'file-2': null     // Ocorrências
+};
 
-if (typeof window.layers === 'undefined') {
-    window.layers = {
-        'file': null,      // Rede de Distribuição
-        'file-1': null,    // Economias Zero
-        'file-2': null     // Ocorrências
-    };
-}
+window.layerGroups = {
+    'file': null,
+    'file-1': null,
+    'file-2': null
+};
 
-// Variável de controle de inicialização
-if (typeof window.isMapInitialized === 'undefined') {
-    window.isMapInitialized = false;
-}
-
-if (typeof window.layerGroups === 'undefined') {
-    window.layerGroups = {
-        'file': L.layerGroup(),
-        'file-1': L.markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
-            disableClusteringAtZoom: 19,
-            animate: false,
-            maxZoom: 19,
-            singleMarkerMode: false
-        }),
-        'file-2': L.markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
-            disableClusteringAtZoom: 19,
-            animate: false,
-            maxZoom: 19,
-            singleMarkerMode: false
-        })
-    };
-}
-
-if (typeof window.dadosCarregados === 'undefined') {
-    window.dadosCarregados = false;
-}
+window.dadosCarregados = false;
+window.isMapInitialized = false;
+window.searchResults = [];
+window.selectedFeature = null;
+window.highlightedLayer = null;
 
 // Constantes
-const BATCH_SIZE = 1000; // Para processamento em lotes geral
-const ECONOMIA_PAGE_SIZE = 10000; // Tamanho da página específico para economias
+const BATCH_SIZE = 1000;
+const ECONOMIA_PAGE_SIZE = 10000;
 
 // Variáveis de controle
 let featuresCache = new Map();
-let currentEconomiaPage = 1; // Página atual apenas para economias
+let currentEconomiaPage = 1;
 let isLoadingMore = false;
-let hasMoreEconomias = true; // Controle apenas para economias
-
-// Variáveis globais para pesquisa
-if (typeof window.searchResults === 'undefined') {
-    window.searchResults = [];
-}
-if (typeof window.selectedFeature === 'undefined') {
-    window.selectedFeature = null;
-}
-if (typeof window.highlightedLayer === 'undefined') {
-    window.highlightedLayer = null;
-}
-
-// Variáveis de controle de carregamento
+let hasMoreEconomias = true;
 let isLoadingFeatures = false;
 let loadingQueue = [];
 let currentLoadingTask = null;
 
 // Função para verificar se o Leaflet está carregado
 function isLeafletLoaded() {
-    return typeof L !== 'undefined';
+    return typeof L !== 'undefined' && typeof L.markerClusterGroup === 'function';
 }
 
 // Função para verificar autenticação
@@ -123,7 +80,38 @@ async function initializeLeafletMap() {
     console.log('Iniciando inicialização do mapa Leaflet');
     
     try {
+        if (!isLeafletLoaded()) {
+            throw new Error('Leaflet ou MarkerCluster não estão carregados corretamente');
+        }
+
         const isMobile = window.innerWidth <= 768;
+        
+        // Inicializa os layer groups
+        window.layerGroups = {
+            'file': L.layerGroup(),
+            'file-1': L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                disableClusteringAtZoom: 19,
+                animate: false,
+                maxZoom: 19,
+                singleMarkerMode: false
+            }),
+            'file-2': L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                disableClusteringAtZoom: 19,
+                animate: false,
+                maxZoom: 19,
+                singleMarkerMode: false
+            })
+        };
         
         // Esconde mensagem de carregamento se existir
         const loadingMessage = document.getElementById('loadingMessage');

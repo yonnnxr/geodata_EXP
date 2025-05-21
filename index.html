@@ -71,8 +71,35 @@
     <!-- Scripts da Aplicação -->
     <script src="js/utils/auth.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/Mapa/map.js"></script>
-    <script src="js/Mapa/map-sidebar.js"></script>
-    <script src="js/init.js"></script>
+    <script>
+        // Aguarda o carregamento do DOM e das dependências
+        window.addEventListener('load', function() {
+            // Verifica se o Leaflet e MarkerCluster estão carregados
+            if (typeof L === 'undefined' || typeof L.markerClusterGroup !== 'function') {
+                console.error('Leaflet ou MarkerCluster não carregados');
+                return;
+            }
+            
+            // Carrega os scripts restantes
+            const scripts = [
+                'js/Mapa/map.js',
+                'js/Mapa/map-sidebar.js',
+                'js/init.js'
+            ];
+            
+            let loaded = 0;
+            scripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    loaded++;
+                    if (loaded === scripts.length) {
+                        console.log('Todos os scripts carregados');
+                    }
+                };
+                document.body.appendChild(script);
+            });
+        });
+    </script>
 </body>
 </html>
