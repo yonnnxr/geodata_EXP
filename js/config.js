@@ -1,5 +1,5 @@
 // Configurações da API
-const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
+const API_BASE_URL = 'http://localhost:3000';
 
 // Configurações de autenticação
 const AUTH_CONFIG = {
@@ -12,8 +12,9 @@ const AUTH_CONFIG = {
 
 // Configurações do Google Maps
 const GOOGLE_MAPS_CONFIG = {
-    apiKey: 'AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8',
-    libraries: ['geometry']
+    center: { lat: -20.4697, lng: -54.6201 },
+    zoom: 12,
+    mapTypeId: 'roadmap'
 };
 
 // Configurações de timeout para requisições
@@ -31,11 +32,9 @@ window.API_TIMEOUT = API_TIMEOUT;
 window.API_RETRY_ATTEMPTS = API_RETRY_ATTEMPTS;
 window.API_RETRY_DELAY = API_RETRY_DELAY;
 
-// Notifica que as configurações foram carregadas
+// Notifica que o config foi carregado
 if (window.APP) {
     window.APP.setDependencyLoaded('config');
-} else {
-    console.error('Sistema de gerenciamento de dependências não encontrado');
 }
 
 // Função para carregar o Google Maps

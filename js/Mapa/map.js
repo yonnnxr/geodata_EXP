@@ -192,10 +192,6 @@ async function initializeMap() {
         isMapInitialized = true;
         console.log('Mapa inicializado com sucesso');
         
-        // Dispara evento de mapa pronto
-        const mapReadyEvent = new CustomEvent('mapReady');
-        window.dispatchEvent(mapReadyEvent);
-        
         return true;
     } catch (error) {
         console.error('Erro ao inicializar mapa:', error);
