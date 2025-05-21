@@ -96,13 +96,12 @@
         <div id="searchResults" class="search-results"></div>
       </div>
 
-      <!-- Filtros -->
+      <!-- Camadas -->
       <div class="filters-section">
-        <h3>Filtros</h3>
+        <h3>Camadas</h3>
         
         <!-- Redes -->
         <div class="layer-group">
-          <h4>Redes</h4>
           <div class="layer-toggle">
             <input type="checkbox" id="toggleRedes" checked>
             <label for="toggleRedes">Rede de Distribuição</label>
@@ -111,48 +110,17 @@
 
         <!-- Economias -->
         <div class="layer-group">
-          <h4>Economias</h4>
           <div class="layer-toggle">
             <input type="checkbox" id="toggleEconomias" checked>
-            <label for="toggleEconomias">Economia Zero</label>
-          </div>
-          <div class="filter-options">
-            <select id="filterConsumo">
-              <option value="">Filtrar por Consumo</option>
-              <option value="0">Consumo Zero</option>
-              <option value="1-10">1-10 m³</option>
-              <option value="11-20">11-20 m³</option>
-              <option value=">20">Mais de 20 m³</option>
-            </select>
-            <select id="filterStatus">
-              <option value="">Filtrar por Status</option>
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-              <option value="cortado">Cortado</option>
-            </select>
+            <label for="toggleEconomias">Economias</label>
           </div>
         </div>
 
         <!-- Ocorrências -->
         <div class="layer-group">
-          <h4>Ocorrências</h4>
           <div class="layer-toggle">
             <input type="checkbox" id="toggleOcorrencias" checked>
             <label for="toggleOcorrencias">Ocorrências</label>
-          </div>
-          <div class="filter-options">
-            <select id="filterTipoOcorrencia">
-              <option value="">Tipo de Ocorrência</option>
-              <option value="vazamento">Vazamento</option>
-              <option value="falta_agua">Falta de Água</option>
-              <option value="qualidade">Qualidade da Água</option>
-            </select>
-            <select id="filterPrioridade">
-              <option value="">Prioridade</option>
-              <option value="alta">Alta</option>
-              <option value="media">Média</option>
-              <option value="baixa">Baixa</option>
-            </select>
           </div>
         </div>
       </div>
@@ -179,7 +147,6 @@
       <i class="fas fa-spinner fa-spin"></i>
       <span>Carregando...</span>
     </div>
-    <div id="mapStats" class="map-stats"></div>
 
     <!-- Scripts Base -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

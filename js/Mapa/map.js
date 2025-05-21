@@ -142,17 +142,37 @@ async function initializeLeafletMap() {
             minZoom: 4
         });
 
-        console.log('Instância do mapa criada, adicionando tile layer...');
+        console.log('Instância do mapa criada, adicionando tile layers...');
 
-        // Adiciona o tile layer do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // Cria as camadas base
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 19
+        });
+
+        // Define as camadas base
+        const baseLayers = {
+            "OpenStreetMap": osm,
+            "Satélite": satellite
+        };
+
+        // Adiciona o controle de camadas
+        L.control.layers(baseLayers, null, {
+            position: 'topright'
         }).addTo(window.map);
+
+        // Adiciona a camada OSM por padrão
+        osm.addTo(window.map);
 
         // Define a visualização inicial
         window.map.setView([-20.4697, -54.6201], isMobile ? 11 : 12);
 
-        console.log('Tile layer adicionado, mapa base criado com sucesso');
+        console.log('Tile layers adicionados, mapa base criado com sucesso');
         
         window.isMapInitialized = true;
 
@@ -950,34 +970,6 @@ function handleAuthError() {
     }, 2000);
 }
 
-// Função para atualizar estatísticas
-function updateStatistics(stats) {
-    const statsContainer = document.getElementById('mapStats');
-    if (!statsContainer) return;
-
-    let html = '<h3>Estatísticas</h3>';
-    html += `<p>Total de elementos: ${stats.total_features}</p>`;
-    html += `<p>Extensão total: ${stats.total_length.toFixed(2)} m</p>`;
-
-    if (stats.by_type) {
-        html += '<h4>Por Tipo</h4><ul>';
-        Object.entries(stats.by_type).forEach(([type, count]) => {
-            html += `<li>${type}: ${count}</li>`;
-        });
-        html += '</ul>';
-    }
-
-    if (stats.by_material) {
-        html += '<h4>Por Material</h4><ul>';
-        Object.entries(stats.by_material).forEach(([material, count]) => {
-            html += `<li>${material}: ${count}</li>`;
-        });
-        html += '</ul>';
-    }
-
-    statsContainer.innerHTML = html;
-}
-
 // Função para zoom em feature específica
 function zoomToFeature(lat, lng) {
     if (window.map) {
@@ -1187,12 +1179,11 @@ async function processFeatures(features, layerType, metadata) {
                             weight: 1,
                             opacity: 1,
                             fillOpacity: 0.7,
-                            fillColor: config.style.color,
-                            bubblingMouseEvents: false
+                            fillColor: config.style.color
                         });
                         
-                        // Armazena propriedades diretamente na layer para acesso mais rápido
-                        layer.properties = feature.properties;
+                        // Armazena a feature completa na layer
+                        layer.feature = feature;
                     } else {
                         // Para outros tipos (linhas, polígonos), usa GeoJSON normal
                         layer = L.geoJSON(feature, {
@@ -1200,14 +1191,10 @@ async function processFeatures(features, layerType, metadata) {
                         });
                     }
 
-                    // Adiciona o popup apenas quando necessário (ao clicar)
+                    // Adiciona o popup imediatamente
                     if (feature.properties) {
-                        layer.on('click', function() {
-                            if (!this._popup) {
-                                this.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
-                            }
-                            this.openPopup();
-                        });
+                        const popupContent = createFeaturePopup(feature, { file_type: layerType });
+                        layer.bindPopup(popupContent);
                     }
                     
                     allLayers.push(layer);
