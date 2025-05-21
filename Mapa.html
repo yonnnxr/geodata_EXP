@@ -415,85 +415,6 @@
             }
         }
     </style>
-
-    <!-- Sistema de inicialização -->
-    <script>
-        // Define o callback do Google Maps antes de qualquer coisa
-        window.initMap = function() {
-            console.log('Google Maps carregado');
-            if (window.APP) {
-                window.APP.setDependencyLoaded('googleMaps');
-            }
-        };
-
-        // Gerenciador de dependências
-        window.APP = {
-            dependencies: {
-                leaflet: false,
-                googleMaps: false,
-                config: false,
-                mapJs: false,
-                streetView: false
-            },
-            
-            // Verifica se todas as dependências foram carregadas
-            areDependenciesLoaded() {
-                return Object.values(this.dependencies).every(dep => dep === true);
-            },
-            
-            // Marca uma dependência como carregada
-            setDependencyLoaded(name) {
-                this.dependencies[name] = true;
-                console.log(`Dependência carregada: ${name}`);
-                
-                if (this.areDependenciesLoaded()) {
-                    console.log('Todas as dependências carregadas, iniciando aplicação...');
-                    this.initializeApplication();
-                }
-            },
-            
-            // Inicializa a aplicação quando tudo estiver pronto
-            async initializeApplication() {
-                try {
-                    if (typeof initializeMap === 'function') {
-                        console.log('Iniciando mapa...');
-                        await initializeMap();
-                        console.log('Mapa iniciado com sucesso');
-                    } else {
-                        throw new Error('Função initializeMap não encontrada');
-                    }
-                } catch (error) {
-                    console.error('Erro ao inicializar aplicação:', error);
-                    document.getElementById('loadingMessage').innerHTML = `
-                        <div class="error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            Erro ao carregar a aplicação: ${error.message}
-                        </div>
-                    `;
-                }
-            },
-            
-            // Carrega um script e retorna uma Promise
-            loadScript(url, dependencyName) {
-                return new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = url;
-                    script.async = true;
-                    
-                    script.onload = () => {
-                        this.setDependencyLoaded(dependencyName);
-                        resolve();
-                    };
-                    
-                    script.onerror = () => {
-                        reject(new Error(`Erro ao carregar script: ${url}`));
-                    };
-                    
-                    document.body.appendChild(script);
-                });
-            }
-        };
-    </script>
 </head>
 <body>
     <div id="map"></div>
@@ -521,32 +442,7 @@
         Carregando mais dados...
     </div>
 
-    <!-- Scripts da aplicação -->
-    <script>
-        // Inicia o carregamento quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // Carrega scripts em paralelo
-                await Promise.all([
-                    window.APP.loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'leaflet'),
-                    window.APP.loadScript('js/config.js', 'config'),
-                    window.APP.loadScript('js/Mapa/map.js', 'mapJs'),
-                    window.APP.loadScript('js/Mapa/map-streetview.js', 'streetView'),
-                    window.APP.loadScript(
-                        'https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=initMap&libraries=geometry',
-                        'googleMaps'
-                    )
-                ]);
-            } catch (error) {
-                console.error('Erro ao carregar scripts:', error);
-                document.getElementById('loadingMessage').innerHTML = `
-                    <div class="error">
-                        <i class="fas fa-exclamation-circle"></i>
-                        Erro ao carregar scripts: ${error.message}
-                    </div>
-                `;
-            }
-        });
-    </script>
+    <!-- Sistema de inicialização -->
+    <script src="js/init.js"></script>
 </body>
 </html> 

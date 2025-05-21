@@ -99,11 +99,6 @@ function isMobileDevice() {
 
 // Função para verificar dependências
 function checkDependencies() {
-    if (!window.APP.areDependenciesLoaded()) {
-        console.error('Nem todas as dependências foram carregadas');
-        return false;
-    }
-    
     if (typeof L === 'undefined') {
         console.error('Leaflet não está disponível');
         return false;
@@ -199,17 +194,6 @@ async function initializeMap() {
         return false;
     }
 }
-
-// Event Listeners
-window.addEventListener('mapReady', async () => {
-    console.log('Evento mapReady recebido, iniciando mapa...');
-    try {
-        await initializeMap();
-    } catch (error) {
-        console.error('Erro ao inicializar mapa:', error);
-        showError('Falha ao inicializar o mapa: ' + error.message);
-    }
-});
 
 // Função para formatar datas
 function formatDate(value) {

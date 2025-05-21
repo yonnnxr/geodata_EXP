@@ -32,31 +32,7 @@ window.API_TIMEOUT = API_TIMEOUT;
 window.API_RETRY_ATTEMPTS = API_RETRY_ATTEMPTS;
 window.API_RETRY_DELAY = API_RETRY_DELAY;
 
-// Notifica que o config foi carregado
-if (window.APP) {
-    window.APP.setDependencyLoaded('config');
-}
-
-// Função para carregar o Google Maps
-window.loadGoogleMaps = function() {
-    return new Promise((resolve, reject) => {
-        if (window.google && window.google.maps) {
-            resolve();
-            return;
-        }
-
-        window._googleMapsCallback = function() {
-            resolve();
-        };
-
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&callback=_googleMapsCallback&libraries=${GOOGLE_MAPS_CONFIG.libraries.join(',')}`;
-        script.async = true;
-        script.defer = true;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-};
+console.log('Configurações carregadas com sucesso');
 
 // Função para fazer requisições com retry
 window.fetchWithRetry = async function(url, options = {}) {
