@@ -132,7 +132,8 @@ async function initializeMap() {
                     showCoverageOnHover: !isMobile,
                     zoomToBoundsOnClick: true,
                     removeOutsideVisibleBounds: true,
-                    disableClusteringAtZoom: isMobile ? 19 : 18
+                    disableClusteringAtZoom: isMobile ? 19 : 18,
+                    animate: !isMobile
                 });
                 window.map.addLayer(window.markerClusters[layerType]);
             });
@@ -337,9 +338,58 @@ document.head.appendChild(style);
 // Função para mostrar/ocultar indicador de carregamento de mais dados
 function toggleLoadMoreIndicator(show) {
     const indicator = document.getElementById('loadMoreIndicator');
-    if (indicator) {
-        indicator.style.display = show ? 'flex' : 'none';
+    if (!indicator) return;
+
+    if (show) {
+        indicator.style.display = 'flex';
+        indicator.innerHTML = `
+            <div class="spinner"></div>
+            <span>Carregando mais dados...</span>
+        `;
+    } else {
+        indicator.style.display = 'none';
     }
+}
+
+// Função para limpar camadas existentes
+function clearLayers() {
+    Object.values(window.markerClusters).forEach(cluster => {
+        if (cluster) {
+            cluster.clearLayers();
+            window.map.removeLayer(cluster);
+        }
+    });
+    window.markerClusters = {
+        'file': null,
+        'file-1': null,
+        'file-2': null
+    };
+    window.layers = {
+        'file': null,
+        'file-1': null,
+        'file-2': null
+    };
+}
+
+// Função para inicializar clusters
+function initializeClusters() {
+    const isMobile = isMobileDevice();
+    Object.keys(window.layers).forEach(layerType => {
+        console.log(`Inicializando cluster para ${layerType}`);
+        window.markerClusters[layerType] = L.markerClusterGroup({
+            chunkedLoading: true,
+            chunkInterval: 100,
+            chunkDelay: 50,
+            maxClusterRadius: isMobile ? 40 : 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: !isMobile,
+            zoomToBoundsOnClick: true,
+            removeOutsideVisibleBounds: true,
+            disableClusteringAtZoom: isMobile ? 19 : 18,
+            animate: !isMobile
+        });
+        window.map.addLayer(window.markerClusters[layerType]);
+    });
 }
 
 // Função para carregar dados do mapa com paginação
@@ -357,16 +407,15 @@ async function loadMapData(page = 1) {
     const loadingMessage = document.getElementById('loadingMessage');
     if (page === 1) {
         loadingMessage.style.display = 'flex';
-        Object.values(window.markerClusters).forEach(cluster => {
-            if (cluster) cluster.clearLayers();
-        });
+        clearLayers();
+        initializeClusters();
     } else {
         toggleLoadMoreIndicator(true);
     }
 
     try {
         console.log(`Carregando camadas para ${userCity}`);
-        const layersResponse = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
+        const layersResponse = await window.fetchWithRetry(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -381,65 +430,7 @@ async function loadMapData(page = 1) {
         console.log('Camadas disponíveis:', layersData);
 
         for (const layer of layersData.layers) {
-            try {
-                const isEconomia = layer.type === 'file-1';
-                console.log(`Processando camada ${layer.type}, isEconomia: ${isEconomia}, página: ${page}`);
-
-                if (!isEconomia || page === 1) {
-                    const response = await fetch(`${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        console.error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
-                        continue;
-                    }
-
-                    const data = await response.json();
-                    console.log(`Dados recebidos para ${layer.type}:`, {
-                        featuresCount: data?.features?.length || 0
-                    });
-
-                    if (data?.features?.length > 0) {
-                        await processFeatures(data.features, layer.type, data.metadata);
-                        updateLayerControl(layer.type, data.metadata.description);
-                    }
-                } else if (isEconomia && page > 1) {
-                    const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`;
-                    console.log(`Carregando economias - URL:`, url);
-
-                    const response = await fetch(url, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        console.error(`Erro ao carregar página ${page} das economias: ${response.status}`);
-                        continue;
-                    }
-
-                    const data = await response.json();
-                    console.log(`Dados de economia recebidos - Página ${page}:`, {
-                        featuresCount: data?.features?.length || 0,
-                        hasMore: data.metadata?.has_more
-                    });
-
-                    if (data?.features?.length > 0) {
-                        await processFeatures(data.features, layer.type, data.metadata);
-                        hasMoreEconomias = data.metadata?.has_more || false;
-                        currentEconomiaPage = page;
-                    } else {
-                        hasMoreEconomias = false;
-                    }
-                }
-            } catch (error) {
-                console.error(`Erro ao processar camada ${layer.type}:`, error);
-            }
+            await loadLayerData(layer, page, userCity, token);
         }
 
         if (page === 1) {
@@ -455,10 +446,66 @@ async function loadMapData(page = 1) {
 
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        showError(`Erro ao carregar dados: ${error.message}`);
         loadingMessage.style.display = 'none';
         toggleLoadMoreIndicator(false);
-        showError(error.message);
         isLoadingMore = false;
+    }
+}
+
+// Função para carregar dados de uma camada específica
+async function loadLayerData(layer, page, userCity, token) {
+    try {
+        const isEconomia = layer.type === 'file-1';
+        console.log(`Processando camada ${layer.type}, isEconomia: ${isEconomia}, página: ${page}`);
+
+        if (!isEconomia || page === 1) {
+            const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}`;
+            const response = await window.fetchWithRetry(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log(`Dados recebidos para ${layer.type}:`, {
+                featuresCount: data?.features?.length || 0
+            });
+
+            if (data?.features?.length > 0) {
+                await processFeatures(data.features, layer.type, data.metadata);
+                updateLayerControl(layer.type, data.metadata.description);
+            }
+        } else if (isEconomia) {
+            const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}`;
+            const response = await window.fetchWithRetry(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao carregar página ${page} das economias: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data?.features?.length > 0) {
+                await processFeatures(data.features, layer.type, data.metadata);
+                hasMoreEconomias = data.metadata?.has_more || false;
+                currentEconomiaPage = page;
+            } else {
+                hasMoreEconomias = false;
+            }
+        }
+    } catch (error) {
+        console.error(`Erro ao processar camada ${layer.type}:`, error);
+        showError(`Erro ao carregar camada ${layer.type}: ${error.message}`);
     }
 }
 
@@ -538,9 +585,84 @@ function fitMapToBounds() {
     }
 }
 
+// Função para mostrar mensagens de erro
+function showError(message) {
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'error-message';
+    errorContainer.innerHTML = `
+        <div class="error-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <div class="error-text">
+                <p>Erro ao carregar dados</p>
+                <p class="error-details">${message}</p>
+            </div>
+            <button class="retry-button" onclick="retryLastOperation()">
+                <i class="fas fa-sync-alt"></i> Tentar Novamente
+            </button>
+            <button class="close-button" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('map').appendChild(errorContainer);
+
+    // Auto-remove após 10 segundos
+    setTimeout(() => {
+        if (errorContainer.parentElement) {
+            errorContainer.remove();
+        }
+    }, 10000);
+}
+
+// Função para mostrar mensagens de status
+function showStatus(message, type = 'info') {
+    const statusContainer = document.createElement('div');
+    statusContainer.className = `status-message ${type}`;
+    statusContainer.innerHTML = `
+        <div class="status-content">
+            <i class="fas fa-info-circle"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.getElementById('map').appendChild(statusContainer);
+
+    setTimeout(() => {
+        if (statusContainer.parentElement) {
+            statusContainer.remove();
+        }
+    }, 5000);
+}
+
+// Variáveis para controle de operações
+let lastOperation = null;
+let lastOperationParams = null;
+
+// Função para armazenar última operação
+function setLastOperation(operation, params) {
+    lastOperation = operation;
+    lastOperationParams = params;
+}
+
+// Função para repetir última operação
+async function retryLastOperation() {
+    if (lastOperation && typeof lastOperation === 'function') {
+        try {
+            showStatus('Tentando novamente...', 'info');
+            await lastOperation(...(lastOperationParams || []));
+        } catch (error) {
+            console.error('Erro ao repetir operação:', error);
+            showError('Falha ao tentar novamente: ' + error.message);
+        }
+    }
+}
+
+// Função para lidar com erros de autenticação
 function handleAuthError() {
-    console.error('Erro de autenticação');
-    window.location.href = 'Login.html';
+    showError('Sessão expirada. Redirecionando para login...');
+    setTimeout(() => {
+        localStorage.removeItem('authToken');
+        window.location.href = 'login.html';
+    }, 2000);
 }
 
 // Função para atualizar estatísticas
@@ -569,19 +691,6 @@ function updateStatistics(stats) {
     }
 
     statsContainer.innerHTML = html;
-}
-
-// Função para mostrar mensagens de erro
-function showError(message) {
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'error-message';
-    errorMessage.innerHTML = `
-        <i class="fas fa-exclamation-circle"></i>
-        <p>Não foi possível carregar os dados do mapa.</p>
-        <p>${message}</p>
-        <button onclick="loadMapData()">Tentar Novamente</button>
-    `;
-    document.getElementById('map').appendChild(errorMessage);
 }
 
 // Função para zoom em feature específica
@@ -724,27 +833,39 @@ function onMapMoveEnd() {
     }
 }
 
+// Variável para controlar a inicialização
+let isMapInitialized = false;
+
 // Inicializa o mapa quando a API do Google Maps estiver carregada
 window.initMap = async function() {
     try {
+        if (isMapInitialized) {
+            console.log('Mapa já inicializado');
+            return;
+        }
+
         // Inicializa o mapa base primeiro
         const mapInitialized = await initializeMap();
         
-        // Se o mapa foi inicializado com sucesso e existe uma função original do initMap
-        if (mapInitialized && originalInitMap && originalInitMap !== window.initMap) {
-            // Chama a função original do initMap (do street view)
-            await originalInitMap();
+        if (mapInitialized) {
+            isMapInitialized = true;
+            console.log('Mapa inicializado com sucesso');
         }
     } catch (error) {
         console.error('Erro ao inicializar o mapa:', error);
+        showError('Falha ao inicializar o mapa: ' + error.message);
     }
 };
 
 // Garante que o mapa seja inicializado mesmo se o Google Maps falhar
 document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await initializeMap();
-    } catch (error) {
-        console.error('Erro ao inicializar o mapa:', error);
+    if (!isMapInitialized) {
+        try {
+            await initializeMap();
+            isMapInitialized = true;
+        } catch (error) {
+            console.error('Erro ao inicializar o mapa:', error);
+            showError('Falha ao inicializar o mapa: ' + error.message);
+        }
     }
 });

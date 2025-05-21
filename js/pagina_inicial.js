@@ -43,25 +43,17 @@ async function loadStatistics() {
             throw new Error('Dados de autenticação incompletos');
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/statistics/${userCity}`, {
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/statistics/${userCity}`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${token}`
             }
         });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                window.authUtils.logout();
-                return;
-            }
-            throw new Error('Erro ao carregar estatísticas');
-        }
 
         const data = await response.json();
         updateStatistics(data);
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro ao carregar estatísticas:', error);
         showError('Erro ao carregar estatísticas');
     }
 }

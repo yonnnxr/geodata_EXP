@@ -21,29 +21,53 @@ function isGoogleMapsLoaded() {
     return typeof google !== 'undefined' && google.maps;
 }
 
-// Armazena a função original do initMap
-const mapInitMap = window.initMap;
+// Função para inicializar o Street View
+async function initStreetView() {
+    if (isStreetViewInitialized) {
+        console.log('Street View já inicializado');
+        return;
+    }
 
-// Inicializa o Street View quando o Google Maps estiver carregado
-window.initMap = async function() {
     try {
-        // Se existe uma função original do mapa, chama ela primeiro
-        if (mapInitMap && mapInitMap !== window.initMap) {
-            await mapInitMap();
+        if (!isGoogleMapsLoaded()) {
+            console.log('Aguardando carregamento do Google Maps...');
+            return;
         }
-        
-        // Inicializa o Street View
-        if (isGoogleMapsLoaded() && window.map) {
-            streetViewService = new google.maps.StreetViewService();
-            isStreetViewInitialized = true;
-            initStreetViewControl();
-            setupStreetViewMapClick();
-            console.log('Street View inicializado com sucesso');
+
+        if (!window.map) {
+            console.log('Aguardando inicialização do mapa base...');
+            return;
         }
+
+        streetViewService = new google.maps.StreetViewService();
+        isStreetViewInitialized = true;
+        initStreetViewControl();
+        setupStreetViewMapClick();
+        console.log('Street View inicializado com sucesso');
     } catch (error) {
         console.error('Erro na configuração do Street View:', error);
+        showMessage('Erro ao inicializar Street View. Tente novamente.', 5000);
     }
-};
+}
+
+// Aguarda o carregamento do mapa base e do Google Maps
+document.addEventListener('DOMContentLoaded', () => {
+    const checkDependencies = setInterval(() => {
+        if (window.map && isGoogleMapsLoaded()) {
+            clearInterval(checkDependencies);
+            initStreetView();
+        }
+    }, 1000);
+
+    // Timeout após 30 segundos
+    setTimeout(() => {
+        clearInterval(checkDependencies);
+        if (!isStreetViewInitialized) {
+            console.error('Timeout ao aguardar dependências do Street View');
+            showMessage('Erro ao carregar Street View. Recarregue a página.', 5000);
+        }
+    }, 30000);
+});
 
 function initStreetViewControl() {
     if (!window.map || typeof window.map.addControl !== 'function' || streetViewControl) {

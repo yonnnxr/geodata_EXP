@@ -646,3 +646,124 @@ html, body {
     border-radius: 4px;
     margin-right: 8px;
 }
+
+/* Mensagens de erro e status */
+.error-message,
+.status-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+.error-message {
+    background-color: #fff;
+    border-left: 4px solid #dc3545;
+}
+
+.status-message {
+    background-color: #fff;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-message.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.status-message.success {
+    border-left: 4px solid #28a745;
+}
+
+.error-content {
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.error-text {
+    flex-grow: 1;
+}
+
+.error-text p {
+    margin: 0;
+}
+
+.error-text p:first-child {
+    font-weight: bold;
+    color: #dc3545;
+}
+
+.error-details {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.retry-button,
+.close-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.retry-button:hover,
+.close-button:hover {
+    transform: scale(1.1);
+}
+
+.retry-button {
+    color: #28a745;
+}
+
+.close-button {
+    color: #666;
+}
+
+/* Indicador de carregamento */
+#loadMoreIndicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
