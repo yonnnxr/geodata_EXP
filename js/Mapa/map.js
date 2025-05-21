@@ -99,17 +99,20 @@ function isMobileDevice() {
 
 // Função para verificar dependências
 function checkDependencies() {
-    if (!window.L) {
+    // Verifica Leaflet
+    if (typeof L === 'undefined') {
         console.error('Leaflet não está disponível');
         return false;
     }
     
-    if (!window.L.markerClusterGroup) {
+    // Verifica MarkerCluster
+    if (typeof L.markerClusterGroup === 'undefined') {
         console.error('MarkerCluster não está disponível');
         return false;
     }
 
-    if (!window.google || !window.google.maps) {
+    // Verifica Google Maps
+    if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
         console.error('Google Maps não está disponível');
         return false;
     }
@@ -123,6 +126,10 @@ function initializeClusters() {
     const isMobile = isMobileDevice();
 
     try {
+        if (!L.markerClusterGroup) {
+            throw new Error('MarkerCluster não está disponível');
+        }
+
         Object.keys(window.layers).forEach(layerType => {
             console.log(`Inicializando cluster para ${layerType}`);
             const cluster = L.markerClusterGroup({
@@ -203,9 +210,6 @@ async function initializeMap() {
         
         isMapInitialized = true;
         console.log('Mapa inicializado com sucesso');
-        
-        // Dispara evento de mapa pronto
-        window.dispatchEvent(new Event('mapReady'));
         
         return true;
     } catch (error) {
