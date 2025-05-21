@@ -16,6 +16,7 @@ let featuresCache = new Map();
 let currentEconomiaPage = 1; // Página atual apenas para economias
 let isLoadingMore = false;
 let hasMoreEconomias = true; // Controle apenas para economias
+let isMapInitialized = false;
 
 // Variáveis globais para pesquisa
 window.searchResults = [];
@@ -96,55 +97,51 @@ function isMobileDevice() {
     return (window.innerWidth <= 768) || ('ontouchstart' in window);
 }
 
-// Função para verificar se as dependências estão carregadas
+// Função para verificar dependências
 function checkDependencies() {
     if (!window.L) {
-        throw new Error('Leaflet não está carregado');
+        console.error('Leaflet não está disponível');
+        return false;
     }
     
     if (!window.L.markerClusterGroup) {
-        throw new Error('MarkerCluster não está carregado. Aguarde o carregamento completo.');
+        console.error('MarkerCluster não está disponível');
+        return false;
     }
-    
+
+    if (!window.google || !window.google.maps) {
+        console.error('Google Maps não está disponível');
+        return false;
+    }
+
     return true;
 }
 
-// Função para inicializar clusters com verificação
+// Função para inicializar clusters
 function initializeClusters() {
     console.log('Iniciando inicialização dos clusters');
     const isMobile = isMobileDevice();
 
     try {
-        // Verifica se o MarkerCluster está disponível
-        if (!L.markerClusterGroup) {
-            console.error('MarkerCluster não está disponível. Aguardando carregamento...');
-            return false;
-        }
-
         Object.keys(window.layers).forEach(layerType => {
             console.log(`Inicializando cluster para ${layerType}`);
-            try {
-                const cluster = L.markerClusterGroup({
-                    chunkedLoading: true,
-                    chunkInterval: 100,
-                    chunkDelay: 50,
-                    maxClusterRadius: isMobile ? 40 : 50,
-                    spiderfyOnMaxZoom: true,
-                    showCoverageOnHover: !isMobile,
-                    zoomToBoundsOnClick: true,
-                    removeOutsideVisibleBounds: true,
-                    disableClusteringAtZoom: isMobile ? 19 : 18,
-                    animate: !isMobile
-                });
+            const cluster = L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkInterval: 100,
+                chunkDelay: 50,
+                maxClusterRadius: isMobile ? 40 : 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: !isMobile,
+                zoomToBoundsOnClick: true,
+                removeOutsideVisibleBounds: true,
+                disableClusteringAtZoom: isMobile ? 19 : 18,
+                animate: !isMobile
+            });
 
-                window.markerClusters[layerType] = cluster;
-                if (window.map) {
-                    window.map.addLayer(cluster);
-                    console.log(`Cluster ${layerType} adicionado ao mapa`);
-                }
-            } catch (error) {
-                console.error(`Erro ao inicializar cluster ${layerType}:`, error);
-                throw error;
+            window.markerClusters[layerType] = cluster;
+            if (window.map) {
+                window.map.addLayer(cluster);
+                console.log(`Cluster ${layerType} adicionado ao mapa`);
             }
         });
 
@@ -152,80 +149,82 @@ function initializeClusters() {
         return true;
     } catch (error) {
         console.error('Erro na inicialização dos clusters:', error);
-        throw error;
+        showError('Erro ao inicializar clusters: ' + error.message);
+        return false;
     }
 }
 
-// Função para inicializar o mapa com retry
+// Função para inicializar o mapa
 async function initializeMap() {
+    if (isMapInitialized) {
+        console.log('Mapa já inicializado');
+        return true;
+    }
+
     console.log('Iniciando inicialização do mapa');
     
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    while (retryCount < maxRetries) {
-        try {
-            // Verifica se o mapa já existe
-            if (window.map) {
-                console.log('Mapa já inicializado');
-                return true;
-            }
-
-            // Verifica dependências
-            if (!checkDependencies()) {
-                throw new Error('Dependências não carregadas completamente');
-            }
-
-            const isMobile = isMobileDevice();
-            
-            // Cria o mapa
-            window.map = L.map('map', {
-                zoomControl: !isMobile,
-                tap: true,
-                bounceAtZoomLimits: false,
-                maxZoom: 19,
-                minZoom: 4
-            }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
-
-            console.log('Mapa base criado');
-
-            // Adiciona camada base
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19,
-                maxNativeZoom: 18
-            }).addTo(window.map);
-
-            console.log('Camada base adicionada');
-
-            // Inicializa clusters
-            if (!initializeClusters()) {
-                throw new Error('Falha ao inicializar clusters');
-            }
-
-            // Adiciona eventos
-            window.map.on('moveend', onMapMoveEnd);
-
-            // Carrega dados iniciais
-            await loadMapData();
-            console.log('Carregamento inicial concluído');
-
-            return true;
-        } catch (error) {
-            console.error(`Tentativa ${retryCount + 1} falhou:`, error);
-            retryCount++;
-            
-            if (retryCount === maxRetries) {
-                console.error('Erro ao inicializar mapa após várias tentativas:', error);
-                showError('Erro ao inicializar o mapa: ' + error.message);
-                return false;
-            }
-            
-            // Aguarda um pouco antes de tentar novamente
-            await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+        if (!checkDependencies()) {
+            throw new Error('Dependências necessárias não estão disponíveis');
         }
+
+        const isMobile = isMobileDevice();
+        
+        // Cria o mapa
+        window.map = L.map('map', {
+            zoomControl: !isMobile,
+            tap: true,
+            bounceAtZoomLimits: false,
+            maxZoom: 19,
+            minZoom: 4
+        }).setView([-20.4697, -54.6201], isMobile ? 11 : 12);
+
+        console.log('Mapa base criado');
+
+        // Adiciona camada base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            maxNativeZoom: 18
+        }).addTo(window.map);
+
+        console.log('Camada base adicionada');
+
+        // Inicializa clusters
+        if (!initializeClusters()) {
+            throw new Error('Falha ao inicializar clusters');
+        }
+
+        // Adiciona eventos
+        window.map.on('moveend', onMapMoveEnd);
+
+        // Carrega dados iniciais
+        await loadMapData();
+        
+        isMapInitialized = true;
+        console.log('Mapa inicializado com sucesso');
+        
+        // Dispara evento de mapa pronto
+        window.dispatchEvent(new Event('mapReady'));
+        
+        return true;
+    } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+        showError('Erro ao inicializar o mapa: ' + error.message);
+        return false;
     }
 }
+
+// Event Listeners
+window.addEventListener('appReady', async () => {
+    console.log('Evento appReady recebido, iniciando mapa...');
+    try {
+        await initializeMap();
+    } catch (error) {
+        console.error('Erro ao inicializar mapa após appReady:', error);
+        showError('Falha ao inicializar o mapa: ' + error.message);
+    }
+});
 
 // Armazena a função original do Google Maps callback
 const originalInitMap = window.initMap;
@@ -884,23 +883,3 @@ function onMapMoveEnd() {
         loadMapData(currentEconomiaPage + 1);
     }
 }
-
-// Variável para controlar a inicialização
-let isMapInitialized = false;
-
-// Função para inicializar o mapa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', async () => {
-    if (!isMapInitialized) {
-        try {
-            const success = await initializeMap();
-            if (success) {
-                isMapInitialized = true;
-                // Dispara evento personalizado para notificar que o mapa está pronto
-                window.dispatchEvent(new CustomEvent('mapInitialized'));
-            }
-        } catch (error) {
-            console.error('Erro ao inicializar o mapa:', error);
-            showError('Falha ao inicializar o mapa: ' + error.message);
-        }
-    }
-});

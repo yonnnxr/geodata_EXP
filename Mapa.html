@@ -16,9 +16,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
-    <!-- Google Maps API com async -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&libraries=geometry"></script>
-    
+    <!-- Estilos da aplicação -->
     <style>
         #map {
             height: 100vh;
@@ -448,49 +446,56 @@
         Carregando mais dados...
     </div>
 
-    <!-- Scripts -->
-    <!-- Leaflet JS (carregado primeiro) -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- MarkerCluster JS (carregado após Leaflet) -->
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    
-    <!-- Aplicação -->
-    <script src="js/config.js"></script>
-    <script src="js/Mapa/map.js"></script>
-    <script src="js/Mapa/map-streetview.js"></script>
-
-    <!-- Google Maps API -->
+    <!-- Configuração inicial -->
     <script>
-        // Função de callback do Google Maps
+        // Objeto global para controle de dependências
+        window.APP = {
+            deps: {
+                leaflet: false,
+                markerCluster: false,
+                googleMaps: false,
+                config: false
+            },
+            init: function() {
+                if (this.checkDeps()) {
+                    console.log('Todas as dependências carregadas, iniciando aplicação...');
+                    window.dispatchEvent(new Event('appReady'));
+                }
+            },
+            checkDeps: function() {
+                return Object.values(this.deps).every(dep => dep === true);
+            },
+            setDep: function(name) {
+                this.deps[name] = true;
+                console.log(`Dependência carregada: ${name}`);
+                this.init();
+            }
+        };
+
+        // Callback do Google Maps
         function googleMapsCallback() {
             console.log('Google Maps carregado');
-            window.dispatchEvent(new Event('googleMapsLoaded'));
+            window.APP.setDep('googleMaps');
         }
     </script>
+
+    <!-- Configurações -->
+    <script src="js/config.js" onload="window.APP.setDep('config')"></script>
+
+    <!-- Leaflet e plugins -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            onload="window.APP.setDep('leaflet')"></script>
+    
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"
+            onload="window.APP.setDep('markerCluster')"></script>
+
+    <!-- Google Maps API -->
     <script async defer 
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeq2olKPH1UlTKxuOvW7WXpbhdATQ1jG8&callback=googleMapsCallback&libraries=geometry">
     </script>
 
-    <!-- Inicialização -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('DOM carregado, iniciando aplicação...');
-            try {
-                // Aguarda o carregamento do Leaflet e MarkerCluster
-                if (!L.markerClusterGroup) {
-                    console.error('MarkerCluster não carregado');
-                    throw new Error('MarkerCluster não carregado');
-                }
-
-                // Inicializa o mapa
-                await initializeMap();
-                console.log('Mapa inicializado com sucesso');
-            } catch (error) {
-                console.error('Erro ao inicializar aplicação:', error);
-                alert('Erro ao carregar o mapa. Por favor, recarregue a página.');
-            }
-        });
-    </script>
+    <!-- Scripts da aplicação -->
+    <script src="js/Mapa/map.js"></script>
+    <script src="js/Mapa/map-streetview.js"></script>
 </body>
 </html> 
