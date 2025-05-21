@@ -3,8 +3,15 @@ async function loadScriptsSequentially(scripts) {
     const loadedScripts = new Set();
     
     for (const script of scripts) {
+        // Verifica se o script já está carregado no documento
+        if (document.querySelector(`script[src="${script}"]`)) {
+            console.log(`Script já carregado no documento: ${script}`);
+            continue;
+        }
+        
+        // Verifica se já carregamos nesta sessão
         if (loadedScripts.has(script)) {
-            console.log(`Script já carregado: ${script}`);
+            console.log(`Script já carregado nesta sessão: ${script}`);
             continue;
         }
         

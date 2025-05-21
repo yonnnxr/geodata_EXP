@@ -1,17 +1,33 @@
-window.map = null;
-window.layers = {
-    'file': null,      // Rede de Distribuição
-    'file-1': null,    // Economias Zero
-    'file-2': null     // Ocorrências
-};
-window.layerGroups = {
-    'file': L.layerGroup(),
-    'file-1': L.layerGroup(),
-    'file-2': L.layerGroup()
-};
-let dadosCarregados = false;
+// Variáveis globais do mapa
+if (typeof window.map === 'undefined') {
+    window.map = null;
+}
+
+if (typeof window.layers === 'undefined') {
+    window.layers = {
+        'file': null,      // Rede de Distribuição
+        'file-1': null,    // Economias Zero
+        'file-2': null     // Ocorrências
+    };
+}
+
+if (typeof window.layerGroups === 'undefined') {
+    window.layerGroups = {
+        'file': L.layerGroup(),
+        'file-1': L.layerGroup(),
+        'file-2': L.layerGroup()
+    };
+}
+
+if (typeof window.dadosCarregados === 'undefined') {
+    window.dadosCarregados = false;
+}
+
+// Constantes
 const BATCH_SIZE = 1000; // Para processamento em lotes geral
 const ECONOMIA_PAGE_SIZE = 10000; // Tamanho da página específico para economias
+
+// Variáveis de controle
 let featuresCache = new Map();
 let currentEconomiaPage = 1; // Página atual apenas para economias
 let isLoadingMore = false;
@@ -19,9 +35,15 @@ let hasMoreEconomias = true; // Controle apenas para economias
 let isMapInitialized = false;
 
 // Variáveis globais para pesquisa
-window.searchResults = [];
-window.selectedFeature = null;
-window.highlightedLayer = null;
+if (typeof window.searchResults === 'undefined') {
+    window.searchResults = [];
+}
+if (typeof window.selectedFeature === 'undefined') {
+    window.selectedFeature = null;
+}
+if (typeof window.highlightedLayer === 'undefined') {
+    window.highlightedLayer = null;
+}
 
 // Função para verificar se o Leaflet está carregado
 function isLeafletLoaded() {
