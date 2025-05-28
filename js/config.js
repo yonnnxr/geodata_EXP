@@ -180,7 +180,7 @@ if (typeof window.GOOGLE_MAPS_CONFIG === 'undefined') {
 
 // Configurações de timeout para requisições
 if (typeof window.API_TIMEOUT === 'undefined') {
-    const API_TIMEOUT = 15000; // 15 segundos
+    const API_TIMEOUT = 60000; // 60 segundos
     window.API_TIMEOUT = API_TIMEOUT;
 }
 
