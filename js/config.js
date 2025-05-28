@@ -27,7 +27,12 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
                 signal: controller.signal
             };
 
-            console.log(`Tentando requisição ${options.method || 'GET'}:`, url);
+            // Log para debug
+            console.log('Fazendo requisição com opções:', {
+                url,
+                method: fetchOptions.method || 'GET',
+                headers: fetchOptions.headers
+            });
             
             const response = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
@@ -40,6 +45,12 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
                         continue; // Tentar novamente com o novo token
                     }
                 }
+                const errorText = await response.text();
+                console.error('Erro na resposta:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
