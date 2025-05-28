@@ -6,55 +6,32 @@ console.log('API_BASE_URL definida:', window.API_BASE_URL);
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
     let lastError;
     
-    // Função para criar URL do proxy
-    const getProxyUrl = (targetUrl) => {
-        // Usando allorigins como proxy CORS
-        return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-    };
-
     for (let i = 0; i < maxRetries; i++) {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
-            // Se for POST, usa o proxy do allorigins
-            if (options.method === 'POST') {
-                const proxyUrl = getProxyUrl(url);
-                console.log('Tentando requisição POST via proxy:', proxyUrl);
-                
-                const response = await fetch(proxyUrl, {
-                    method: 'GET', // allorigins só aceita GET
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    signal: controller.signal
-                });
+            const fetchOptions = {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...options.headers
+                },
+                mode: 'cors',
+                signal: controller.signal
+            };
 
-                clearTimeout(timeoutId);
+            console.log(`Tentando requisição ${options.method || 'GET'}:`, url);
+            
+            const response = await fetch(url, fetchOptions);
+            clearTimeout(timeoutId);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return new Response(data.contents, {
-                    status: 200,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } else {
-                // Para GET, usa fetch direto com modo no-cors
-                console.log('Tentando requisição GET:', url);
-                const response = await fetch(url, {
-                    ...options,
-                    mode: 'no-cors',
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                return response;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            return response;
         } catch (error) {
             console.warn(`Tentativa ${i + 1} falhou:`, error);
             lastError = error;
