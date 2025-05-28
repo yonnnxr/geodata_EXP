@@ -104,15 +104,33 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Cidade definida:', userCity);
 
             // Salvar dados no localStorage
-            localStorage.setItem('authToken', data.access_token);
-            localStorage.setItem('userType', data.user_type || 'user');
-            localStorage.setItem('userName', data.name || usernameValue);
-            localStorage.setItem('userCity', userCity);
+            try {
+                localStorage.setItem('authToken', data.access_token);
+                console.log('Token armazenado:', data.access_token);
+                
+                localStorage.setItem('userType', data.user_type || 'user');
+                console.log('Tipo de usuário armazenado:', data.user_type);
+                
+                localStorage.setItem('userName', data.name || usernameValue);
+                console.log('Nome do usuário armazenado:', data.name || usernameValue);
+                
+                localStorage.setItem('userCity', userCity);
+                console.log('Cidade armazenada:', userCity);
 
-            // Verificar se os dados foram salvos
-            const savedCity = localStorage.getItem('userCity');
-            if (!savedCity) {
-                throw new Error('Falha ao salvar cidade no localStorage');
+                // Verificar se os dados foram salvos corretamente
+                const savedToken = localStorage.getItem('authToken');
+                const savedType = localStorage.getItem('userType');
+                const savedName = localStorage.getItem('userName');
+                const savedCity = localStorage.getItem('userCity');
+
+                if (!savedToken || !savedType || !savedName || !savedCity) {
+                    throw new Error('Falha ao salvar dados no localStorage');
+                }
+
+                console.log('Todos os dados foram salvos com sucesso no localStorage');
+            } catch (storageError) {
+                console.error('Erro ao salvar dados:', storageError);
+                throw new Error('Falha ao salvar dados de autenticação');
             }
 
             // Adicionar animação de sucesso antes de redirecionar
@@ -122,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Redirecionar baseado no tipo de usuário após validar os dados
             setTimeout(() => {
                 const redirectUrl = data.user_type === 'admin' ? 'admin.html' : 'pagina_inicial.html';
+                console.log('Redirecionando para:', redirectUrl);
                 window.location.replace(redirectUrl);
             }, 1000);
 

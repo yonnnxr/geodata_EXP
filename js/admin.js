@@ -87,7 +87,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Carregar localidades para o select
-async function loadLocalities() {    try {        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/localities`, {            headers: {                'Content-Type': 'application/json',                'Accept': 'application/json'            }        });        const data = await response.json();        const select = document.getElementById('userLocality');                select.innerHTML = data.localities.map(locality =>             `<option value="${locality.id}">${locality.name}</option>`        ).join('');    } catch (error) {        showNotification(error.message, 'error');    }}
+async function loadLocalities() {
+    try {
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            throw new Error('Usuário não autenticado');
+        }
+
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/localities`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+        const select = document.getElementById('userLocality');
+        
+        select.innerHTML = data.localities.map(locality => 
+            `<option value="${locality.id}">${locality.name}</option>`
+        ).join('');
+    } catch (error) {
+        console.error('Erro ao carregar localidades:', error);
+        showNotification(error.message, 'error');
+    }
+}
 
 // Configuração dos modais
 function setupModals() {
@@ -240,10 +265,66 @@ function setupLogout() {
 }
 
 // Carregar dados das seções
-async function loadSectionData(section) {    try {        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/${section}`, {            headers: {                'Content-Type': 'application/json',                'Accept': 'application/json'            }        });        const data = await response.json();                switch (section) {            case 'dashboard':                updateDashboard(data);                break;            case 'users':                updateUsers(data);                break;            case 'localities':                updateLocalities(data);                break;            case 'permissions':                updatePermissions(data);                break;        }    } catch (error) {        console.error(`Erro ao carregar dados da seção ${section}:`, error);        showNotification(error.message, 'error');    }}
+async function loadSectionData(section) {
+    try {
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            throw new Error('Usuário não autenticado');
+        }
+
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/${section}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+        
+        switch (section) {
+            case 'dashboard':
+                updateDashboard(data);
+                break;
+            case 'users':
+                updateUsers(data);
+                break;
+            case 'localities':
+                updateLocalities(data);
+                break;
+            case 'permissions':
+                updatePermissions(data);
+                break;
+        }
+    } catch (error) {
+        console.error(`Erro ao carregar dados da seção ${section}:`, error);
+        showNotification(error.message, 'error');
+    }
+}
 
 // Carregar dados do dashboard
-async function loadDashboardData() {    try {        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/dashboard`, {            headers: {                'Content-Type': 'application/json',                'Accept': 'application/json'            }        });        const data = await response.json();        updateDashboard(data);    } catch (error) {        console.error('Erro ao carregar dashboard:', error);        throw new Error('Erro ao carregar dados do dashboard');    }}
+async function loadDashboardData() {
+    try {
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            throw new Error('Usuário não autenticado');
+        }
+
+        const response = await window.fetchWithRetry(`${API_BASE_URL}/api/admin/dashboard`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+        updateDashboard(data);
+    } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
+        throw new Error('Erro ao carregar dados do dashboard');
+    }
+}
 
 // Atualizar seções
 function updateDashboard(data) {
