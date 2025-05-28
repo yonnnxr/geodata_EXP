@@ -11,14 +11,19 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
+            // Obter o token de autenticação
+            const authToken = localStorage.getItem('authToken');
+            
             const fetchOptions = {
                 ...options,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
                     ...options.headers
                 },
                 mode: 'cors',
+                credentials: 'include',
                 signal: controller.signal
             };
 
@@ -28,6 +33,13 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
             clearTimeout(timeoutId);
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    // Se o token expirou, tentar renovar
+                    const tokenRenewed = await refreshToken();
+                    if (tokenRenewed && i < maxRetries - 1) {
+                        continue; // Tentar novamente com o novo token
+                    }
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -49,7 +61,6 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
     throw lastError;
 }
 
-// Função para renovar o token
 async function refreshToken() {
     try {
         const response = await fetch(`${window.API_BASE_URL}/api/refresh-token`, {
