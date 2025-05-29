@@ -765,103 +765,29 @@ async function processLoadingQueue() {
     }
 }
 
-// Função para carregar dados do mapa com paginação
-async function loadMapData(page = 1) {
-    console.log(`Iniciando carregamento de dados - Página ${page}`);
-    
+// Função para atualizar o indicador de progresso
+function updateLoadingProgress(layerType, page, total, description) {
     const loadingMessage = document.getElementById('loadingMessage');
-    
-    const token = localStorage.getItem('authToken');
-    const userCity = localStorage.getItem('userCity')?.toLowerCase();
+    if (!loadingMessage) return;
 
-    if (!token || !userCity) {
-        console.error('Dados de autenticação não encontrados');
-        showError('Erro de autenticação. Por favor, faça login novamente.');
-        window.location.href = '/login.html';
-        return;
-    }
-
-    console.log(`Carregando dados para cidade: ${userCity}`);
-
-    try {
-        console.log(`Carregando camadas para ${userCity}`);
-        const layersResponse = await window.fetchWithRetry(`${API_BASE_URL}/api/geodata/${userCity}/layers`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!layersResponse.ok) {
-            const errorText = await layersResponse.text();
-            console.error(`Erro ao carregar camadas: Status ${layersResponse.status}`, errorText);
-            throw new Error(`Erro ao carregar camadas: ${layersResponse.status}`);
-        }
-
-        const layersData = await layersResponse.json();
-        console.log('Camadas disponíveis:', layersData);
-
-        if (!layersData.layers || !Array.isArray(layersData.layers)) {
-            console.error('Formato de resposta inválido:', layersData);
-            throw new Error('Formato de resposta inválido ao carregar camadas');
-        }
-
-        let hasAnyData = false;
-        let errors = [];
-
-        // Primeiro carrega as camadas mais leves (file e file-2)
-        if (page === 1) {
-            const lightLayers = layersData.layers.filter(layer => layer.type !== 'file-1');
-            for (const layer of lightLayers) {
-                try {
-                    if (loadingMessage) {
-                        const layerDescription = LAYER_CONFIGS[layer.type]?.description || layer.type;
-                        loadingMessage.querySelector('span').textContent = `Carregando ${layerDescription}...`;
-                    }
-                    
-                    const layerData = await loadLayerData(layer, 1, userCity, token);
-                    if (layerData && layerData.success) {
-                        hasAnyData = true;
-                        showStatus(`${LAYER_CONFIGS[layer.type]?.description || layer.type} carregado com sucesso`, 'success');
-                    }
-                } catch (error) {
-                    console.error(`Erro ao carregar camada ${layer.type}:`, error);
-                    errors.push(`${layer.type}: ${error.message}`);
-                    showWarning(`Erro ao carregar ${LAYER_CONFIGS[layer.type]?.description || layer.type}`);
-                }
-            }
-        }
-
-        if (errors.length > 0) {
-            console.error('Erros durante o carregamento:', errors);
-            showError(`Alguns dados não puderam ser carregados:\n${errors.join('\n')}`);
-        }
-
-        if (!hasAnyData) {
-            console.warn('Nenhum dado foi carregado com sucesso');
-            showWarning('Nenhum dado disponível para exibição');
-        }
-
-        return { success: hasAnyData, errors };
-
-    } catch (error) {
-        console.error('Erro ao carregar dados do mapa:', error);
-        showError(`Erro ao carregar dados do mapa: ${error.message}`);
-        return { success: false, error: error.message };
-    } finally {
-        if (loadingMessage) {
-            loadingMessage.style.display = 'none';
-        }
-    }
+    const progressText = total ? ` (${page}/${total})` : ` (Página ${page})`;
+    loadingMessage.querySelector('span').textContent = 
+        `Carregando ${description || layerType}${progressText}...`;
 }
 
 // Função para carregar dados de uma camada específica
 async function loadLayerData(layer, page, userCity, token) {
     try {
         const isEconomia = layer.type === 'file-1';
-        console.log(`Iniciando carregamento da camada ${layer.type} para ${userCity}`);
+        const layerDescription = LAYER_CONFIGS[layer.type]?.description || layer.type;
+        
+        console.log(`Iniciando carregamento da camada ${layer.type} para ${userCity} (página ${page})`);
+        updateLoadingProgress(layer.type, page, null, layerDescription);
 
-        const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}${isEconomia ? `&page=${page}&per_page=${ECONOMIA_PAGE_SIZE}` : ''}`;
+        // Ajusta o tamanho da página com base no tipo de camada
+        const perPage = isEconomia ? 5000 : 10000;
+
+        const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${perPage}`;
         console.log(`Fazendo requisição para: ${url}`);
 
         const response = await window.fetchWithRetry(url, {
@@ -869,7 +795,7 @@ async function loadLayerData(layer, page, userCity, token) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
-        }, 3, 2000, 30000); // 3 tentativas, 2s de delay inicial, 30s timeout
+        }, 3, 2000, 60000);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -890,9 +816,10 @@ async function loadLayerData(layer, page, userCity, token) {
         }
 
         const data = await response.json();
-        console.log(`Dados recebidos para ${layer.type}:`, {
+        console.log(`Dados recebidos para ${layer.type} (página ${page}):`, {
             featuresCount: data?.features?.length || 0,
-            metadata: data?.metadata
+            metadata: data?.metadata,
+            hasMore: data?.metadata?.has_more
         });
 
         if (!data || !data.features) {
@@ -901,28 +828,37 @@ async function loadLayerData(layer, page, userCity, token) {
         }
 
         if (data.features.length > 0) {
-            // Para economias, processa em lotes menores
-            if (isEconomia) {
-                const batchSize = 500; // Lote menor para economias
-                for (let i = 0; i < data.features.length; i += batchSize) {
-                    const batch = data.features.slice(i, i + batchSize);
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Pequena pausa entre lotes
-                    await processFeatures(batch, layer.type, data.metadata);
-                }
-            } else {
-                await processFeatures(data.features, layer.type, data.metadata);
+            // Atualiza o progresso antes de processar
+            const totalFeatures = data.metadata?.total_features;
+            const processedFeatures = (page - 1) * perPage + data.features.length;
+            const percentComplete = totalFeatures ? 
+                Math.round((processedFeatures / totalFeatures) * 100) : null;
+            
+            if (percentComplete !== null) {
+                updateLoadingProgress(
+                    layer.type, 
+                    processedFeatures.toLocaleString(), 
+                    totalFeatures.toLocaleString(),
+                    layerDescription
+                );
+            }
+
+            await processFeatures(data.features, layer.type, data.metadata);
+            
+            // Atualiza o controle de camadas apenas na primeira página
+            if (page === 1) {
+                updateLayerControl(layer.type, data.metadata?.description || layer.type);
             }
             
-            updateLayerControl(layer.type, data.metadata?.description || layer.type);
-            
-            if (isEconomia) {
-                hasMoreEconomias = data.metadata?.has_more || false;
-                currentEconomiaPage = page;
+            // Se houver mais dados, carrega a próxima página
+            if (data.metadata?.has_more) {
+                console.log(`Carregando próxima página para ${layer.type}`);
+                await loadLayerData(layer, page + 1, userCity, token);
             }
             
             return { success: true };
         } else {
-            console.warn(`Nenhum dado encontrado para camada ${layer.type}`);
+            console.warn(`Nenhum dado encontrado para camada ${layer.type} na página ${page}`);
             return { success: false, error: 'Nenhum dado encontrado' };
         }
     } catch (error) {
