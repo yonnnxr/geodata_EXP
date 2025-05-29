@@ -1128,16 +1128,18 @@ async function processFeatures(features, layerType, metadata) {
     };
 
     try {
-        // Tamanho do lote ainda maior para economias
-        const batchSize = layerType === 'file-1' ? 50000 : 200;
+        // Aumenta o tamanho do lote para redes de água
+        const batchSize = layerType === 'file' ? 1000000 : (layerType === 'file-1' ? 50000 : 200);
         const totalBatches = Math.ceil(features.length / batchSize);
+        
+        console.log(`Processando em ${totalBatches} lotes de ${batchSize} features`);
         
         // Criar array para armazenar todas as layers antes de adicionar
         const allLayers = [];
         
         // Otimização: Criar função de layer uma vez fora do loop
         const createCircleMarker = (coords, color) => L.circleMarker([coords[1], coords[0]], {
-            radius: 1.5, // Reduzido ainda mais
+            radius: 1.5,
             color: color,
             weight: 1,
             opacity: 0.6,
@@ -1149,6 +1151,8 @@ async function processFeatures(features, layerType, metadata) {
             const start = batchIndex * batchSize;
             const end = Math.min(start + batchSize, features.length);
             const batch = features.slice(start, end);
+            
+            console.log(`Processando lote ${batchIndex + 1}/${totalBatches} (${batch.length} features)`);
             
             // Processamento em lote sem pausas
             batch.forEach(feature => {
@@ -1166,10 +1170,23 @@ async function processFeatures(features, layerType, metadata) {
                             }
                             this.openPopup();
                         });
-                    } else {
-                        layer = L.geoJSON(feature, {
-                            style: () => getFeatureStyle(feature, layerType)
+                    } else if (feature.geometry.type === 'LineString') {
+                        layer = L.polyline(feature.geometry.coordinates.map(coord => [coord[1], coord[0]]), {
+                            ...config.style,
+                            interactive: true
                         });
+                        layer.feature = feature;
+                        
+                        // Lazy loading de popup
+                        layer.on('click', function() {
+                            if (!this._popup) {
+                                this.bindPopup(createFeaturePopup(feature, { file_type: layerType }));
+                            }
+                            this.openPopup();
+                        });
+                    } else {
+                        console.warn(`Tipo de geometria não suportado: ${feature.geometry.type}`);
+                        return;
                     }
                     
                     allLayers.push(layer);
@@ -1178,21 +1195,40 @@ async function processFeatures(features, layerType, metadata) {
                 }
             });
             
-            // Força liberação de memória a cada 5 lotes
-            if (batchIndex % 5 === 0 && window.gc) {
-                window.gc();
+            // Atualiza o status de carregamento
+            if (loadingMessage) {
+                const progress = ((batchIndex + 1) / totalBatches * 100).toFixed(1);
+                loadingMessage.querySelector('span').textContent = 
+                    `Carregando ${LAYER_CONFIGS[layerType]?.description || layerType}... ${progress}%`;
             }
         }
+
+        console.log(`Total de layers criadas: ${allLayers.length}`);
 
         // Adiciona as layers de acordo com o tipo
         const layerGroup = window.layerGroups[layerType];
         if (layerGroup) {
             if (layerType === 'file') {
-                // Adiciona em lotes para rede de água
-                const addBatchSize = 1000;
+                // Adiciona em lotes menores para redes de água para evitar travamento
+                const addBatchSize = 5000;
+                const totalAddBatches = Math.ceil(allLayers.length / addBatchSize);
+                
+                console.log(`Adicionando layers em ${totalAddBatches} lotes de ${addBatchSize}`);
+                
                 for (let i = 0; i < allLayers.length; i += addBatchSize) {
                     const batch = allLayers.slice(i, i + addBatchSize);
-                    batch.forEach(layer => layerGroup.addLayer(layer));
+                    const layersToAdd = L.layerGroup(batch);
+                    layerGroup.addLayer(layersToAdd);
+                    
+                    // Atualiza o status
+                    if (loadingMessage) {
+                        const progress = ((i + batch.length) / allLayers.length * 100).toFixed(1);
+                        loadingMessage.querySelector('span').textContent = 
+                            `Adicionando ao mapa... ${progress}%`;
+                    }
+                    
+                    // Pequena pausa para permitir que a UI responda
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
             } else {
                 // Adiciona todos de uma vez para economias e ocorrências
@@ -1202,6 +1238,8 @@ async function processFeatures(features, layerType, metadata) {
             if (!window.map.hasLayer(layerGroup)) {
                 window.map.addLayer(layerGroup);
             }
+            
+            console.log(`Camada ${layerType} adicionada ao mapa`);
         }
         
     } catch (error) {

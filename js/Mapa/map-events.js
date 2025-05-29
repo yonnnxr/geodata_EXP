@@ -1,6 +1,16 @@
 // Eventos do mapa
 document.addEventListener('DOMContentLoaded', () => {
-    if (!window.map) return;
+    // Aguarda a inicialização do mapa
+    const checkMap = setInterval(() => {
+        if (window.map) {
+            clearInterval(checkMap);
+            initializeMapEvents();
+        }
+    }, 100);
+});
+
+function initializeMapEvents() {
+    console.log('Inicializando eventos do mapa...');
 
     // Evento de clique no mapa
     window.map.on('click', (e) => {
@@ -33,10 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.map.on('load', () => {
         console.log('Mapa carregado completamente');
         if (!window.dadosCarregados) {
-            window.loadMapData();
+            window.loadMapData().then(() => {
+                console.log('Dados carregados com sucesso');
+                window.dadosCarregados = true;
+            }).catch(error => {
+                console.error('Erro ao carregar dados:', error);
+                showError('Erro ao carregar dados do mapa: ' + error.message);
+            });
         }
     });
-});
+}
 
 // Função para buscar matrícula
 window.searchMatricula = async function() {
