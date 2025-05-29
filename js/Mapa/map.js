@@ -758,34 +758,18 @@ async function processLoadingQueue() {
 // Função para carregar dados do mapa com paginação
 async function loadMapData(page = 1) {
     console.log(`Iniciando carregamento de dados - Página ${page}`);
-    const token = localStorage.getItem('authToken');
-    const userCity = localStorage.getItem('userCity');
     
+    const token = localStorage.getItem('authToken');
+    const userCity = localStorage.getItem('userCity')?.toLowerCase();
+
     if (!token || !userCity) {
-        console.error('Token ou cidade não encontrados');
-        handleAuthError();
+        console.error('Dados de autenticação não encontrados');
+        showError('Erro de autenticação. Por favor, faça login novamente.');
+        window.location.href = '/login.html';
         return;
     }
 
-    const loadingMessage = document.getElementById('loadingMessage');
-    if (page === 1) {
-        loadingMessage.style.display = 'flex';
-        loadingMessage.innerHTML = `
-            <div class="loading-content">
-                <div class="spinner"></div>
-                <p>Carregando dados do mapa...</p>
-                <small>Isso pode levar alguns minutos</small>
-            </div>
-        `;
-        clearLayers();
-        
-        // Limpa a fila de carregamento
-        loadingQueue = [];
-        isLoadingFeatures = false;
-        currentLoadingTask = null;
-    } else {
-        toggleLoadMoreIndicator(true);
-    }
+    console.log(`Carregando dados para cidade: ${userCity}`);
 
     try {
         console.log(`Carregando camadas para ${userCity}`);
@@ -797,14 +781,22 @@ async function loadMapData(page = 1) {
         });
 
         if (!layersResponse.ok) {
+            const errorText = await layersResponse.text();
+            console.error(`Erro ao carregar camadas: Status ${layersResponse.status}`, errorText);
             throw new Error(`Erro ao carregar camadas: ${layersResponse.status}`);
         }
 
         const layersData = await layersResponse.json();
         console.log('Camadas disponíveis:', layersData);
 
+        if (!layersData.layers || !Array.isArray(layersData.layers)) {
+            console.error('Formato de resposta inválido:', layersData);
+            throw new Error('Formato de resposta inválido ao carregar camadas');
+        }
+
         let hasAnyData = false;
         let errors = [];
+        const loadingQueue = [];
 
         // Primeiro carrega as camadas mais leves (file e file-2)
         if (page === 1) {
@@ -830,79 +822,31 @@ async function loadMapData(page = 1) {
             }
         }
 
-        // Depois carrega as economias
-        const economiaLayer = layersData.layers.find(layer => layer.type === 'file-1');
-        if (economiaLayer) {
-            if (page === 1) {
-                // Na primeira página, adiciona o carregamento de economias à fila
-                loadingQueue.push(async () => {
-                    try {
-                        if (loadingMessage) {
-                            loadingMessage.querySelector('p').textContent = 'Carregando economias...';
-                            loadingMessage.querySelector('small').textContent = 'Esta operação pode levar alguns minutos';
-                        }
-                        
-                        await loadLayerData(economiaLayer, page, userCity, token);
-                        console.log('Carregamento inicial de economias concluído');
-                        showStatus('Carregamento inicial de economias concluído', 'success');
-                    } catch (error) {
-                        console.error('Erro ao carregar economias:', error);
-                        errors.push(`Economias: ${error.message}`);
-                        showWarning('Erro ao carregar economias. O mapa pode estar incompleto.');
-                    }
-                });
-            } else {
-                // Para páginas subsequentes, carrega apenas economias
-                loadingQueue.push(async () => {
-                    try {
-                        await loadLayerData(economiaLayer, page, userCity, token);
-                        showStatus(`Mais ${ECONOMIA_PAGE_SIZE} economias carregadas`, 'success');
-                    } catch (error) {
-                        console.error('Erro ao carregar mais economias:', error);
-                        errors.push(`Economias (página ${page}): ${error.message}`);
-                        showWarning('Erro ao carregar mais economias');
-                    }
-                });
-            }
+        // Processa a fila de carregamento
+        for (const loadTask of loadingQueue) {
+            await loadTask();
         }
 
-        // Inicia o processamento da fila
-        if (!isLoadingFeatures) {
-            processLoadingQueue();
+        if (errors.length > 0) {
+            console.error('Erros durante o carregamento:', errors);
+            showError(`Alguns dados não puderam ser carregados:\n${errors.join('\n')}`);
         }
 
-        if (page === 1) {
-            fitMapToBounds();
+        if (!hasAnyData) {
+            console.warn('Nenhum dado foi carregado com sucesso');
+            showWarning('Nenhum dado disponível para exibição');
         }
-        
-        window.dadosCarregados = true;
-        
-        if (loadingMessage && page === 1) {
-            // Mantém a mensagem de carregamento até que todas as tarefas sejam concluídas
-            const checkQueue = setInterval(() => {
-                if (loadingQueue.length === 0 && !isLoadingFeatures) {
-                    loadingMessage.style.display = 'none';
-                    clearInterval(checkQueue);
-                }
-            }, 1000);
-        }
-        
-        toggleLoadMoreIndicator(false);
-        isLoadingMore = false;
 
-        // Se houver erros em algumas camadas mas outras funcionaram
-        if (errors.length > 0 && hasAnyData) {
-            showWarning(`Alguns dados não puderam ser carregados:\n${errors.join('\n')}`);
-        }
+        return { success: hasAnyData, errors };
 
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        showError(`Erro ao carregar dados: ${error.message}`);
+        console.error('Erro ao carregar dados do mapa:', error);
+        showError(`Erro ao carregar dados do mapa: ${error.message}`);
+        return { success: false, error: error.message };
+    } finally {
         if (loadingMessage) {
-            loadingMessage.style.display = 'none';
+            loadingMessage.remove();
         }
-        toggleLoadMoreIndicator(false);
-        isLoadingMore = false;
     }
 }
 
@@ -920,14 +864,23 @@ async function loadLayerData(layer, page, userCity, token) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
-        });
+        }, 3, 2000, 30000); // 3 tentativas, 2s de delay inicial, 30s timeout
 
         if (!response.ok) {
-            console.error(`Resposta não ok (${response.status}) para camada ${layer.type}`);
+            const errorText = await response.text();
+            console.error(`Erro na resposta (${response.status}) para camada ${layer.type}:`, errorText);
+            
             if (response.status === 404) {
                 console.warn(`Dados não encontrados para camada ${layer.type}`);
                 return { success: false, error: 'Dados não encontrados' };
             }
+            
+            if (response.status === 401) {
+                console.error('Erro de autenticação');
+                window.location.href = '/login.html';
+                return { success: false, error: 'Erro de autenticação' };
+            }
+            
             throw new Error(`Erro ao carregar camada ${layer.type}: ${response.status}`);
         }
 
@@ -937,7 +890,12 @@ async function loadLayerData(layer, page, userCity, token) {
             metadata: data?.metadata
         });
 
-        if (data?.features?.length > 0) {
+        if (!data || !data.features) {
+            console.error('Resposta inválida:', data);
+            throw new Error('Formato de resposta inválido');
+        }
+
+        if (data.features.length > 0) {
             // Para economias, processa em lotes menores
             if (isEconomia) {
                 const batchSize = 500; // Lote menor para economias
@@ -950,7 +908,7 @@ async function loadLayerData(layer, page, userCity, token) {
                 await processFeatures(data.features, layer.type, data.metadata);
             }
             
-            updateLayerControl(layer.type, data.metadata.description);
+            updateLayerControl(layer.type, data.metadata?.description || layer.type);
             
             if (isEconomia) {
                 hasMoreEconomias = data.metadata?.has_more || false;

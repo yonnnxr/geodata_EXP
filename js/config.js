@@ -3,7 +3,7 @@ window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 console.log('API_BASE_URL definida:', window.API_BASE_URL);
 
 // Função para fazer requisições com retry
-window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 1000, timeout = 15000) {
+window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 2000, timeout = 30000) {
     let lastError;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -64,7 +64,10 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
             }
             
             if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                // Aumenta o delay exponencialmente
+                const currentDelay = retryDelay * Math.pow(2, i);
+                console.log(`Aguardando ${currentDelay}ms antes da próxima tentativa...`);
+                await new Promise(resolve => setTimeout(resolve, currentDelay));
             }
         }
     }
