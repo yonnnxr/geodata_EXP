@@ -2,6 +2,72 @@
 window.API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 console.log('API_BASE_URL definida:', window.API_BASE_URL);
 
+// Configurações das camadas
+window.LAYER_CONFIGS = {
+    'file': {
+        description: 'Rede de Água',
+        title: 'Informações da Rede',
+        style: {
+            color: '#2196F3',
+            weight: 2,
+            opacity: 1
+        },
+        fields: [
+            { key: 'tipo', label: 'Tipo' },
+            { key: 'mat', label: 'Material' },
+            { key: 'dia', label: 'Diâmetro' },
+            { key: 'ext', label: 'Extensão' },
+            { key: 'status', label: 'Status' }
+        ]
+    },
+    'file-1': {
+        description: 'Economias',
+        title: 'Informações da Economia',
+        style: {
+            color: '#FF5252',
+            radius: 4,
+            weight: 1,
+            opacity: 0.8,
+            fillOpacity: 0.6
+        },
+        fields: [
+            { key: 'matricula', label: 'Matrícula' },
+            { key: 'logradouro', label: 'Logradouro' },
+            { key: 'numero', label: 'Número' },
+            { key: 'bairro', label: 'Bairro' },
+            { key: 'complemento', label: 'Complemento' },
+            { key: 'economias', label: 'Economias' },
+            { key: 'consumo_medio', label: 'Consumo Médio' }
+        ],
+        formatAddress: (props) => {
+            const parts = [];
+            if (props.logradouro) parts.push(props.logradouro);
+            if (props.numero) parts.push(`Nº ${props.numero}`);
+            if (props.complemento) parts.push(props.complemento);
+            if (props.bairro) parts.push(props.bairro);
+            return parts.join(', ');
+        }
+    },
+    'file-2': {
+        description: 'Ocorrências',
+        title: 'Informações da Ocorrência',
+        style: {
+            color: '#FFC107',
+            radius: 6,
+            weight: 1,
+            opacity: 0.8,
+            fillOpacity: 0.6
+        },
+        fields: [
+            { key: 'data_ocorrencia', label: 'Data' },
+            { key: 'tipo_ocorrencia', label: 'Tipo' },
+            { key: 'descricao', label: 'Descrição' },
+            { key: 'solucao', label: 'Solução' },
+            { key: 'prioridade', label: 'Prioridade' }
+        ]
+    }
+};
+
 // Função para fazer requisições com retry
 window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 2000, timeout = 30000) {
     let lastError;
@@ -99,65 +165,6 @@ async function refreshToken() {
         return false;
     }
 }
-
-// Configurações das camadas
-const LAYER_CONFIGS = {
-    'file': {
-        title: 'Rede de Distribuição',
-        description: 'Rede de Distribuição de Água',
-        style: {
-            color: '#2196F3',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.6
-        },
-        fields: [
-            { key: 'tipo', label: 'Tipo' },
-            { key: 'mat', label: 'Material' },
-            { key: 'dia', label: 'Diâmetro' },
-            { key: 'ext', label: 'Extensão' }
-        ]
-    },
-    'file-1': {
-        title: 'Economia',
-        description: 'Economias',
-        style: {
-            color: '#FF5252',
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.6
-        },
-        fields: [
-            { key: 'matricula', label: 'Matrícula' },
-            { key: 'status', label: 'Status' },
-            { key: 'consumo_medio', label: 'Consumo Médio' }
-        ],
-        formatAddress: (props) => {
-            const parts = [];
-            if (props.logradouro) parts.push(props.logradouro);
-            if (props.numero) parts.push(props.numero);
-            if (props.bairro) parts.push(props.bairro);
-            if (props.complemento) parts.push(props.complemento);
-            return parts.join(', ');
-        }
-    },
-    'file-2': {
-        title: 'Ocorrência',
-        description: 'Ocorrências',
-        style: {
-            color: '#FFC107',
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.6
-        },
-        fields: [
-            { key: 'tipo_ocorrencia', label: 'Tipo' },
-            { key: 'data_ocorrencia', label: 'Data' },
-            { key: 'prioridade', label: 'Prioridade' },
-            { key: 'status', label: 'Status' }
-        ]
-    }
-};
 
 // Configurações de autenticação
 if (typeof window.AUTH_CONFIG === 'undefined') {

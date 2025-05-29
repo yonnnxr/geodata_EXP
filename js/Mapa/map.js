@@ -769,6 +769,8 @@ async function processLoadingQueue() {
 async function loadMapData(page = 1) {
     console.log(`Iniciando carregamento de dados - Página ${page}`);
     
+    const loadingMessage = document.getElementById('loadingMessage');
+    
     const token = localStorage.getItem('authToken');
     const userCity = localStorage.getItem('userCity')?.toLowerCase();
 
@@ -806,35 +808,28 @@ async function loadMapData(page = 1) {
 
         let hasAnyData = false;
         let errors = [];
-        const loadingQueue = [];
 
         // Primeiro carrega as camadas mais leves (file e file-2)
         if (page === 1) {
             const lightLayers = layersData.layers.filter(layer => layer.type !== 'file-1');
             for (const layer of lightLayers) {
-                loadingQueue.push(async () => {
-                    try {
-                        if (loadingMessage) {
-                            loadingMessage.querySelector('p').textContent = `Carregando ${LAYER_CONFIGS[layer.type]?.description || layer.type}...`;
-                        }
-                        
-                        const layerData = await loadLayerData(layer, 1, userCity, token);
-                        if (layerData && layerData.success) {
-                            hasAnyData = true;
-                            showStatus(`${LAYER_CONFIGS[layer.type]?.description || layer.type} carregado com sucesso`, 'success');
-                        }
-                    } catch (error) {
-                        console.error(`Erro ao carregar camada ${layer.type}:`, error);
-                        errors.push(`${layer.type}: ${error.message}`);
-                        showWarning(`Erro ao carregar ${LAYER_CONFIGS[layer.type]?.description || layer.type}`);
+                try {
+                    if (loadingMessage) {
+                        const layerDescription = LAYER_CONFIGS[layer.type]?.description || layer.type;
+                        loadingMessage.querySelector('span').textContent = `Carregando ${layerDescription}...`;
                     }
-                });
+                    
+                    const layerData = await loadLayerData(layer, 1, userCity, token);
+                    if (layerData && layerData.success) {
+                        hasAnyData = true;
+                        showStatus(`${LAYER_CONFIGS[layer.type]?.description || layer.type} carregado com sucesso`, 'success');
+                    }
+                } catch (error) {
+                    console.error(`Erro ao carregar camada ${layer.type}:`, error);
+                    errors.push(`${layer.type}: ${error.message}`);
+                    showWarning(`Erro ao carregar ${LAYER_CONFIGS[layer.type]?.description || layer.type}`);
+                }
             }
-        }
-
-        // Processa a fila de carregamento
-        for (const loadTask of loadingQueue) {
-            await loadTask();
         }
 
         if (errors.length > 0) {
@@ -855,7 +850,7 @@ async function loadMapData(page = 1) {
         return { success: false, error: error.message };
     } finally {
         if (loadingMessage) {
-            loadingMessage.remove();
+            loadingMessage.style.display = 'none';
         }
     }
 }
