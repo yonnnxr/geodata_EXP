@@ -120,6 +120,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeLeafletMap().then(() => {
         // Configura os controles das camadas após o mapa estar inicializado
         setupLayerControls();
+        
+        // Carrega os dados do mapa
+        console.log('Iniciando carregamento dos dados...');
+        loadMapData().then(() => {
+            console.log('Dados carregados com sucesso');
+            window.dadosCarregados = true;
+        }).catch(error => {
+            console.error('Erro ao carregar dados:', error);
+            showError('Erro ao carregar dados do mapa: ' + error.message);
+        });
     });
 });
 

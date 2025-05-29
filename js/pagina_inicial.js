@@ -4,9 +4,9 @@ const API_BASE_URL = 'https://api-geodata-exp.onrender.com';
 // Elementos do DOM
 const userNameElement = document.getElementById('userName');
 const cityNameElement = document.getElementById('cityName');
-const waterNetworksElement = document.getElementById('waterNetworks');
-const totalLengthElement = document.getElementById('totalLength');
-const totalPointsElement = document.getElementById('totalPoints');
+const totalRedesElement = document.getElementById('totalRedes');
+const totalExtensaoElement = document.getElementById('totalExtensao');
+const totalPontosElement = document.getElementById('totalPontos');
 const logoutBtn = document.getElementById('logoutBtn');
 
 // Event Listeners
@@ -71,6 +71,7 @@ async function loadStatistics() {
         }
 
         const data = await response.json();
+        console.log('Dados recebidos:', data);
         updateStatistics(data);
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
@@ -112,16 +113,22 @@ function createErrorContainer() {
 // Função para atualizar estatísticas na página
 function updateStatistics(data) {
     try {
+        console.log('Atualizando estatísticas:', data);
+        
         // Atualiza os contadores
-        document.getElementById('totalRedes')?.textContent = formatNumber(data.total_networks || 0);
-        document.getElementById('totalPontos')?.textContent = formatNumber(data.total_points || 0);
-        document.getElementById('totalExtensao')?.textContent = formatNumber(data.total_length / 1000 || 0, 2) + ' km';
+        if (totalRedesElement) totalRedesElement.textContent = formatNumber(data.total_networks || 0);
+        if (totalPontosElement) totalPontosElement.textContent = formatNumber(data.total_points || 0);
+        if (totalExtensaoElement) totalExtensaoElement.textContent = formatNumber(data.total_length / 1000 || 0, 2) + ' km';
         
         // Atualiza detalhes adicionais se existirem
         if (data.details) {
-            document.getElementById('detalhesRedes')?.textContent = formatNumber(data.details.networks || 0);
-            document.getElementById('detalhesEconomias')?.textContent = formatNumber(data.details.economies || 0);
-            document.getElementById('detalhesExtensao')?.textContent = formatNumber(data.details.network_length_km || 0, 2) + ' km';
+            const detalhesRedes = document.getElementById('detalhesRedes');
+            const detalhesEconomias = document.getElementById('detalhesEconomias');
+            const detalhesExtensao = document.getElementById('detalhesExtensao');
+            
+            if (detalhesRedes) detalhesRedes.textContent = formatNumber(data.details.networks || 0);
+            if (detalhesEconomias) detalhesEconomias.textContent = formatNumber(data.details.economies || 0);
+            if (detalhesExtensao) detalhesExtensao.textContent = formatNumber(data.details.network_length_km || 0, 2) + ' km';
         }
     } catch (error) {
         console.error('Erro ao atualizar estatísticas na página:', error);
