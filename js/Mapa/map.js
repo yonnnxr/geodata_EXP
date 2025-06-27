@@ -784,8 +784,8 @@ async function loadLayerData(layer, page, userCity, token) {
         console.log(`Iniciando carregamento da camada ${layer.type} para ${userCity} (página ${page})`);
         updateLoadingProgress(layer.type, page, null, layerDescription);
 
-        // Ajusta o tamanho da página com base no tipo de camada
-        const perPage = isEconomia ? 5000 : 10000;
+        // Se perPage for 0, backend retorna todos os registros sem paginação
+        const perPage = 0;
 
         const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${perPage}`;
         console.log(`Fazendo requisição para: ${url}`);
