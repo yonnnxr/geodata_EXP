@@ -1196,7 +1196,7 @@ function clearHighlight() {
 }
 
 // Função principal para carregar os dados das camadas do mapa
-window.loadMapData = async function(startEconomiaPage = 1) {
+async function loadMapData(startEconomiaPage = 1) {
     try {
         console.log(`loadMapData: iniciando com startEconomiaPage=${startEconomiaPage}`);
 
@@ -1232,4 +1232,7 @@ window.loadMapData = async function(startEconomiaPage = 1) {
         console.error('loadMapData: erro ao carregar dados', error);
         throw error;
     }
-};
+}
+
+// Exponibiliza no escopo global para acesso por outros módulos
+window.loadMapData = loadMapData;
