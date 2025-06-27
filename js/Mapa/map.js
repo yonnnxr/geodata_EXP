@@ -1194,3 +1194,42 @@ function clearHighlight() {
         window.highlightedLayer = null;
     }
 }
+
+// Função principal para carregar os dados das camadas do mapa
+window.loadMapData = async function(startEconomiaPage = 1) {
+    try {
+        console.log(`loadMapData: iniciando com startEconomiaPage=${startEconomiaPage}`);
+
+        const token = localStorage.getItem('authToken');
+        const userCity = localStorage.getItem('userCity')?.toLowerCase();
+
+        if (!token || !userCity) {
+            console.error('Credenciais de autenticação ausentes');
+            handleAuthError();
+            return;
+        }
+
+        // Atualiza a página atual de economias usada pelo controle de rolagem
+        currentEconomiaPage = startEconomiaPage;
+
+        // Sequência de camadas a serem carregadas
+        const layersToLoad = [
+            { type: 'file' },      // Rede de Distribuição
+            { type: 'file-1' },    // Economias Zero
+            { type: 'file-2' }     // Ocorrências
+        ];
+
+        for (const layer of layersToLoad) {
+            const initialPage = layer.type === 'file-1' ? startEconomiaPage : 1;
+            await loadLayerData(layer, initialPage, userCity, token);
+        }
+
+        // Ajusta o mapa para a extensão dos dados carregados
+        fitMapToBounds();
+
+        console.log('loadMapData: dados carregados com sucesso');
+    } catch (error) {
+        console.error('loadMapData: erro ao carregar dados', error);
+        throw error;
+    }
+};
