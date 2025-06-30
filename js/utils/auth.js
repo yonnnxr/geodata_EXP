@@ -87,7 +87,8 @@ function checkAuth() {
 
 function logout() {
     localStorage.clear();
-    window.location.href = 'Login.html';
+    // Usa replace para evitar que o botão voltar retorne à página anterior logada
+    window.location.replace('login.html');
 }
 
 // Função para gerenciar navegação
