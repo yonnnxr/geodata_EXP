@@ -19,6 +19,13 @@ window.isMapInitialized = false;
 const BATCH_SIZE = 200000;
 const ECONOMIA_PAGE_SIZE = 50000; // Limite de pontos por página para economias
 
+// Configurações para carregamento por bounding box
+const TILE_ZOOM = 14;
+const MAX_CACHE_TILES = 200;
+const tileCache = new Map(); // key: "z/x/y" -> true
+
+let bboxFetchTimeout = null; // debounce handler
+
 // Variáveis de controle
 let featuresCache = new Map();
 let currentEconomiaPage = 1;
@@ -1018,16 +1025,7 @@ function zoomToFeature(lat, lng) {
 
 // Função para carregar mais dados quando o usuário move o mapa
 function onMapMoveEnd() {
-    if (!dadosCarregados || isLoadingMore || !hasMoreEconomias) return;
-    
-    const zoom = window.map.getZoom();
-    const bounds = window.map.getBounds();
-    
-    // Só carrega mais dados se o zoom for suficiente e houver área visível significativa
-    if (zoom >= 14 && bounds.getNorth() - bounds.getSouth() < 0.1) {
-        isLoadingMore = true;
-        loadMapData(currentEconomiaPage + 1);
-    }
+    scheduleFetchVisibleTiles();
 }
 
 // Função para mostrar avisos (warnings)
@@ -1099,6 +1097,17 @@ async function processFeatures(features, layerType, metadata) {
             // Processamento em lote sem pausas
             batch.forEach(feature => {
                 try {
+                    // Evita duplicar a mesma feature
+                    let cacheKey;
+                    if (feature.geometry.type === 'Point') {
+                        const c = feature.geometry.coordinates;
+                        cacheKey = `${c[0].toFixed(5)},${c[1].toFixed(5)}`;
+                    } else {
+                        cacheKey = JSON.stringify(feature.geometry.coordinates[0]);
+                    }
+
+                    if (featuresCache.has(cacheKey)) return;
+
                     let layer;
                     
                     if (feature.geometry.type === 'Point') {
@@ -1132,6 +1141,7 @@ async function processFeatures(features, layerType, metadata) {
                     }
                     
                     allLayers.push(layer);
+                    featuresCache.set(cacheKey, true);
                 } catch (error) {
                     console.error(`Erro ao processar feature:`, error);
                 }
@@ -1173,8 +1183,19 @@ async function processFeatures(features, layerType, metadata) {
                     await new Promise(resolve => setTimeout(resolve, 10));
                 }
             } else {
-                // Adiciona todos de uma vez para economias e ocorrências
-                layerGroup.addLayers(allLayers);
+                // Para economias e ocorrências, também fazemos adição em lotes para evitar travamento
+                const addBatchSize = layerType === 'file-1' ? 5000 : allLayers.length;
+                const totalAddBatches = Math.ceil(allLayers.length / addBatchSize);
+
+                for (let i = 0; i < allLayers.length; i += addBatchSize) {
+                    const batch = allLayers.slice(i, i + addBatchSize);
+                    layerGroup.addLayers(batch);
+
+                    // Pequena pausa para permitir que a UI responda
+                    if (addBatchSize < allLayers.length) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
             }
 
             if (!window.map.hasLayer(layerGroup)) {
@@ -1223,7 +1244,7 @@ async function loadMapData(startEconomiaPage = 1) {
             [{ type: 'file-1' }] :
             [
                 { type: 'file' },      // Rede de Distribuição
-                { type: 'file-1' },    // Economias Zero
+                // Economias serão carregadas por BBOX, não via paginação
                 { type: 'file-2' }     // Ocorrências
             ];
 
@@ -1238,6 +1259,10 @@ async function loadMapData(startEconomiaPage = 1) {
         }
 
         console.log('loadMapData: dados carregados com sucesso');
+
+        if (startEconomiaPage === 1) {
+            scheduleFetchVisibleTiles();
+        }
     } catch (error) {
         console.error('loadMapData: erro ao carregar dados', error);
         throw error;
@@ -1246,3 +1271,98 @@ async function loadMapData(startEconomiaPage = 1) {
 
 // Exponibiliza no escopo global para acesso por outros módulos
 window.loadMapData = loadMapData;
+
+// Função para calcular tile x,y a partir de lon/lat
+function lonLatToTile(lon, lat, zoom) {
+    const latRad = lat * Math.PI / 180;
+    const n = Math.pow(2, zoom);
+    const x = Math.floor((lon + 180) / 360 * n);
+    const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+    return { x, y };
+}
+
+function tileToBBox(x, y, zoom) {
+    const n = Math.pow(2, zoom);
+    const lon1 = x / n * 360 - 180;
+    const lat1Rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
+    const lat1 = lat1Rad * 180 / Math.PI;
+
+    const lon2 = (x + 1) / n * 360 - 180;
+    const lat2Rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n)));
+    const lat2 = lat2Rad * 180 / Math.PI;
+
+    return { minLon: lon1, minLat: lat2, maxLon: lon2, maxLat: lat1 };
+}
+
+function getVisibleTiles(map, zoomLevel) {
+    const bounds = map.getBounds();
+    const nw = bounds.getNorthWest();
+    const se = bounds.getSouthEast();
+
+    const nwTile = lonLatToTile(nw.lng, nw.lat, zoomLevel);
+    const seTile = lonLatToTile(se.lng, se.lat, zoomLevel);
+
+    const tiles = [];
+    for (let x = nwTile.x; x <= seTile.x; x++) {
+        for (let y = nwTile.y; y <= seTile.y; y++) {
+            tiles.push({ x, y, z: zoomLevel });
+        }
+    }
+    return tiles;
+}
+
+async function fetchEconomiasTile(tile, userCity, token) {
+    const key = `${tile.z}/${tile.x}/${tile.y}`;
+    if (tileCache.has(key)) return; // já baixado
+
+    if (tileCache.size >= MAX_CACHE_TILES) {
+        const oldestKey = tileCache.keys().next().value;
+        tileCache.delete(oldestKey);
+        // TODO: opcionalmente remover features do layer para liberar memória
+    }
+
+    const bbox = tileToBBox(tile.x, tile.y, tile.z);
+    const bboxStr = `${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`;
+
+    const url = `${API_BASE_URL}/api/geodata/${userCity}/bbox?bbox=${bboxStr}`;
+
+    try {
+        const response = await window.fetchWithRetry(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        }, 3, 2000, 60000);
+
+        if (!response.ok) {
+            console.error('Erro ao carregar tile', key, response.status);
+            return;
+        }
+
+        const data = await response.json();
+        if (data && data.features && data.features.length > 0) {
+            await processFeatures(data.features, 'file-1', data.metadata);
+        }
+
+        tileCache.set(key, true);
+    } catch (err) {
+        console.error('Falha ao buscar tile', key, err);
+    }
+}
+
+function scheduleFetchVisibleTiles() {
+    if (bboxFetchTimeout) clearTimeout(bboxFetchTimeout);
+    bboxFetchTimeout = setTimeout(async () => {
+        const zoom = window.map.getZoom();
+        if (zoom < TILE_ZOOM) return;
+
+        const userCity = localStorage.getItem('userCity')?.toLowerCase();
+        const token = localStorage.getItem('authToken');
+        if (!token || !userCity) return;
+
+        const tiles = getVisibleTiles(window.map, TILE_ZOOM);
+        for (const tile of tiles) {
+            fetchEconomiasTile(tile, userCity, token);
+        }
+    }, 300);
+}
