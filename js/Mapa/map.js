@@ -17,7 +17,7 @@ window.isMapInitialized = false;
 
 // Constantes
 const BATCH_SIZE = 200000;
-const ECONOMIA_PAGE_SIZE = 1000000;
+const ECONOMIA_PAGE_SIZE = 50000; // Limite de pontos por página para economias
 
 // Variáveis de controle
 let featuresCache = new Map();
@@ -784,8 +784,8 @@ async function loadLayerData(layer, page, userCity, token) {
         console.log(`Iniciando carregamento da camada ${layer.type} para ${userCity} (página ${page})`);
         updateLoadingProgress(layer.type, page, null, layerDescription);
 
-        // Se perPage for 0, backend retorna todos os registros sem paginação
-        const perPage = 0;
+        // Usa paginação apenas para economias, reduzindo carga de dados
+        const perPage = isEconomia ? ECONOMIA_PAGE_SIZE : 0;
 
         const url = `${API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${perPage}`;
         console.log(`Fazendo requisição para: ${url}`);
