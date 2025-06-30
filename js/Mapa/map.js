@@ -856,6 +856,12 @@ async function loadLayerData(layer, page, userCity, token) {
                 await loadLayerData(layer, page + 1, userCity, token);
             }
             
+            // Atualiza flags para controle de rolagem infinita
+            if (isEconomia) {
+                currentEconomiaPage = page;
+                hasMoreEconomias = data.metadata?.has_more ?? false;
+            }
+            
             return { success: true };
         } else {
             console.warn(`Nenhum dado encontrado para camada ${layer.type} na página ${page}`);
@@ -1209,23 +1215,27 @@ async function loadMapData(startEconomiaPage = 1) {
             return;
         }
 
-        // Atualiza a página atual de economias usada pelo controle de rolagem
+        // Atualiza o rastreamento da página atual de economias
         currentEconomiaPage = startEconomiaPage;
 
-        // Sequência de camadas a serem carregadas
-        const layersToLoad = [
-            { type: 'file' },      // Rede de Distribuição
-            { type: 'file-1' },    // Economias Zero
-            { type: 'file-2' }     // Ocorrências
-        ];
+        // Quando startEconomiaPage > 1 significa "scroll infinito" -> carrega apenas economias
+        const layersToLoad = startEconomiaPage > 1 ? 
+            [{ type: 'file-1' }] :
+            [
+                { type: 'file' },      // Rede de Distribuição
+                { type: 'file-1' },    // Economias Zero
+                { type: 'file-2' }     // Ocorrências
+            ];
 
         for (const layer of layersToLoad) {
             const initialPage = layer.type === 'file-1' ? startEconomiaPage : 1;
             await loadLayerData(layer, initialPage, userCity, token);
         }
 
-        // Ajusta o mapa para a extensão dos dados carregados
-        fitMapToBounds();
+        // Ajusta o mapa para a extensão dos dados carregados somente na primeira chamada
+        if (startEconomiaPage === 1) {
+            fitMapToBounds();
+        }
 
         console.log('loadMapData: dados carregados com sucesso');
     } catch (error) {
