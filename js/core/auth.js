@@ -1,3 +1,4 @@
+// Copiado de js/utils/auth.js
 // Funções de autenticação centralizadas
 function isValidToken() {
     const token = localStorage.getItem('authToken');
@@ -9,16 +10,13 @@ function isValidToken() {
 
         const payload = JSON.parse(atob(tokenParts[1]));
         const expirationTime = payload.exp * 1000;
-        
-        // Adiciona margem de 5 minutos para renovação
         const renewalTime = expirationTime - (5 * 60 * 1000);
-        
+
         if (Date.now() >= expirationTime) {
             localStorage.clear();
             return false;
         }
 
-        // Se estiver próximo da expiração, tenta renovar
         if (Date.now() >= renewalTime) {
             renewToken();
         }
@@ -71,7 +69,6 @@ function checkAuth() {
         return false;
     }
 
-    // Verificações específicas por tipo de usuário
     if (userType === 'admin' && !userCity && window.location.pathname.includes('pagina_inicial.html')) {
         window.location.href = 'admin.html';
         return false;
@@ -87,29 +84,21 @@ function checkAuth() {
 
 function logout() {
     localStorage.clear();
-    // Usa replace para evitar que o botão voltar retorne à página anterior logada
     window.location.replace('login.html');
 }
 
-// Função para gerenciar navegação
 function handleNavigation(event) {
     const userType = localStorage.getItem('userType');
-    
-    // Se não houver tipo de usuário, deixa o comportamento padrão
     if (!userType) return;
 
-    // Se for botão voltar do navegador
     if (event && event.type === 'popstate') {
         event.preventDefault();
         redirectToHome();
         return;
     }
-
-    // Para outros tipos de navegação
     redirectToHome();
 }
 
-// Função para redirecionar para a página inicial correta
 function redirectToHome() {
     const userType = localStorage.getItem('userType');
     if (userType === 'admin') {
@@ -119,10 +108,9 @@ function redirectToHome() {
     }
 }
 
-// Interceptar evento de voltar do navegador
 window.addEventListener('popstate', handleNavigation);
 
-// Exportar funções
+// Exportar funções globalmente
 window.authUtils = {
     isValidToken,
     checkAuth,

@@ -1,0 +1,10 @@
+/* notifications.css – toast e loading-spinner */
+.notification{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#fff;padding:1rem 2rem;border-radius:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:1100;display:flex;align-items:center;gap:.75rem;opacity:0;pointer-events:none;transition:.3s;}
+.notification.show{opacity:1;pointer-events:auto;}
+.notification.success{border-left:4px solid #28a745;}
+.notification.error{border-left:4px solid #dc3545;}
+.notification.info{border-left:4px solid #17a2b8;}
+.notification i{font-size:1.25rem;}
+
+.loading-spinner{display:flex;justify-content:center;align-items:center;padding:1rem;}
+.loading-spinner i{font-size:2rem;color:var(--primary-color);animation:spin 1s linear infinite;} 

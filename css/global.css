@@ -1,0 +1,68 @@
+@import url('map/base.css');
+@import url('map/controls.css');
+@import url('map/sidebar.css');
+@import url('map/popups.css');
+@import url('map/messages.css');
+@import url('map/responsive.css');
+@import url('admin/layout.css');
+@import url('admin/dashboard.css');
+@import url('admin/users.css');
+@import url('admin/localities.css');
+@import url('admin/notifications.css');
+@import url('home/layout.css');
+@import url('home/stats.css');
+@import url('home/cards.css');
+@import url('home/messages.css');
+@import url('home/animations.css');
+@import url('home/responsive.css');
+@import url('estatisticas.css');
+@import url('configuracoes.css');
+
+:root {
+    /* Cores principais */
+    --primary-color: #2563eb;
+    --secondary-color: #1e40af;
+
+    /* Background padrões */
+    --background-color: #f1f5f9;
+    --background-start: #2563eb;
+    --background-end: #1e40af;
+
+    /* Tipografia e bordas */
+    --text-color: #1e293b;
+    --border-color: #e2e8f0;
+
+    /* Estados */
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+
+    /* Outros */
+    --card-background: #ffffff;
+    --input-border: #e2e8f0;
+    --transition-speed: 0.3s;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --light-gray: #f5f5f5;
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+/* Reset e tipografia global */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+}
+
+/* Utilidades */
+.hidden {
+    display: none !important;
+} 

@@ -1,0 +1,15 @@
+/* controls.css – controles do mapa, layer-control e search-control */
+
+.map-controls{ position:fixed; top:10px; left:10px; z-index:1000; display:flex; gap:10px; }
+.menu-toggle,.back-button{ background:#fff; border:none; padding:10px; border-radius:5px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,.1); display:flex; align-items:center; gap:8px; font-size:14px; color:#333; transition:all .3s; }
+.menu-toggle:hover,.back-button:hover{ background:#f5f5f5; }
+
+/* Layer control */
+.layer-control{ position:absolute; top:10px; right:10px; background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.1); z-index:1000; max-height:calc(100vh - 40px); overflow-y:auto; }
+.layer-control h3{ margin:0 0 15px 0; font-size:16px; color:#333; border-bottom:1px solid #eee; padding-bottom:8px; }
+
+/* Search control */
+.search-control{ position:absolute; top:10px; left:50px; background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.1); z-index:1000; width:300px; }
+.search-control input{ width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; font-size:14px; margin-bottom:8px; }
+.search-control button{ background:#3388ff; color:#fff; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:5px; }
+.search-control button:hover{ background:#2370e0; } 

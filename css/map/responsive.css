@@ -1,0 +1,24 @@
+@media (max-width:768px){
+    .sidebar{width:260px;left:-260px;}
+    .map-controls{top:10px;left:10px;gap:8px;}
+    .menu-toggle{padding:8px;font-size:18px;}
+    .back-button{padding:8px 12px;font-size:13px;}
+    .back-button span{display:none;}
+    .message-box{width:90%;font-size:13px;}
+    .loading-message{width:80%;padding:12px 20px;font-size:14px;}
+    .leaflet-control-zoom{margin-bottom:60px!important;}
+    .leaflet-control-attribution{font-size:10px!important;}
+    .search-box{flex-direction:column;}
+    .search-box button{width:100%;}
+    /* Search & layer control on small */
+    .search-control{top:auto;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;padding:10px;background:rgba(255,255,255,.95);}
+    .layer-control{top:auto;bottom:90px;right:10px;max-height:200px;max-width:150px;width:auto;background:rgba(255,255,255,.95);}
+    .streetview-popup .leaflet-popup-content{width:300px!important;}
+    .streetview-popup iframe{height:300px!important;}
+    .warning-message{top:auto;bottom:20px;right:10px;left:10px;max-width:none;}
+    .retry-button-large{width:calc(100% - 40px);max-width:300px;}
+}
+
+@media (prefers-color-scheme:dark){
+    .map-tiles{filter:brightness(0.8) contrast(1.2);}
+} 

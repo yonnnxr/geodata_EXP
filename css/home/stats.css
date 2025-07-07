@@ -1,0 +1,13 @@
+/* stats.css – seção de estatísticas e cartões */
+.welcome-section{text-align:center;margin-bottom:3rem;animation:fadeIn 1s ease;}
+.welcome-section h1{font-size:2.5rem;color:var(--primary-color);margin-bottom:.5rem;}
+
+.statistics-container{margin-bottom:3rem;animation:slideUp .8s ease;}
+.statistics-container h2{margin-bottom:1.5rem;color:var(--text-color);}
+
+.quick-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;}
+.stat-card{background:#fff;padding:1.5rem;border-radius:1rem;box-shadow:0 4px 15px var(--shadow-color);display:flex;align-items:center;gap:1rem;transition:transform var(--transition-speed);} 
+.stat-card:hover{transform:translateY(-5px);} 
+.stat-card i{font-size:2rem;color:var(--primary-color);} 
+.stat-info h4{color:var(--text-color);margin-bottom:.5rem;} 
+.stat-info span{font-size:1.25rem;font-weight:600;color:var(--primary-color);} 

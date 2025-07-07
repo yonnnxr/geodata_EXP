@@ -1,0 +1,7 @@
+@media(max-width:768px){
+.navbar{padding:1rem;flex-direction:column;gap:1rem;}
+.user-info{flex-direction:column;gap:.5rem;}
+.main-content{padding:1rem;}
+.welcome-section h1{font-size:2rem;}
+.stat-card{flex-direction:column;text-align:center;}
+} 
