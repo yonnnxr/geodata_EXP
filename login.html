@@ -67,37 +67,26 @@
     <script src="js/config.js"></script>
     <script src="js/core/auth.js"></script>
     <script src="js/login.js"></script>
-    
-    <!-- Scripts utilitários básicos -->
+
+    <!-- Scripts utilitários -->
     <script src="js/utils/notifications.js"></script>
-    
-    <!-- Scripts utilitários corrigidos (carregados condicionalmente) -->
-    <script>
-        // Carregar scripts utilitários apenas se não houver erros
-        window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if (!window.hasScriptErrors) {
-                    const utilityScripts = [
-                        'js/utils/cache.js',
-                        'js/utils/sw-manager.js',
-                        'js/utils/performance-monitor.js',
-                        'js/utils/lazy-loader.js',
-                        'js/utils/api-resilience.js'
-                    ];
-                    
-                    utilityScripts.forEach(src => {
-                        try {
-                            const script = document.createElement('script');
-                            script.src = src;
-                            script.onerror = () => console.warn('Erro ao carregar:', src);
-                            document.head.appendChild(script);
-                        } catch (error) {
-                            console.warn('Erro ao adicionar script:', src, error);
-                        }
-                    });
-                }
-            }, 2000); // Aguardar 2 segundos após o login
-        });
-    </script>
+    <script src="js/utils/cache.js"></script>
+    <script src="js/utils/sw-manager.js"></script>
+    <script src="js/utils/performance-monitor.js"></script>
+    <script src="js/utils/lazy-loader.js"></script>
+    <script src="js/utils/error-monitor.js"></script>
+    <script src="js/utils/api-resilience.js"></script>
+
+    <!-- Sistemas de Usabilidade e Performance -->
+    <script src="js/utils/keyboard-shortcuts.js"></script>
+    <script src="js/utils/skeleton-loader.js"></script>
+    <script src="js/utils/virtual-scroller.js"></script>
+    <script src="js/utils/intelligent-prefetcher.js"></script>
+    <script src="js/utils/micro-interactions.js"></script>
+    <script src="js/utils/theme-system.js"></script>
+    <script src="js/core/usability-enhancements.js"></script>
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+
+    <script type="module" src="js/modules/head.js"></script>
 </body>
 </html>

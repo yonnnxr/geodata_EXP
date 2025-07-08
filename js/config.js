@@ -106,9 +106,10 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 2, retryD
             if (!response.ok) {
                 if (response.status === 401) {
                     // Se o token expirou, tentar renovar
-                    const tokenRenewed = await refreshToken();
+                    const tokenRenewed = await refreshAccessToken();
                     if (tokenRenewed && i < maxRetries - 1) {
-                        continue; // Tentar novamente com o novo token
+                        // Repetir requisição com novo token
+                        continue;
                     }
                 }
                 const errorText = await response.text();
@@ -145,24 +146,27 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 2, retryD
     throw lastError;
 }
 
-async function refreshToken() {
+async function refreshAccessToken() {
     try {
+        const currentToken = localStorage.getItem('authToken');
+        if (!currentToken) return false;
+
         const response = await fetch(`${window.API_BASE_URL}/api/refresh-token`, {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${currentToken}`,
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                refreshToken: localStorage.getItem('refreshToken')
-            })
+            }
         });
 
         if (response.ok) {
             const data = await response.json();
-            localStorage.setItem('authToken', data.token);
-            return true;
+            if (data.access_token) {
+                localStorage.setItem('authToken', data.access_token);
+                console.log('[Auth] Token renovado com sucesso');
+                return true;
+            }
         }
-        
         return false;
     } catch (error) {
         console.error('Erro ao renovar token:', error);
