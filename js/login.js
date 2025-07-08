@@ -1,5 +1,11 @@
 console.log('Script de login carregado!');
 
+// Tratamento global de erros de scripts
+window.addEventListener('error', (event) => {
+    console.warn('Erro de script detectado:', event.filename, event.message);
+    window.hasScriptErrors = true;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('=== PÁGINA DE LOGIN CARREGADA ===');
     

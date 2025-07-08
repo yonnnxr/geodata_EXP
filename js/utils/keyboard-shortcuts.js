@@ -114,21 +114,30 @@ class KeyboardShortcuts {
     }
 
     normalizeKey(key) {
-        if (!key) return '';
+        // Verificação robusta para evitar erros
+        if (!key || typeof key !== 'string') {
+            console.debug('[KeyboardShortcuts] Key inválida recebida:', key);
+            return '';
+        }
 
-        // Normalizar teclas para consistência
-        const keyMap = {
-            ' ': 'Space',
-            'ArrowUp': 'Up',
-            'ArrowDown': 'Down',
-            'ArrowLeft': 'Left',
-            'ArrowRight': 'Right',
-            'Escape': 'Esc',
-            'Unidentified': '' // Alguns dispositivos podem retornar 'Unidentified'
-        };
-        
-        const mapped = keyMap[key] || key;
-        return typeof mapped === 'string' ? mapped.toLowerCase() : '';
+        try {
+            // Normalizar teclas para consistência
+            const keyMap = {
+                ' ': 'Space',
+                'ArrowUp': 'Up',
+                'ArrowDown': 'Down',
+                'ArrowLeft': 'Left',
+                'ArrowRight': 'Right',
+                'Escape': 'Esc',
+                'Unidentified': '' // Alguns dispositivos podem retornar 'Unidentified'
+            };
+            
+            const mapped = keyMap[key] || key;
+            return typeof mapped === 'string' ? mapped.toLowerCase() : '';
+        } catch (error) {
+            console.warn('[KeyboardShortcuts] Erro ao normalizar tecla:', key, error);
+            return '';
+        }
     }
 
     buildShortcutKey(key, modifiers) {

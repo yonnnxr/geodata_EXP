@@ -928,13 +928,23 @@ class MicroInteractions {
     triggerHapticFeedback(intensity = 'light') {
         if (!this.options.hapticFeedback || !this.hapticSupported) return;
         
-        const intensityMap = {
-            light: 10,
-            medium: 50,
-            heavy: 100
-        };
+        // Verificar se navigator.vibrate está disponível e permitido
+        if (!navigator.vibrate || typeof navigator.vibrate !== 'function') {
+            console.debug('[MicroInteractions] Vibração não suportada');
+            return;
+        }
         
-        navigator.vibrate(intensityMap[intensity] || 10);
+        try {
+            const intensityMap = {
+                light: 10,
+                medium: 50,
+                heavy: 100
+            };
+            
+            navigator.vibrate(intensityMap[intensity] || 10);
+        } catch (error) {
+            console.debug('[MicroInteractions] Erro ao ativar vibração:', error);
+        }
     }
 
     initAudioContext() {
