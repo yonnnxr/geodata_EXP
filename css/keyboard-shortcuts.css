@@ -1,0 +1,488 @@
+/* === Estilos para Sistema de Atalhos de Teclado === */
+
+/* Feedback visual de atalhos */
+.shortcut-feedback {
+    animation: shortcutFeedback 1s ease-out forwards;
+}
+
+@keyframes shortcutFeedback {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.8);
+    }
+}
+
+/* === Modal de Ajuda de Atalhos === */
+.keyboard-help-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.keyboard-help-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-content {
+    background: var(--surface-color, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    max-width: 700px;
+    max-height: 80vh;
+    width: 90%;
+    overflow: hidden;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.keyboard-help-modal.show .help-content {
+    transform: scale(1) translateY(0);
+}
+
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    background: var(--primary-color, #007bff);
+    color: white;
+}
+
+.help-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.close-help {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.close-help:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.help-body {
+    padding: 24px 32px;
+    max-height: 60vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-color, #ccc) transparent;
+}
+
+.help-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.help-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.help-body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-color, #ccc);
+    border-radius: 3px;
+}
+
+.shortcut-category {
+    margin-bottom: 32px;
+}
+
+.shortcut-category:last-child {
+    margin-bottom: 0;
+}
+
+.shortcut-category h3 {
+    color: var(--primary-color, #007bff);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary-color, #007bff);
+}
+
+.shortcuts-list {
+    display: grid;
+    gap: 12px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface-secondary, #f8f9fa);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.shortcut-item:hover {
+    background: var(--surface-hover, #e9ecef);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-keys {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.shortcut-keys kbd {
+    background: var(--kbd-bg, #ffffff);
+    border: 1px solid var(--kbd-border, #d0d7de);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    color: var(--kbd-color, #24292f);
+    font-family: var(--font-mono, 'Courier New', monospace);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 4px 6px;
+    text-transform: uppercase;
+    min-width: 20px;
+    text-align: center;
+}
+
+.shortcut-description {
+    color: var(--text-secondary, #6c757d);
+    font-size: 14px;
+    text-align: right;
+}
+
+.help-footer {
+    padding: 16px 32px;
+    background: var(--surface-secondary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    text-align: center;
+}
+
+.help-footer p {
+    margin: 0;
+    color: var(--text-muted, #6c757d);
+    font-size: 13px;
+}
+
+/* === Modal de Busca Rápida === */
+.quick-search-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.quick-search-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.search-content {
+    background: var(--surface-color, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 600px;
+    overflow: hidden;
+    transform: scale(0.95) translateY(-20px);
+    transition: transform 0.2s ease;
+}
+
+.quick-search-modal.show .search-content {
+    transform: scale(1) translateY(0);
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+#quick-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 18px;
+    color: var(--text-primary, #333);
+    background: transparent;
+    padding: 8px 0;
+}
+
+#quick-search-input::placeholder {
+    color: var(--text-muted, #6c757d);
+}
+
+.search-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted, #6c757d);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.search-close:hover {
+    background: var(--surface-hover, #f0f0f0);
+    color: var(--text-primary, #333);
+}
+
+.search-results {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.search-result-item:hover,
+.search-result-item.selected {
+    background: var(--surface-hover, #f8f9fa);
+    border-left-color: var(--primary-color, #007bff);
+}
+
+.result-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.result-text {
+    font-size: 16px;
+    color: var(--text-primary, #333);
+}
+
+.no-results {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-muted, #6c757d);
+    font-style: italic;
+}
+
+/* === Modo Debug === */
+.debug-mode {
+    position: relative;
+}
+
+.debug-mode::before {
+    content: "🐛 DEBUG MODE";
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #ff6b6b;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 9999;
+    animation: debugPulse 2s infinite;
+}
+
+@keyframes debugPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.debug-mode * {
+    outline: 1px solid rgba(255, 0, 0, 0.3) !important;
+}
+
+/* === Animação Rainbow (Easter Egg) === */
+@keyframes rainbow {
+    0% { filter: hue-rotate(0deg); }
+    25% { filter: hue-rotate(90deg); }
+    50% { filter: hue-rotate(180deg); }
+    75% { filter: hue-rotate(270deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+/* === Responsive Design === */
+@media (max-width: 768px) {
+    .help-content {
+        margin: 20px;
+        max-height: 90vh;
+    }
+    
+    .help-header,
+    .help-body,
+    .help-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    .shortcut-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .shortcut-description {
+        text-align: left;
+    }
+    
+    .search-content {
+        margin: 10px;
+        max-height: 80vh;
+    }
+    
+    .shortcut-keys {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .help-header h2 {
+        font-size: 20px;
+    }
+    
+    .shortcut-category h3 {
+        font-size: 16px;
+    }
+    
+    .shortcut-keys kbd {
+        font-size: 10px;
+        padding: 3px 5px;
+    }
+    
+    #quick-search-input {
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+}
+
+/* === Dark Mode Support === */
+@media (prefers-color-scheme: dark) {
+    .keyboard-help-modal {
+        background: rgba(0, 0, 0, 0.8);
+    }
+    
+    .help-content {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .help-header {
+        background: #1a202c;
+        border-bottom-color: #4a5568;
+    }
+    
+    .shortcut-item {
+        background: #4a5568;
+    }
+    
+    .shortcut-item:hover {
+        background: #718096;
+    }
+    
+    .shortcut-keys kbd {
+        background: #1a202c;
+        border-color: #718096;
+        color: #e2e8f0;
+    }
+    
+    .help-footer {
+        background: #4a5568;
+        border-top-color: #718096;
+    }
+    
+    .search-content {
+        background: #2d3748;
+    }
+    
+    .search-box {
+        border-bottom-color: #4a5568;
+    }
+    
+    #quick-search-input {
+        color: #e2e8f0;
+    }
+    
+    .search-result-item:hover,
+    .search-result-item.selected {
+        background: #4a5568;
+    }
+}
+
+/* === High Contrast Mode === */
+@media (prefers-contrast: high) {
+    .shortcut-item {
+        border: 2px solid var(--text-primary, #000);
+    }
+    
+    .shortcut-keys kbd {
+        border: 2px solid var(--text-primary, #000);
+        font-weight: bold;
+    }
+    
+    .search-result-item.selected {
+        outline: 3px solid var(--primary-color, #007bff);
+        outline-offset: -3px;
+    }
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+    .keyboard-help-modal,
+    .quick-search-modal,
+    .help-content,
+    .search-content,
+    .shortcut-item,
+    .shortcut-feedback {
+        transition: none;
+        animation: none;
+    }
+    
+    .debug-mode::before {
+        animation: none;
+    }
+} 

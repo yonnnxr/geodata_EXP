@@ -157,8 +157,8 @@ class PerformanceMonitor {
         this.metrics.resources[resource.type].push(resource);
         this.bufferMetric('resource', resource);
 
-        // Alertar para recursos lentos
-        if (resource.duration > 2000) {
+        // Alertar para recursos lentos (threshold aumentado)
+        if (resource.duration > 8000) { // Aumentado de 2s para 8s
             console.warn(`[Performance] Recurso lento detectado: ${resource.name} (${resource.duration}ms)`);
         }
     }

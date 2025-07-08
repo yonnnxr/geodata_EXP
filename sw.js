@@ -179,8 +179,9 @@ async function handleStaticAsset(request) {
         if (networkResponse.ok) {
             const responseClone = networkResponse.clone();
             
-            // Adicionar timestamp ao cache
-            const responseWithDate = new Response(responseClone.body, {
+            // Adicionar timestamp ao cache (com verificação de body)
+            const responseWithDate = new Response(
+                responseClone.status === 204 ? null : responseClone.body, {
                 status: responseClone.status,
                 statusText: responseClone.statusText,
                 headers: {
@@ -196,7 +197,8 @@ async function handleStaticAsset(request) {
     } catch (error) {
         console.log('[SW] Network failed, serving from cache:', error);
         const cache = await caches.open(STATIC_CACHE);
-        return cache.match(request) || createOfflineResponse();
+        const cachedResponse = await cache.match(request);
+        return cachedResponse || createOfflineResponse();
     }
 }
 

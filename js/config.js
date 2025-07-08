@@ -68,8 +68,8 @@ window.LAYER_CONFIGS = {
     }
 };
 
-// Função para fazer requisições com retry
-window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryDelay = 2000, timeout = 30000) {
+// Função para fazer requisições com retry (otimizada)
+window.fetchWithRetry = async function(url, options = {}, maxRetries = 2, retryDelay = 1500, timeout = 12000) {
     let lastError;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -127,11 +127,15 @@ window.fetchWithRetry = async function(url, options = {}, maxRetries = 3, retryD
             
             if (error.name === 'AbortError') {
                 console.warn('Requisição abortada por timeout');
+                // Não tentar novamente para AbortError se for o último retry
+                if (i === maxRetries - 1) {
+                    throw new Error('Serviço temporariamente indisponível. Tente novamente em alguns minutos.');
+                }
             }
             
             if (i < maxRetries - 1) {
-                // Aumenta o delay exponencialmente
-                const currentDelay = retryDelay * Math.pow(2, i);
+                // Delay linear mais rápido ao invés de exponencial
+                const currentDelay = retryDelay + (i * 500);
                 console.log(`Aguardando ${currentDelay}ms antes da próxima tentativa...`);
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
             }
@@ -188,9 +192,9 @@ if (typeof window.GOOGLE_MAPS_CONFIG === 'undefined') {
     window.GOOGLE_MAPS_CONFIG = GOOGLE_MAPS_CONFIG;
 }
 
-// Configurações de timeout para requisições
+// Configurações de timeout para requisições (otimizado)
 if (typeof window.API_TIMEOUT === 'undefined') {
-    const API_TIMEOUT = 60000; // 60 segundos
+    const API_TIMEOUT = 15000; // 15 segundos (reduzido)
     window.API_TIMEOUT = API_TIMEOUT;
 }
 
