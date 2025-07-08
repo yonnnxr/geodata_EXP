@@ -31,6 +31,13 @@ class KeyboardShortcuts {
     init() {
         if (!this.options.enabled) return;
 
+        if (window.disableKeyboardShortcuts) {
+            console.info('[KeyboardShortcuts] Desativado por configuração global.');
+            // Exportar stub vazio para evitar erros
+            window.KeyboardShortcuts = class { constructor() {} };
+            return;
+        }
+
         this.setupEventListeners();
         this.registerDefaultShortcuts();
         this.createHelpModal();

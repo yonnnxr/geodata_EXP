@@ -2,6 +2,8 @@
 (function() {
     'use strict';
     
+    if (typeof window !== 'undefined') { window.disableKeyboardShortcuts = true; }
+
     console.log('🔐 Carregando sistema de autenticação ultra-simples...');
     
     // Funções básicas de autenticação
