@@ -114,6 +114,8 @@ class KeyboardShortcuts {
     }
 
     normalizeKey(key) {
+        if (!key) return '';
+
         // Normalizar teclas para consistência
         const keyMap = {
             ' ': 'Space',
@@ -121,10 +123,12 @@ class KeyboardShortcuts {
             'ArrowDown': 'Down',
             'ArrowLeft': 'Left',
             'ArrowRight': 'Right',
-            'Escape': 'Esc'
+            'Escape': 'Esc',
+            'Unidentified': '' // Alguns dispositivos podem retornar 'Unidentified'
         };
         
-        return keyMap[key] || key.toLowerCase();
+        const mapped = keyMap[key] || key;
+        return typeof mapped === 'string' ? mapped.toLowerCase() : '';
     }
 
     buildShortcutKey(key, modifiers) {
@@ -135,7 +139,7 @@ class KeyboardShortcuts {
         if (modifiers.shift) parts.push('shift');
         if (modifiers.meta) parts.push('meta');
         
-        parts.push(key);
+        if (key) parts.push(key);
         
         return parts.join('+');
     }
@@ -149,11 +153,10 @@ class KeyboardShortcuts {
     isGlobalShortcut(event) {
         // Atalhos que funcionam mesmo em inputs
         const globalShortcuts = ['f1', 'ctrl+/', 'esc', 'ctrl+k'];
-        const key = this.buildShortcutKey(
-            this.normalizeKey(event.key),
-            this.modifierKeys
-        );
+        const normalized = this.normalizeKey(event.key);
+        if (!normalized) return false;
         
+        const key = this.buildShortcutKey(normalized, this.modifierKeys);
         return globalShortcuts.includes(key);
     }
 

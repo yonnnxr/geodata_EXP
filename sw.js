@@ -158,6 +158,11 @@ self.addEventListener('sync', event => {
 
 // Cache-first para recursos estáticos
 async function handleStaticAsset(request) {
+    // Cache apenas requisições GET; outras (POST, HEAD, etc.) são retornadas diretamente
+    if (request.method !== 'GET') {
+        return fetch(request);
+    }
+
     try {
         const cache = await caches.open(STATIC_CACHE);
         const cachedResponse = await cache.match(request);
@@ -179,16 +184,18 @@ async function handleStaticAsset(request) {
         if (networkResponse.ok) {
             const responseClone = networkResponse.clone();
             
-            // Adicionar timestamp ao cache (com verificação de body)
+            // Adicionar timestamp ao cache (tratamento de corpo nulo)
             const responseWithDate = new Response(
-                responseClone.status === 204 ? null : responseClone.body, {
-                status: responseClone.status,
-                statusText: responseClone.statusText,
-                headers: {
-                    ...Object.fromEntries(responseClone.headers.entries()),
-                    'sw-cache-date': new Date().toISOString()
+                responseClone.body ? responseClone.body : null,
+                {
+                    status: responseClone.status,
+                    statusText: responseClone.statusText,
+                    headers: {
+                        ...Object.fromEntries(responseClone.headers.entries()),
+                        'sw-cache-date': new Date().toISOString()
+                    }
                 }
-            });
+            );
             
             cache.put(request, responseWithDate);
         }
