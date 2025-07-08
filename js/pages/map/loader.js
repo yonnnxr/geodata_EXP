@@ -78,10 +78,11 @@ export async function loadLayerData(layer, page, userCity, token) {
     const perPage = isEconomia ? ECONOMIA_PAGE_SIZE : 0;
     const description = window.LAYER_CONFIGS?.[layer.type]?.description ?? layer.type;
 
-    console.log(`loadLayerData: ${layer.type} page=${page}`);
+    console.log(`loadLayerData: ${layer.type} page=${page}, userCity=${userCity}, isEconomia=${isEconomia}`);
     updateLoadingProgress(layer.type, page, null, description);
 
     const url = `${window.API_BASE_URL}/api/geodata/${userCity}/map?type=${layer.type}&page=${page}&per_page=${perPage}`;
+    console.log(`Fazendo requisição para: ${url}`);
 
     const response = await window.fetchWithRetry(url, {
       headers: {
@@ -90,15 +91,38 @@ export async function loadLayerData(layer, page, userCity, token) {
       }
     }, 3, 2_000, 60_000);
 
+    console.log(`Resposta recebida - Status: ${response.status}`);
+
     if (!response.ok) {
-      if (response.status === 401) return handleAuthError();
-      console.error('Erro na resposta', response.status, await response.text());
+      if (response.status === 401) {
+        console.error('Erro 401 - Token inválido ou expirado');
+        return handleAuthError();
+      }
+      const errorText = await response.text();
+      console.error('Erro na resposta', response.status, errorText);
+      if (typeof window.showError === 'function') {
+        window.showError(`Erro ao carregar ${description}: ${response.status} - ${errorText}`);
+      }
       return;
     }
 
     const data = await response.json();
+    console.log(`Dados recebidos para ${layer.type}:`, {
+      features: data?.features?.length || 0,
+      metadata: data?.metadata,
+      hasMore: data?.metadata?.has_more
+    });
+
     if (!data?.features) {
-      console.warn('Resposta sem features');
+      console.warn('Resposta sem features para', layer.type);
+      if (typeof window.showWarning === 'function') {
+        window.showWarning(`Nenhum dado encontrado para ${description}`);
+      }
+      return;
+    }
+
+    if (data.features.length === 0) {
+      console.warn(`Nenhuma feature encontrada para ${layer.type} na página ${page}`);
       return;
     }
 
@@ -108,20 +132,28 @@ export async function loadLayerData(layer, page, userCity, token) {
       updateLoadingProgress(layer.type, processedFeatures.toLocaleString(), totalFeatures.toLocaleString(), description);
     }
 
+    console.log(`Processando ${data.features.length} features para ${layer.type}`);
     await processFeatures(data.features, layer.type, data.metadata);
 
     if (page === 1) updateLayerControl(layer.type, data.metadata?.description ?? description);
 
     if (data.metadata?.has_more) {
+      console.log(`Há mais dados para ${layer.type}, carregando página ${page + 1}`);
       await loadLayerData(layer, page + 1, userCity, token);
+    } else {
+      console.log(`Carregamento completo para ${layer.type}`);
     }
 
     if (isEconomia) {
       currentEconomiaPage = page;
       hasMoreEconomias = data.metadata?.has_more ?? false;
+      console.log(`Estado das economias - Página atual: ${currentEconomiaPage}, Há mais: ${hasMoreEconomias}`);
     }
   } catch (err) {
-    console.error('loadLayerData error', err);
+    console.error('loadLayerData error para', layer.type, err);
+    if (typeof window.showError === 'function') {
+      window.showError(`Erro ao carregar ${layer.type}: ${err.message}`);
+    }
     throw err;
   }
 }

@@ -122,9 +122,48 @@ function setupSidebar() {
   const toggleRedes = document.getElementById('toggleRedes');
   const toggleEconomias = document.getElementById('toggleEconomias');
   const toggleOcorrencias = document.getElementById('toggleOcorrencias');
-  toggleRedes?.addEventListener('change', e => { const g = window.layerGroups?.['file']; g && (e.target.checked ? window.map.addLayer(g) : window.map.removeLayer(g)); });
-  toggleEconomias?.addEventListener('change', e => { const g = window.layerGroups?.['file-1']; g && (e.target.checked ? window.map.addLayer(g) : window.map.removeLayer(g)); });
-  toggleOcorrencias?.addEventListener('change', e => { const g = window.layerGroups?.['file-2']; g && (e.target.checked ? window.map.addLayer(g) : window.map.removeLayer(g)); });
+  
+  toggleRedes?.addEventListener('change', e => { 
+    const g = window.layerGroups?.['file']; 
+    console.log('Toggle Redes:', e.target.checked, 'LayerGroup:', g);
+    if (g) {
+      if (e.target.checked) {
+        window.map.addLayer(g);
+        console.log('Rede adicionada ao mapa');
+      } else {
+        window.map.removeLayer(g);
+        console.log('Rede removida do mapa');
+      }
+    }
+  });
+  
+  toggleEconomias?.addEventListener('change', e => { 
+    const g = window.layerGroups?.['file-1']; 
+    console.log('Toggle Economias:', e.target.checked, 'LayerGroup:', g, 'Layers count:', g?._layers ? Object.keys(g._layers).length : 0);
+    if (g) {
+      if (e.target.checked) {
+        window.map.addLayer(g);
+        console.log('Economias adicionadas ao mapa');
+      } else {
+        window.map.removeLayer(g);
+        console.log('Economias removidas do mapa');
+      }
+    }
+  });
+  
+  toggleOcorrencias?.addEventListener('change', e => { 
+    const g = window.layerGroups?.['file-2']; 
+    console.log('Toggle Ocorrências:', e.target.checked, 'LayerGroup:', g);
+    if (g) {
+      if (e.target.checked) {
+        window.map.addLayer(g);
+        console.log('Ocorrências adicionadas ao mapa');
+      } else {
+        window.map.removeLayer(g);
+        console.log('Ocorrências removidas do mapa');
+      }
+    }
+  });
 
   // Filtros
   ['filterConsumo','filterStatus','filterTipoOcorrencia','filterPrioridade'].forEach(id => document.getElementById(id)?.addEventListener('change', applyFilters));

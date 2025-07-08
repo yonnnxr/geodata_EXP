@@ -6,7 +6,11 @@
     .back-button span{display:none;}
     .message-box{width:90%;font-size:13px;}
     .loading-message{width:80%;padding:12px 20px;font-size:14px;}
-    .leaflet-control-zoom{margin-bottom:60px!important;}
+    .leaflet-control-zoom{
+        top: 70px!important;
+        right: 10px!important;
+        left: auto!important;
+    }
     .leaflet-control-attribution{font-size:10px!important;}
     .search-box{flex-direction:column;}
     .search-box button{width:100%;}

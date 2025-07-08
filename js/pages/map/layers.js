@@ -234,7 +234,20 @@ export async function processFeatures(features, layerType, metadata) {
         }
         if (addBatchSize < allLayers.length) await new Promise(r => setTimeout(r, 10));
       }
-      if (!window.map.hasLayer(layerGroup)) window.map.addLayer(layerGroup);
+      
+      console.log(`Camada ${layerType} processada:`, {
+        totalLayers: allLayers.length,
+        layerGroupExists: !!layerGroup,
+        isOnMap: window.map.hasLayer(layerGroup),
+        layerGroupType: layerGroup.constructor.name
+      });
+      
+      if (!window.map.hasLayer(layerGroup)) {
+        window.map.addLayer(layerGroup);
+        console.log(`Camada ${layerType} adicionada ao mapa`);
+      }
+    } else {
+      console.error(`Layer group não encontrado para ${layerType}`);
     }
   } catch (err) {
     console.error('processFeatures error:', err);

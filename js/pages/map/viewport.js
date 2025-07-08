@@ -49,6 +49,8 @@ export async function initializeLeafletMap() {
             })
         };
 
+        console.log('Layer groups inicializados:', window.layerGroups);
+
         // Alias para compatibilidade com scripts legacy
         window.markerClusters = window.layerGroups;
 

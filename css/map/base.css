@@ -38,7 +38,14 @@ body { position: relative; background: var(--background-color); color: var(--tex
 /* Leaflet tweaks */
 .leaflet-container { width: 100%; height: 100%; }
 .leaflet-control-container { z-index: 1000; }
-.leaflet-control-zoom { border: none!important; box-shadow: 0 2px 5px rgba(0,0,0,0.2)!important; }
+.leaflet-control-zoom { 
+    border: none!important; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2)!important;
+    position: absolute!important;
+    top: 70px!important;
+    right: 10px!important;
+    left: auto!important;
+}
 .leaflet-control-zoom a { background: #fff!important; color: var(--text-color)!important; border:none!important; transition: var(--transition)!important; }
 .leaflet-control-zoom a:hover{ background: var(--light-gray)!important; color: var(--primary-color)!important; }
 .leaflet-control-layers { border:none!important; border-radius: var(--border-radius)!important; box-shadow:0 2px 5px rgba(0,0,0,.2)!important; }
