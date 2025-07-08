@@ -147,19 +147,88 @@ function setupRealTimePreview() {
     const inputs = document.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('change', () => {
-            // Aqui você pode adicionar lógica para preview em tempo real
-            // Por exemplo, atualizar cores do mapa, tamanho dos pontos, etc.
-            console.log('Configuração alterada:', input.id, input.value);
+            // Usar debounce para evitar muitas atualizações
+            if (window.debounce) {
+                window.debounce(`preview-${input.id}`, () => {
+                    updatePreview(input.id, input.value);
+                }, 500);
+            } else {
+                updatePreview(input.id, input.value);
+            }
         });
+        
+        // Para inputs de range, usar input event com throttle
+        if (input.type === 'range') {
+            input.addEventListener('input', () => {
+                if (window.throttle) {
+                    window.throttle(`range-${input.id}`, () => {
+                        updatePreview(input.id, input.value);
+                    }, 100);
+                }
+            });
+        }
     });
 }
 
-function showSuccess(message) {
-    // TODO: Implementar notificação visual de sucesso
-    console.log(message);
+function updatePreview(inputId, value) {
+    // Implementar preview em tempo real baseado no input
+    console.log('Configuração alterada:', inputId, value);
+    
+    // Exemplos de preview em tempo real
+    switch(inputId) {
+        case 'networkColor':
+            updateColorPreview('network', value);
+            break;
+        case 'economyColor':
+            updateColorPreview('economy', value);
+            break;
+        case 'occurrenceColor':
+            updateColorPreview('occurrence', value);
+            break;
+        case 'pointSize':
+            updateSizePreview(value);
+            break;
+        default:
+            // Log para debug
+            console.log(`Preview para ${inputId} não implementado`);
+    }
+}
+
+function updateColorPreview(type, color) {
+    // Atualizar preview de cores na própria página se houver elementos visuais
+    const preview = document.querySelector(`[data-preview="${type}"]`);
+    if (preview) {
+        preview.style.backgroundColor = color;
+    }
+}
+
+function updateSizePreview(size) {
+    // Atualizar preview de tamanho
+    const preview = document.querySelector('[data-preview="point-size"]');
+    if (preview) {
+        preview.style.width = `${size * 2}px`;
+        preview.style.height = `${size * 2}px`;
+    }
 }
 
 function showError(message) {
-    // TODO: Implementar notificação visual de erro
-    console.error(message);
+    // Usar o sistema unificado de notificações se disponível
+    if (window.notifications) {
+        window.notifications.error(message);
+    } else {
+        // Fallback para console.error
+        console.error(message);
+        alert(message); // Fallback simples
+    }
+}
+
+function showSuccess(message) {
+    // Usar o sistema unificado de notificações se disponível
+    if (window.notifications) {
+        window.notifications.success(message);
+    } else {
+        // Fallback para console.log
+        console.log(message);
+        alert(message); // Fallback simples
+    }
 } 

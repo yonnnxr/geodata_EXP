@@ -1,0 +1,462 @@
+/* === Estilos para Lazy Loading === */
+
+/* Estados básicos das imagens */
+img[data-src], [data-bg] {
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Estado de carregamento */
+.lazy-loading {
+    opacity: 0.7;
+    filter: blur(2px);
+    background-color: #f0f0f0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Estado carregado */
+.lazy-loaded {
+    opacity: 1;
+    filter: none;
+}
+
+/* Estado de erro */
+.lazy-error {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    background-color: #ffebee;
+    position: relative;
+}
+
+/* Animação de shimmer para loading */
+.lazy-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: shimmer 1.5s infinite;
+    z-index: 1;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Placeholder para imagens com erro */
+.lazy-error::after {
+    content: '⚠️ Erro ao carregar imagem';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(244, 67, 54, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 2;
+}
+
+/* === Estilos Responsivos para Imagens === */
+
+/* Container responsivo para imagens */
+.responsive-image-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+/* Aspect ratios comuns */
+.aspect-16-9 {
+    padding-bottom: 56.25%; /* 16:9 */
+}
+
+.aspect-4-3 {
+    padding-bottom: 75%; /* 4:3 */
+}
+
+.aspect-1-1 {
+    padding-bottom: 100%; /* 1:1 */
+}
+
+.aspect-3-2 {
+    padding-bottom: 66.67%; /* 3:2 */
+}
+
+/* Imagem responsiva dentro do container */
+.responsive-image-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* === Progressive Enhancement === */
+
+/* Imagens com progressive loading */
+.progressive-image {
+    position: relative;
+    overflow: hidden;
+}
+
+.progressive-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.progressive-image .thumb {
+    filter: blur(5px);
+    transform: scale(1.05);
+    z-index: 1;
+}
+
+.progressive-image .full {
+    opacity: 0;
+    z-index: 2;
+    transition: opacity 0.5s ease;
+}
+
+.progressive-image.loaded .full {
+    opacity: 1;
+}
+
+/* === Background Images === */
+
+/* Lazy background images */
+[data-bg] {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #f0f0f0;
+}
+
+[data-bg].lazy-loading {
+    background-image: linear-gradient(
+        45deg,
+        #f0f0f0 25%,
+        transparent 25%,
+        transparent 75%,
+        #f0f0f0 75%,
+        #f0f0f0
+    ),
+    linear-gradient(
+        45deg,
+        #f0f0f0 25%,
+        transparent 25%,
+        transparent 75%,
+        #f0f0f0 75%,
+        #f0f0f0
+    );
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    animation: diagonal-move 2s linear infinite;
+}
+
+@keyframes diagonal-move {
+    0% {
+        background-position: 0 0, 10px 10px;
+    }
+    100% {
+        background-position: 20px 20px, 30px 30px;
+    }
+}
+
+/* === Utilities === */
+
+/* Fade in animation */
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide in animation */
+.slide-in {
+    animation: slideIn 0.7s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale in animation */
+.scale-in {
+    animation: scaleIn 0.6s ease forwards;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* === Image Gallery Styles === */
+
+.image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gallery-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+/* === Performance Optimizations === */
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .lazy-loading::before,
+    [data-bg].lazy-loading,
+    .fade-in,
+    .slide-in,
+    .scale-in {
+        animation: none;
+    }
+    
+    img[data-src], [data-bg],
+    .progressive-image .full {
+        transition: none;
+    }
+}
+
+/* === High DPI Displays === */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Estilos específicos para telas de alta densidade */
+    .lazy-loading::before {
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.6),
+            transparent
+        );
+    }
+}
+
+/* === Dark Mode Support === */
+@media (prefers-color-scheme: dark) {
+    .lazy-loading {
+        background-color: #2d3436;
+    }
+    
+    [data-bg].lazy-loading {
+        background-image: linear-gradient(
+            45deg,
+            #2d3436 25%,
+            transparent 25%,
+            transparent 75%,
+            #2d3436 75%,
+            #2d3436
+        ),
+        linear-gradient(
+            45deg,
+            #2d3436 25%,
+            transparent 25%,
+            transparent 75%,
+            #2d3436 75%,
+            #2d3436
+        );
+    }
+    
+    .lazy-error {
+        background-color: #2d3436;
+    }
+    
+    .lazy-error::after {
+        background: rgba(231, 76, 60, 0.9);
+    }
+}
+
+/* === Mobile Optimizations === */
+@media (max-width: 768px) {
+    .image-gallery {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        padding: 12px;
+    }
+    
+    .gallery-item img {
+        height: 150px;
+    }
+    
+    /* Reduced animations on mobile for performance */
+    .lazy-loading::before {
+        animation-duration: 2s;
+    }
+}
+
+/* === Print Styles === */
+@media print {
+    .lazy-loading::before,
+    [data-bg].lazy-loading {
+        animation: none;
+        background: none;
+    }
+    
+    .lazy-loading,
+    .lazy-loaded {
+        opacity: 1;
+        filter: none;
+    }
+    
+    /* Hide error states in print */
+    .lazy-error {
+        display: none;
+    }
+}
+
+/* === Specific Component Styles === */
+
+/* Avatar images */
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #e9ecef;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar.lazy-loading {
+    background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%);
+    background-size: 8px 8px;
+}
+
+/* Hero images */
+.hero-image {
+    width: 100%;
+    height: 400px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+@media (max-width: 768px) {
+    .hero-image {
+        height: 250px;
+    }
+}
+
+/* Thumbnail grid */
+.thumbnail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.thumbnail {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* === Accessibility === */
+
+/* Screen reader support */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus indicators */
+img[data-src]:focus,
+[data-bg]:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .lazy-loading {
+        border: 2px solid #000;
+    }
+    
+    .lazy-error {
+        border: 2px solid #d32f2f;
+    }
+} 

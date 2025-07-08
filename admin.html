@@ -6,6 +6,9 @@
     <title>SisGeti - Painel Administrativo</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/responsive-improvements.css">
+    <link rel="stylesheet" href="css/lazy-loading.css">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/png" href="img/favicon.png">
 </head>
@@ -275,6 +278,13 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/utils/notifications.js"></script>
+    <script src="js/utils/cache.js"></script>
+    <script src="js/utils/sw-manager.js"></script>
+    <script src="js/utils/performance-monitor.js"></script>
+    <script src="js/utils/lazy-loader.js"></script>
+    <script src="js/utils/error-monitor.js"></script>
+    <script src="js/core/auth.js"></script>
     <script src="js/config.js"></script>
     <script type="module" src="js/admin.js"></script>
     <script type="module" src="js/modules/head.js"></script>

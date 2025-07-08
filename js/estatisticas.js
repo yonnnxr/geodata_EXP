@@ -224,6 +224,23 @@ async function exportData() {
 }
 
 function showError(message) {
-    // TODO: Implementar notificação visual de erro
-    console.error(message);
+    // Usar o sistema unificado de notificações se disponível
+    if (window.notifications) {
+        window.notifications.error(message);
+    } else {
+        // Fallback para console.error
+        console.error(message);
+        alert(message); // Fallback simples
+    }
+}
+
+function showSuccess(message) {
+    // Usar o sistema unificado de notificações se disponível
+    if (window.notifications) {
+        window.notifications.success(message);
+    } else {
+        // Fallback para console.log
+        console.log(message);
+        alert(message); // Fallback simples
+    }
 } 

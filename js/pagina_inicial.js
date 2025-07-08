@@ -33,18 +33,92 @@ if (logoutBtn) {
     });
 }
 
-// Função para carregar estatísticas
+// Função para carregar estatísticas com cache
 async function loadStatistics() {
+    const userCity = localStorage.getItem('userCity')?.toLowerCase();
+    const cacheKey = `statistics:${userCity}`;
+    
     try {
-        const token = localStorage.getItem('authToken');
-        const userCity = localStorage.getItem('userCity')?.toLowerCase();
-
-        if (!token || !userCity) {
-            throw new Error('Dados de autenticação incompletos');
+        // Tentar buscar do cache primeiro
+        if (window.cache) {
+            const cachedData = await window.cache.get(cacheKey);
+            if (cachedData) {
+                console.log('Estatísticas carregadas do cache');
+                updateStatistics(cachedData);
+                
+                // Carregar dados atualizados em background
+                window.debounce('loadStats', () => loadStatisticsFromAPI(cacheKey), 1000);
+                return;
+            }
         }
+        
+        // Se não houver cache, carregar da API
+        await loadStatisticsFromAPI(cacheKey);
+        
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+        handleStatisticsError(error);
+    }
+}
 
-        console.log(`Carregando estatísticas para ${userCity}...`);
+// Carregar estatísticas da API
+async function loadStatisticsFromAPI(cacheKey) {
+    const token = localStorage.getItem('authToken');
+    const userCity = localStorage.getItem('userCity')?.toLowerCase();
 
+    if (!token || !userCity) {
+        throw new Error('Dados de autenticação incompletos');
+    }
+
+    console.log(`Carregando estatísticas para ${userCity}...`);
+    
+    // Mostrar loading se não houver dados em cache
+    if (window.loading && !(await window.cache?.get(cacheKey))) {
+        const loaderId = window.loading.show('Carregando estatísticas...');
+        
+        try {
+            const response = await window.fetchWithRetry(`${API_BASE_URL}/api/statistics/${userCity}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }, 3, 2000, 30000);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro na resposta:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+
+                if (response.status === 401) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                throw new Error(`Erro ao carregar estatísticas: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Dados recebidos:', data);
+            
+            // Salvar no cache com TTL de 2 minutos
+            if (window.cache) {
+                await window.cache.set(cacheKey, data, 2 * 60 * 1000);
+            }
+            
+            updateStatistics(data);
+            window.loading.hide(loaderId);
+            
+        } catch (error) {
+            window.loading.hide(loaderId);
+            throw error;
+        }
+    } else {
+        // Requisição sem loading se há dados em cache
         const response = await window.fetchWithRetry(`${API_BASE_URL}/api/statistics/${userCity}`, {
             method: 'GET',
             headers: {
@@ -52,53 +126,78 @@ async function loadStatistics() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
-        }, 3, 2000, 30000); // 3 tentativas, 2s delay inicial, 30s timeout
+        }, 3, 2000, 30000);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Erro na resposta:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorText
-            });
-
             if (response.status === 401) {
-                window.location.href = '/login.html';
+                window.location.href = 'login.html';
                 return;
             }
-
             throw new Error(`Erro ao carregar estatísticas: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Dados recebidos:', data);
-        updateStatistics(data);
-    } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
         
-        let errorMessage = 'Erro ao carregar estatísticas';
-        if (error.message.includes('401')) {
-            errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
-            setTimeout(() => window.location.href = '/login.html', 2000);
-        } else if (error.message.includes('503')) {
-            errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.';
-        } else if (error.name === 'AbortError') {
-            errorMessage = 'Tempo limite excedido. Verifique sua conexão e tente novamente.';
+        // Atualizar cache
+        if (window.cache) {
+            await window.cache.set(cacheKey, data, 2 * 60 * 1000);
         }
         
-        showError(errorMessage);
+        updateStatistics(data);
     }
+}
+
+// Tratar erros de estatísticas
+function handleStatisticsError(error) {
+    let errorMessage = 'Erro ao carregar estatísticas';
+    
+    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        errorMessage = 'Sessão expirada. Redirecionando para login...';
+        showError(errorMessage);
+        setTimeout(() => window.location.href = 'login.html', 2000);
+        return;
+    } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+        errorMessage = 'Acesso negado para esta cidade. Verifique suas permissões.';
+    } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+        errorMessage = 'Dados não encontrados para esta cidade. Contate o administrador.';
+    } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+        errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+    } else if (error.message.includes('503') || error.message.includes('Service Unavailable')) {
+        errorMessage = 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.';
+    } else if (error.message.includes('Network') || error.message.includes('fetch') || 
+              error.message.includes('Failed to fetch')) {
+        errorMessage = 'Problema de conexão. Verifique sua internet e tente novamente.';
+    } else if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        errorMessage = 'Tempo limite excedido. Verifique sua conexão e tente novamente.';
+    } else if (error.message.includes('incompletos')) {
+        errorMessage = 'Dados de autenticação incompletos. Fazendo login novamente...';
+        setTimeout(() => window.location.href = 'login.html', 2000);
+    }
+    
+    showError(errorMessage);
+    
+    // Mostrar dados padrão em caso de erro
+    if (totalRedesElement) totalRedesElement.textContent = 'N/A';
+    if (totalPontosElement) totalPontosElement.textContent = 'N/A';
+    if (totalExtensaoElement) totalExtensaoElement.textContent = 'N/A';
+}
 }
 
 // Função para mostrar erros
 function showError(message) {
-    const errorContainer = document.getElementById('errorContainer') || createErrorContainer();
-    errorContainer.innerHTML = `
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>Erro!</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+    // Usar o sistema unificado de notificações se disponível
+    if (window.notifications) {
+        window.notifications.error(message);
+    } else {
+        // Fallback para o sistema antigo
+        const errorContainer = document.getElementById('errorContainer') || createErrorContainer();
+        errorContainer.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Erro!</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+    }
 }
 
 // Função para criar container de erro

@@ -7,12 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageDiv = document.getElementById('error-message');
 
     function showError(message) {
-        errorMessageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
-        errorMessageDiv.style.display = 'flex';
-        errorMessageDiv.style.opacity = '0';
-        requestAnimationFrame(() => {
-            errorMessageDiv.style.opacity = '1';
-        });
+        // Usar o sistema unificado de notificações se disponível
+        if (window.notifications) {
+            window.notifications.error(message);
+        } else {
+            // Fallback para o sistema antigo
+            errorMessageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
+            errorMessageDiv.style.display = 'flex';
+            errorMessageDiv.style.opacity = '0';
+            requestAnimationFrame(() => {
+                errorMessageDiv.style.opacity = '1';
+            });
+        }
     }
 
     function hideError() {
@@ -146,7 +152,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Erro no login:', error);
-            showError(error.message || 'Usuário ou senha inválidos');
+            
+            // Mensagem mais amigável baseada no tipo de erro
+            let userFriendlyMessage = 'Erro interno. Tente novamente.';
+            
+            if (error.message.includes('401') || error.message.includes('Unauthorized') || 
+                error.message.includes('senha inválidos') || error.message.includes('Senha incorreta')) {
+                userFriendlyMessage = 'Usuário ou senha incorretos. Verifique suas credenciais.';
+                // Limpar o campo de senha para nova tentativa
+                password.value = '';
+                password.focus();
+            } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                userFriendlyMessage = 'Acesso negado. Verifique suas permissões.';
+            } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+                userFriendlyMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+            } else if (error.message.includes('Network') || error.message.includes('fetch') || 
+                      error.message.includes('Failed to fetch')) {
+                userFriendlyMessage = 'Problema de conexão. Verifique sua internet e tente novamente.';
+            } else if (error.message.includes('timeout') || error.name === 'AbortError') {
+                userFriendlyMessage = 'Tempo limite excedido. Tente novamente.';
+            } else if (error.message.includes('URL da API não configurada')) {
+                userFriendlyMessage = 'Configuração do sistema incompleta. Contate o suporte.';
+            } else if (error.message.includes('Token não retornado')) {
+                userFriendlyMessage = 'Erro na autenticação. Tente novamente.';
+            } else if (error.message.includes('localStorage')) {
+                userFriendlyMessage = 'Erro ao salvar dados. Verifique se cookies estão habilitados.';
+            }
+            
+            showError(userFriendlyMessage);
             
             // Restaurar botão
             submitButton.innerHTML = `<span class="button-text">${buttonText}</span><i class="fas fa-arrow-right"></i>`;
