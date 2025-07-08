@@ -204,14 +204,6 @@ O sistema inclui logs detalhados no console do navegador para facilitar o debug.
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-## 🏗️ Roadmap
-
-- [ ] Implementação de notificações em tempo real
-- [ ] Exportação de relatórios em PDF
-- [ ] Integração com mais provedores de mapas
-- [ ] Aplicativo mobile
-- [ ] API GraphQL
-
 ## 📞 Suporte
 
 Para suporte técnico ou dúvidas:
