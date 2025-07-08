@@ -28,10 +28,16 @@ class AuthManager {
 
         try {
             const tokenParts = token.split('.');
+
+            // Caso o token não seja um JWT, considerá-lo válido como token opaco
             if (tokenParts.length !== 3) {
-                if (showErrors) this.showAuthError('Formato de token inválido');
-                this.clearAuthData();
-                return false;
+                // Para tokens opacos, apenas verificar tamanho mínimo
+                if (token.length < 20) { // tamanho arbitrário para evitar strings muito curtas
+                    if (showErrors) this.showAuthError('Token inválido ou muito curto');
+                    this.clearAuthData();
+                    return false;
+                }
+                return true; // Token opaco aceito
             }
 
             const payload = JSON.parse(atob(tokenParts[1]));

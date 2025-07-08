@@ -41,10 +41,11 @@ class NotificationSystem {
                 margin-bottom: 10px;
                 padding: 16px;
                 position: relative;
-                transform: translateX(100%);
-                transition: all 0.3s ease;
+                transform: translateX(120%); /* inicia totalmente fora da tela */
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
                 pointer-events: auto;
                 border-left: 4px solid;
+                max-width: calc(100vw - 40px); /* nunca ultrapassar largura da viewport */
             }
 
             .notification.show {
