@@ -1,48 +1,37 @@
-console.log('Script carregado!');
+console.log('Script de login carregado!');
+
 document.addEventListener('DOMContentLoaded', () => {
-    // NÃO limpar dados antigos do localStorage ao entrar na página de login
-    // isso pode estar causando o problema se o usuário for redirecionado para cá
-    console.log('LocalStorage antes da limpeza:', {
-        authToken: localStorage.getItem('authToken'),
-        userType: localStorage.getItem('userType'),
-        userName: localStorage.getItem('userName'),
-        userCity: localStorage.getItem('userCity')
-    });
+    console.log('=== PÁGINA DE LOGIN CARREGADA ===');
     
-    // Só limpar se estivermos realmente fazendo login (não se for um redirect)
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromRedirect = urlParams.get('redirect') || document.referrer.includes('pagina_inicial') || document.referrer.includes('admin');
+    // Verificar se já está logado
+    const token = localStorage.getItem('authToken');
+    const userName = localStorage.getItem('userName');
     
-    if (!fromRedirect) {
-        localStorage.clear();
-        console.log('LocalStorage limpo (não é redirect)');
-    } else {
-        console.log('Mantendo localStorage (possível redirect)');
+    if (token && userName) {
+        console.log('Usuário já logado, redirecionando...');
+        const userType = localStorage.getItem('userType');
+        const redirectUrl = userType === 'admin' ? 'admin.html' : 'pagina_inicial.html';
+        window.location.replace(redirectUrl);
+        return;
     }
 
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
 
     function showError(message) {
-        // Usar o sistema unificado de notificações se disponível
         if (window.notifications) {
             window.notifications.error(message);
         } else {
-            // Fallback para o sistema antigo
             errorMessageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
             errorMessageDiv.style.display = 'flex';
-            errorMessageDiv.style.opacity = '0';
-            requestAnimationFrame(() => {
-                errorMessageDiv.style.opacity = '1';
-            });
+            errorMessageDiv.style.opacity = '1';
         }
     }
 
     function hideError() {
-        errorMessageDiv.style.opacity = '0';
-        setTimeout(() => {
+        if (errorMessageDiv) {
             errorMessageDiv.style.display = 'none';
-        }, 300);
+        }
     }
 
     function togglePassword() {
@@ -64,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         hideError();
 
-        const username = document.getElementById('username');
-        const password = document.getElementById('password');
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
         const submitButton = loginForm.querySelector('button[type="submit"]');
 
         if (!username || !password) {
@@ -73,178 +62,119 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const usernameValue = username.value.trim();
-        const passwordValue = password.value;
-
-        if (!usernameValue || !passwordValue) {
-            showError('Por favor, preencha todos os campos');
-            return;
-        }
-
-        // Adicionar classe de submitting para mostrar loading
-        loginForm.classList.add('submitting');
-        const buttonText = submitButton.querySelector('.button-text').textContent;
+        // Mostrar loading
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
         submitButton.disabled = true;
 
         try {
-            if (!window.API_BASE_URL) {
-                throw new Error('URL da API não configurada');
-            }
-
-            console.log('Tentando login na URL:', `${window.API_BASE_URL}/api/login`);
+            console.log('=== INICIANDO LOGIN ===');
+            console.log('URL da API:', window.API_BASE_URL);
             
-            const response = await window.fetchWithRetry(`${window.API_BASE_URL}/api/login`, {
+            const response = await fetch(`${window.API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Origin': window.location.origin
+                    'Accept': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({ 
-                    username: usernameValue, 
-                    password: passwordValue,
-                    client_type: 'web'
+                    username: username, 
+                    password: password
                 })
             });
 
+            console.log('Status da resposta:', response.status);
+
             if (!response.ok) {
-                throw new Error(`Erro no servidor: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Erro na resposta:', errorText);
+                throw new Error(`Erro ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
-            
-            // Log para debug
-            console.log('Resposta do servidor:', data);
+            console.log('Dados recebidos do servidor:', {
+                hasToken: !!data.access_token,
+                userType: data.user_type,
+                userName: data.name,
+                userCity: data.city
+            });
 
-            // Validar dados retornados
             if (!data.access_token) {
-                throw new Error('Token não retornado pelo servidor');
+                throw new Error('Token não recebido do servidor');
             }
 
-            // Se a cidade não estiver definida, usar um valor padrão para teste
-            const userCity = data.city || 'dourados';
-            console.log('Cidade definida:', userCity);
-
-            // Limpar localStorage antes de salvar novos dados
+            // Limpar localStorage completamente
             localStorage.clear();
-            console.log('LocalStorage limpo antes de salvar novos dados');
-
-            // Salvar dados no localStorage
-            try {
-                localStorage.setItem('authToken', data.access_token);
-                console.log('Token armazenado:', data.access_token.substring(0, 20) + '...');
-                
-                localStorage.setItem('userType', data.user_type || 'user');
-                console.log('Tipo de usuário armazenado:', data.user_type);
-                
-                localStorage.setItem('userName', data.name || usernameValue);
-                console.log('Nome do usuário armazenado:', data.name || usernameValue);
-                
-                localStorage.setItem('userCity', userCity);
-                console.log('Cidade armazenada:', userCity);
-
-                // Aguardar um pouco para garantir que o localStorage foi salvo
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                // Verificar se os dados foram salvos corretamente
-                const savedToken = localStorage.getItem('authToken');
-                const savedType = localStorage.getItem('userType');
-                const savedName = localStorage.getItem('userName');
-                const savedCity = localStorage.getItem('userCity');
-
-                console.log('Verificação dos dados salvos:', {
-                    hasToken: !!savedToken,
-                    tokenLength: savedToken ? savedToken.length : 0,
-                    userType: savedType,
-                    userName: savedName,
-                    userCity: savedCity
-                });
-
-                if (!savedToken || !savedName) {
-                    throw new Error('Falha ao salvar dados críticos no localStorage');
-                }
-
-                console.log('Dados essenciais salvos com sucesso no localStorage');
-                
-                // Testar se a autenticação funciona
-                if (window.authUtils && window.authUtils.checkAuth) {
-                    const authValid = window.authUtils.checkAuth(false);
-                    console.log('Teste de autenticação após login:', authValid);
-                }
-                
-            } catch (storageError) {
-                console.error('Erro ao salvar dados:', storageError);
-                throw new Error('Falha ao salvar dados de autenticação: ' + storageError.message);
-            }
-
-            // Adicionar animação de sucesso antes de redirecionar
-            submitButton.innerHTML = '<i class="fas fa-check"></i>';
-            submitButton.style.background = 'var(--success-color)';
             
-            // Aguardar um pouco mais antes de redirecionar
+            // Salvar dados essenciais
+            localStorage.setItem('authToken', data.access_token);
+            localStorage.setItem('userName', data.name || username);
+            localStorage.setItem('userType', data.user_type || 'user');
+            localStorage.setItem('userCity', data.city || 'dourados');
+
+            console.log('=== DADOS SALVOS NO LOCALSTORAGE ===');
+            console.log('Token salvo:', !!localStorage.getItem('authToken'));
+            console.log('Nome salvo:', localStorage.getItem('userName'));
+            console.log('Tipo salvo:', localStorage.getItem('userType'));
+            console.log('Cidade salva:', localStorage.getItem('userCity'));
+
+            // Mostrar sucesso
+            submitButton.innerHTML = '<i class="fas fa-check"></i> Sucesso!';
+            submitButton.style.background = '#4CAF50';
+
+            // Redirecionar
             setTimeout(() => {
                 const redirectUrl = data.user_type === 'admin' ? 'admin.html' : 'pagina_inicial.html';
                 console.log('Redirecionando para:', redirectUrl);
-                
-                // Usar replace para evitar voltar ao login pelo botão voltar
                 window.location.replace(redirectUrl);
-            }, 1500); // Aumentado para 1.5 segundos
+            }, 1000);
 
         } catch (error) {
-            console.error('Erro no login:', error);
+            console.error('=== ERRO NO LOGIN ===');
+            console.error('Erro completo:', error);
             
-            // Mensagem mais amigável baseada no tipo de erro
-            let userFriendlyMessage = 'Erro interno. Tente novamente.';
+            let errorMessage = 'Erro interno. Tente novamente.';
             
-            if (error.message.includes('401') || error.message.includes('Unauthorized') || 
-                error.message.includes('senha inválidos') || error.message.includes('Senha incorreta')) {
-                userFriendlyMessage = 'Usuário ou senha incorretos. Verifique suas credenciais.';
-                // Limpar o campo de senha para nova tentativa
-                password.value = '';
-                password.focus();
-            } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-                userFriendlyMessage = 'Acesso negado. Verifique suas permissões.';
-            } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
-                userFriendlyMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
-            } else if (error.message.includes('Network') || error.message.includes('fetch') || 
-                      error.message.includes('Failed to fetch')) {
-                userFriendlyMessage = 'Problema de conexão. Verifique sua internet e tente novamente.';
-            } else if (error.message.includes('timeout') || error.name === 'AbortError') {
-                userFriendlyMessage = 'Tempo limite excedido. Tente novamente.';
-            } else if (error.message.includes('URL da API não configurada')) {
-                userFriendlyMessage = 'Configuração do sistema incompleta. Contate o suporte.';
-            } else if (error.message.includes('Token não retornado')) {
-                userFriendlyMessage = 'Erro na autenticação. Tente novamente.';
-            } else if (error.message.includes('localStorage')) {
-                userFriendlyMessage = 'Erro ao salvar dados. Verifique se cookies estão habilitados.';
+            if (error.message.includes('401')) {
+                errorMessage = 'Usuário ou senha incorretos.';
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+                errorMessage = 'Problema de conexão. Verifique sua internet.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
             }
             
-            showError(userFriendlyMessage);
+            showError(errorMessage);
             
             // Restaurar botão
-            submitButton.innerHTML = `<span class="button-text">${buttonText}</span><i class="fas fa-arrow-right"></i>`;
-            loginForm.classList.remove('submitting');
+            submitButton.innerHTML = originalText;
+            submitButton.style.background = '';
             submitButton.disabled = false;
         }
     }
 
     // Event Listeners
-    loginForm.addEventListener('submit', handleSubmit);
-    document.getElementById('username').addEventListener('input', hideError);
-    document.getElementById('password').addEventListener('input', hideError);
-    document.querySelector('.toggle-password').addEventListener('click', togglePassword);
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleSubmit);
+    }
+    
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.querySelector('.toggle-password');
+    
+    if (usernameInput) usernameInput.addEventListener('input', hideError);
+    if (passwordInput) passwordInput.addEventListener('input', hideError);
+    if (togglePasswordBtn) togglePasswordBtn.addEventListener('click', togglePassword);
 
-    // Adicionar funcionalidade de pressionar Enter
+    // Enter para navegar entre campos
     document.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             const activeElement = document.activeElement;
-            if (activeElement.tagName === 'INPUT') {
-                if (activeElement.id === 'username') {
-                    document.getElementById('password').focus();
-                } else if (activeElement.id === 'password') {
-                    handleSubmit(new Event('submit'));
-                }
+            if (activeElement.id === 'username') {
+                passwordInput.focus();
+            } else if (activeElement.id === 'password') {
+                handleSubmit(new Event('submit'));
             }
         }
     });

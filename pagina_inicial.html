@@ -99,15 +99,20 @@
       </footer>
     </div>
 
+    <!-- Scripts essenciais primeiro -->
+    <script src="js/core/auth.js"></script>
+    <script src="js/config.js"></script>
+    
+    <!-- Script principal da página -->
+    <script src="js/pagina_inicial.js"></script>
+    
+    <!-- Scripts utilitários (carregados por último) -->
     <script src="js/utils/notifications.js"></script>
     <script src="js/utils/cache.js"></script>
     <script src="js/utils/sw-manager.js"></script>
     <script src="js/utils/performance-monitor.js"></script>
     <script src="js/utils/lazy-loader.js"></script>
     <script src="js/utils/error-monitor.js"></script>
-    <script src="js/core/auth.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/pagina_inicial.js"></script>
     <script type="module" src="js/modules/head.js"></script>
   </body>
 </html>
