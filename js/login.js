@@ -1,7 +1,24 @@
 console.log('Script carregado!');
 document.addEventListener('DOMContentLoaded', () => {
-    // Limpar dados antigos do localStorage ao entrar na página de login
-    localStorage.clear();
+    // NÃO limpar dados antigos do localStorage ao entrar na página de login
+    // isso pode estar causando o problema se o usuário for redirecionado para cá
+    console.log('LocalStorage antes da limpeza:', {
+        authToken: localStorage.getItem('authToken'),
+        userType: localStorage.getItem('userType'),
+        userName: localStorage.getItem('userName'),
+        userCity: localStorage.getItem('userCity')
+    });
+    
+    // Só limpar se estivermos realmente fazendo login (não se for um redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromRedirect = urlParams.get('redirect') || document.referrer.includes('pagina_inicial') || document.referrer.includes('admin');
+    
+    if (!fromRedirect) {
+        localStorage.clear();
+        console.log('LocalStorage limpo (não é redirect)');
+    } else {
+        console.log('Mantendo localStorage (possível redirect)');
+    }
 
     const loginForm = document.getElementById('login-form');
     const errorMessageDiv = document.getElementById('error-message');
@@ -109,10 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const userCity = data.city || 'dourados';
             console.log('Cidade definida:', userCity);
 
+            // Limpar localStorage antes de salvar novos dados
+            localStorage.clear();
+            console.log('LocalStorage limpo antes de salvar novos dados');
+
             // Salvar dados no localStorage
             try {
                 localStorage.setItem('authToken', data.access_token);
-                console.log('Token armazenado:', data.access_token);
+                console.log('Token armazenado:', data.access_token.substring(0, 20) + '...');
                 
                 localStorage.setItem('userType', data.user_type || 'user');
                 console.log('Tipo de usuário armazenado:', data.user_type);
@@ -123,32 +144,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('userCity', userCity);
                 console.log('Cidade armazenada:', userCity);
 
+                // Aguardar um pouco para garantir que o localStorage foi salvo
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 // Verificar se os dados foram salvos corretamente
                 const savedToken = localStorage.getItem('authToken');
                 const savedType = localStorage.getItem('userType');
                 const savedName = localStorage.getItem('userName');
                 const savedCity = localStorage.getItem('userCity');
 
-                if (!savedToken || !savedType || !savedName || !savedCity) {
-                    throw new Error('Falha ao salvar dados no localStorage');
+                console.log('Verificação dos dados salvos:', {
+                    hasToken: !!savedToken,
+                    tokenLength: savedToken ? savedToken.length : 0,
+                    userType: savedType,
+                    userName: savedName,
+                    userCity: savedCity
+                });
+
+                if (!savedToken || !savedName) {
+                    throw new Error('Falha ao salvar dados críticos no localStorage');
                 }
 
-                console.log('Todos os dados foram salvos com sucesso no localStorage');
+                console.log('Dados essenciais salvos com sucesso no localStorage');
+                
+                // Testar se a autenticação funciona
+                if (window.authUtils && window.authUtils.checkAuth) {
+                    const authValid = window.authUtils.checkAuth(false);
+                    console.log('Teste de autenticação após login:', authValid);
+                }
+                
             } catch (storageError) {
                 console.error('Erro ao salvar dados:', storageError);
-                throw new Error('Falha ao salvar dados de autenticação');
+                throw new Error('Falha ao salvar dados de autenticação: ' + storageError.message);
             }
 
             // Adicionar animação de sucesso antes de redirecionar
             submitButton.innerHTML = '<i class="fas fa-check"></i>';
             submitButton.style.background = 'var(--success-color)';
             
-            // Redirecionar baseado no tipo de usuário após validar os dados
+            // Aguardar um pouco mais antes de redirecionar
             setTimeout(() => {
                 const redirectUrl = data.user_type === 'admin' ? 'admin.html' : 'pagina_inicial.html';
                 console.log('Redirecionando para:', redirectUrl);
+                
+                // Usar replace para evitar voltar ao login pelo botão voltar
                 window.location.replace(redirectUrl);
-            }, 1000);
+            }, 1500); // Aumentado para 1.5 segundos
 
         } catch (error) {
             console.error('Erro no login:', error);

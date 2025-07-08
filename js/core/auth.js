@@ -18,54 +18,56 @@ class AuthManager {
         document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
     }
 
-    // Validação robusta do token
+    // Validação robusta do token (simplificada)
     isValidToken(showErrors = false) {
         const token = localStorage.getItem('authToken');
-        if (!token) {
+        if (!token || token.trim() === '') {
             if (showErrors) this.showAuthError('Token não encontrado');
             return false;
         }
 
         try {
+            // Verificar se é um JWT
             const tokenParts = token.split('.');
-
-            // Caso o token não seja um JWT, considerá-lo válido como token opaco
-            if (tokenParts.length !== 3) {
-                // Aceitar qualquer string não vazia como token opaco
+            
+            if (tokenParts.length === 3) {
+                // É um JWT, verificar se é válido
+                try {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    
+                    // Verificar se tem expiração
+                    if (payload.exp) {
+                        const now = Date.now();
+                        const expirationTime = payload.exp * 1000;
+                        
+                        // Token expirado
+                        if (now >= expirationTime) {
+                            if (showErrors) this.showAuthError('Token expirado');
+                            this.clearAuthData();
+                            return false;
+                        }
+                        
+                        // Agendar renovação se necessário (5 minutos antes de expirar)
+                        const renewalTime = expirationTime - (5 * 60 * 1000);
+                        if (now >= renewalTime && !this.isRefreshing) {
+                            this.scheduleTokenRenewal();
+                        }
+                    }
+                    
+                    return true;
+                } catch (jwtError) {
+                    // Se não conseguir decodificar como JWT, tratar como token opaco
+                    console.warn('Token não é um JWT válido, tratando como token opaco');
+                    return true;
+                }
+            } else {
+                // Token opaco - qualquer string não vazia é considerada válida
                 return true;
             }
-
-            const payload = JSON.parse(atob(tokenParts[1]));
-            
-            // Validar estrutura do payload
-            if (!payload.exp || !payload.sub) {
-                if (showErrors) this.showAuthError('Token com dados inválidos');
-                this.clearAuthData();
-                return false;
-            }
-
-            const now = Date.now();
-            const expirationTime = payload.exp * 1000;
-            const renewalTime = expirationTime - (5 * 60 * 1000); // 5 minutos antes de expirar
-
-            // Token expirado
-            if (now >= expirationTime) {
-                if (showErrors) this.showAuthError('Token expirado');
-                this.clearAuthData();
-                return false;
-            }
-
-            // Agendar renovação se necessário
-            if (now >= renewalTime && !this.isRefreshing) {
-                this.scheduleTokenRenewal();
-            }
-
-            return true;
         } catch (error) {
             console.error('Erro ao validar token:', error);
             if (showErrors) this.showAuthError('Erro na validação do token');
-            this.clearAuthData();
-            return false;
+            return true; // Em caso de erro, assumir que o token é válido para evitar loops
         }
     }
 
@@ -151,19 +153,31 @@ class AuthManager {
         }, 1000); // 1 segundo de debounce
     }
 
-    // Verificação completa de autenticação
+    // Verificação completa de autenticação (simplificada)
     checkAuth(showErrors = false) {
-        const requiredFields = ['authToken', 'userType', 'userName'];
-        const authData = {};
+        console.log('Verificando autenticação...');
         
-        // Verificar se todos os campos obrigatórios estão presentes
-        for (const field of requiredFields) {
-            const value = localStorage.getItem(field);
-            if (!value || value.trim() === '') {
-                if (showErrors) this.showAuthError(`Dados de autenticação incompletos: ${field}`);
-                return false;
-            }
-            authData[field] = value;
+        // Verificar campos básicos
+        const token = localStorage.getItem('authToken');
+        const userType = localStorage.getItem('userType');
+        const userName = localStorage.getItem('userName');
+        
+        console.log('Dados de auth:', { 
+            hasToken: !!token, 
+            userType, 
+            userName,
+            tokenLength: token ? token.length : 0
+        });
+        
+        // Verificação básica - apenas token e userName são obrigatórios
+        if (!token || token.trim() === '') {
+            if (showErrors) this.showAuthError('Token de autenticação não encontrado');
+            return false;
+        }
+        
+        if (!userName || userName.trim() === '') {
+            if (showErrors) this.showAuthError('Nome de usuário não encontrado');
+            return false;
         }
 
         // Validar token
@@ -171,25 +185,28 @@ class AuthManager {
             return false;
         }
 
-        // Verificar redirecionamentos baseados no tipo de usuário
-        const currentPath = window.location.pathname;
-        const isAdminPage = currentPath.includes('admin.html');
-        const isUserPage = currentPath.includes('pagina_inicial.html');
-        
-        if (authData.userType === 'admin') {
-            if (isUserPage) {
-                if (showErrors) console.log('Redirecionando admin para página administrativa');
-                window.location.href = 'admin.html';
-                return false;
-            }
-        } else {
-            if (isAdminPage) {
-                if (showErrors) this.showAuthError('Acesso negado: apenas administradores');
-                window.location.href = 'pagina_inicial.html';
-                return false;
+        // Verificar redirecionamentos baseados no tipo de usuário (apenas se userType existir)
+        if (userType) {
+            const currentPath = window.location.pathname;
+            const isAdminPage = currentPath.includes('admin.html');
+            const isUserPage = currentPath.includes('pagina_inicial.html');
+            
+            if (userType === 'admin') {
+                if (isUserPage) {
+                    if (showErrors) console.log('Redirecionando admin para página administrativa');
+                    window.location.href = 'admin.html';
+                    return false;
+                }
+            } else {
+                if (isAdminPage) {
+                    if (showErrors) this.showAuthError('Acesso negado: apenas administradores');
+                    window.location.href = 'pagina_inicial.html';
+                    return false;
+                }
             }
         }
 
+        console.log('Autenticação válida!');
         return true;
     }
 

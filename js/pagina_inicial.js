@@ -11,24 +11,86 @@ const logoutBtn = document.getElementById('logoutBtn');
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    if (!window.authUtils.checkAuth()) {
+    console.log('=== PÁGINA INICIAL - VERIFICAÇÃO DE AUTENTICAÇÃO ===');
+    
+    // Log inicial do localStorage
+    console.log('Estado inicial do localStorage:', {
+        authToken: localStorage.getItem('authToken') ? 'PRESENTE' : 'AUSENTE',
+        tokenLength: localStorage.getItem('authToken') ? localStorage.getItem('authToken').length : 0,
+        userType: localStorage.getItem('userType'),
+        userName: localStorage.getItem('userName'),
+        userCity: localStorage.getItem('userCity')
+    });
+    
+    // Verificar se window.authUtils está disponível
+    if (!window.authUtils) {
+        console.error('window.authUtils não está disponível!');
+        console.log('Aguardando authUtils...');
+        // Aguardar um pouco para o auth.js carregar
+        setTimeout(() => {
+            if (window.authUtils) {
+                console.log('authUtils carregado, tentando novamente...');
+                checkAuthAndProceed();
+            } else {
+                console.error('authUtils ainda não disponível, redirecionando para login');
+                window.location.href = 'login.html';
+            }
+        }, 500);
+        return;
+    }
+    
+    checkAuthAndProceed();
+});
+
+function checkAuthAndProceed() {
+    console.log('Verificando autenticação...');
+    
+    // Fazer verificação manual primeiro
+    const token = localStorage.getItem('authToken');
+    const userName = localStorage.getItem('userName');
+    
+    if (!token || !userName) {
+        console.log('Dados básicos ausentes:', { hasToken: !!token, hasUserName: !!userName });
+        console.log('Redirecionando para login...');
         window.location.href = 'login.html';
         return;
     }
+    
+    console.log('Dados básicos presentes, chamando authUtils.checkAuth()...');
+    
+    try {
+        const authValid = window.authUtils.checkAuth();
+        console.log('Resultado de checkAuth():', authValid);
+        
+        if (!authValid) {
+            console.log('Autenticação falhou, redirecionando para login...');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        console.log('Autenticação bem-sucedida, carregando página...');
+        
+        // Atualizar informações do usuário
+        const userName = localStorage.getItem('userName');
+        const userCity = localStorage.getItem('userCity');
 
-    // Atualizar informações do usuário
-    const userName = localStorage.getItem('userName');
-    const userCity = localStorage.getItem('userCity');
+        console.log('Atualizando elementos da página:', { userName, userCity });
 
-    if (userNameElement) userNameElement.textContent = userName;
-    if (cityNameElement) cityNameElement.textContent = userCity;
+        if (userNameElement) userNameElement.textContent = userName;
+        if (cityNameElement) cityNameElement.textContent = userCity;
 
-    loadStatistics();
-});
+        loadStatistics();
+        
+    } catch (error) {
+        console.error('Erro durante verificação de autenticação:', error);
+        window.location.href = 'login.html';
+    }
+}
 
 // Configurar botão de logout
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
+        console.log('Logout solicitado');
         window.authUtils.logout();
     });
 }
