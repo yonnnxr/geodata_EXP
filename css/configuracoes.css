@@ -34,9 +34,9 @@
     font-weight: 500;
 }
 
-.form-group input[type="number"],
-.form-group input[type="text"],
-.form-group input[type="email"] {
+.settings-container .form-group input[type="number"],
+.settings-container .form-group input[type="text"],
+.settings-container .form-group input[type="email"] {
     width: 100%;
     padding: 0.8rem;
     border: 1px solid var(--border-color);
@@ -45,12 +45,12 @@
     transition: border-color 0.3s ease;
 }
 
-.form-group input[type="range"] {
+.settings-container .form-group input[type="range"] {
     width: 100%;
     margin: 0.5rem 0;
 }
 
-.form-group input[type="color"] {
+.settings-container .form-group input[type="color"] {
     width: 100%;
     height: 40px;
     padding: 0;
@@ -59,11 +59,11 @@
     cursor: pointer;
 }
 
-.form-group input[type="checkbox"] {
+.settings-container .form-group input[type="checkbox"] {
     margin-right: 0.5rem;
 }
 
-.form-group input:focus {
+.settings-container .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
 }
