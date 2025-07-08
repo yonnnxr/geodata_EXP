@@ -1,7 +1,5 @@
 # SisGeti - Sistema de Visualização de Dados Geográficos
 
-[![Deploy Jekyll with GitHub Pages](https://github.com/seu-usuario/sisgeti/actions/workflows/jekyll-gh-pages.yml/badge.svg)](https://github.com/seu-usuario/sisgeti/actions/workflows/jekyll-gh-pages.yml)
-
 SisGeti é um sistema web moderno para visualização e gerenciamento de dados geográficos, especialmente focado em redes de água, economias e ocorrências. O sistema oferece uma interface intuitiva para visualização de mapas interativos e gerenciamento administrativo.
 
 ## 🌟 Funcionalidades
